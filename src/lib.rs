@@ -18,6 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 use std::collections::VecDeque;
+use std::io::{self, Write};
 use std::ops::{Index, IndexMut, Neg};
 
 pub trait VarLit: Neg + PartialEq + Ord + Default + Copy {
@@ -25,6 +26,7 @@ pub trait VarLit: Neg + PartialEq + Ord + Default + Copy {
     fn is_empty(self) -> bool;
     fn empty() -> Self;
     fn positive(self) -> Self;
+    fn to_usize(self) -> usize;
 }
 
 macro_rules! impl_variable {
@@ -46,6 +48,11 @@ macro_rules! impl_variable {
             fn positive(self) -> Self {
                 self.abs()
             }
+            
+            #[inline]
+            fn to_usize(self) -> usize {
+                self as usize
+            }
         }
     };
 }
@@ -64,7 +71,7 @@ pub enum Literal<T: VarLit> {
 pub trait Clause<T = <Self as Index<usize>>::Output>: Index<usize> + IndexMut<usize>
 where
     T: VarLit + Default,
-    <Self as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
+    <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
     <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
 {
     fn clause_len(&self) -> usize;
@@ -72,11 +79,18 @@ where
     fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize
     where
         T: From<<Self as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
+        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
     {
         out.assign(self);
         out.simplify()
+    }
+    
+    fn check_clause(&self, var_num: usize) -> bool {
+        for i in 0..self.clause_len() {
+            if self[i].positive().to_usize() > var_num { return false; }
+        }
+        true
     }
 
     fn is_empty(&self) -> bool {
@@ -132,7 +146,7 @@ where
 pub trait ResizableClause<T = <Self as Index<usize>>::Output>: Clause<T>
 where
     T: VarLit + Default,
-    <Self as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
+    <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
     <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
 {
     fn shrink(&mut self, i: usize);
@@ -140,7 +154,7 @@ where
     fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C)
     where
         T: From<<C as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
+        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>;
 
     fn simplify(&mut self) -> usize {
@@ -181,7 +195,7 @@ where
     fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C)
     where
         T: From<<C as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
+        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
     {
         self.resize(src.clause_len(), T::empty());
@@ -190,6 +204,58 @@ where
         }
     }
 }
+
+pub struct CNFWriter<W: Write> {
+    writer: W,
+    buf: Vec<u8>,
+    header: Option<(usize, usize)>,
+    clause_count: usize,
+}
+
+const DEFAULT_BUF_CAPACITY: usize = 1024;
+
+impl<W: Write> CNFWriter<W> {
+    pub fn new(w: W) -> Self {
+        CNFWriter{
+            writer: w,
+            buf: Vec::with_capacity(DEFAULT_BUF_CAPACITY),
+            header: None,
+            clause_count: 0,
+        }
+    }
+    
+    pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> io::Result<()> {
+        self.header.expect("Header has already been written");
+        self.buf.clear();
+        self.buf.extend_from_slice(b"p cnf ");
+        itoap::write_to_vec(&mut self.buf, var_num);
+        self.buf.push(b' ');
+        itoap::write_to_vec(&mut self.buf, clause_num);
+        self.buf.push(b'\n');
+        self.writer.write(&self.buf)?;
+        self.header = Some((var_num, clause_num));
+        Ok(())
+    }
+    
+    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()> where
+        <C as Index<usize>>::Output: VarLit + PartialEq<T>,
+        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output> {
+        if let Some(header) = self.header {
+            if self.clause_count == header.1 {
+                panic!("Too many clauses");
+            }
+            if !clause.check_clause(header.0) {
+                panic!("Clause with variable number over range");
+            }
+            
+            self.clause_count += 1;
+            Ok(())
+        } else {
+            panic!("Header has already been written");
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
