@@ -184,7 +184,6 @@ where
         <C as Index<usize>>::Output: Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
     {
-        self.clear();
         self.resize(src.clause_len(), T::empty());
         for i in 0..src.clause_len() {
             self[i] = T::from(src[i]);
