@@ -1,8 +1,12 @@
 [package]
 name = "cnfgen"
+authors = ["Mateusz Szpakowski"]
+license = "LGPL-2.1-or-later"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Generate DIMACS CNF formulae from operations"
+keywords = ["cnf", "logic", "cnfgen", "SAT"]
+categories = ["science", "logic", "mathematics"]
 
 [dependencies]
+itoap = "1.0"
