@@ -23,6 +23,7 @@ use std::ops::{Index, IndexMut, Neg};
 pub trait VarLit: Neg + PartialEq + Ord + Default + Copy {
     fn to(self) -> isize;
     fn is_empty(self) -> bool;
+    fn empty() -> Self;
     fn positive(self) -> Self;
 }
 
@@ -36,6 +37,10 @@ macro_rules! impl_variable {
             #[inline]
             fn is_empty(self) -> bool {
                 self == 0
+            }
+            #[inline]
+            fn empty() -> Self {
+                0
             }
             #[inline]
             fn positive(self) -> Self {
@@ -79,7 +84,7 @@ where
             true
         } else {
             for i in 0..self.clause_len() {
-                if self[i] != T::default() {
+                if self[i] != T::empty() {
                     return false;
                 }
             }
@@ -144,7 +149,7 @@ where
         self.sort_abs();
         // and remove zeroes and duplicates
         for i in 0..self.clause_len() {
-            if (i <= 0 || self[i - 1] != self[i]) && self[i] != T::default() {
+            if (i <= 0 || self[i - 1] != self[i]) && self[i] != T::empty() {
                 // if no zero and if no this same literal
                 self[j] = self[i];
                 j += 1;
@@ -168,7 +173,7 @@ where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
 {
     fn shrink(&mut self, l: usize) {
-        self.resize(l, T::default());
+        self.resize(l, T::empty());
     }
     fn sort_abs(&mut self) {
         self.sort_by_key(|x| x.positive());
@@ -180,8 +185,9 @@ where
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
     {
         self.clear();
+        self.resize(src.clause_len(), T::empty());
         for i in 0..src.clause_len() {
-            self.push(T::from(src[i]));
+            self[i] = T::from(src[i]);
         }
     }
 }
