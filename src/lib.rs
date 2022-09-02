@@ -108,7 +108,7 @@ where
                 && x.positive()
                     .expect("Literal in clause is too big")
                     .to_usize()
-                    < var_num
+                    <= var_num
         })
     }
 }
@@ -402,7 +402,7 @@ where
     fn quant_for_each<F: FnMut(&T)>(&self, f: F);
 
     fn check(&self, var_num: usize) -> bool {
-        self.quant_all(|x| *x > T::empty() && x.to_usize() < var_num)
+        self.quant_all(|x| *x > T::empty() && x.to_usize() <= var_num)
     }
 }
 
