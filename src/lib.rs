@@ -78,6 +78,8 @@ where
     <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize;
+    // fn all(&self) -> bool;
+    // fn for_each(&self);
 
     fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
@@ -159,7 +161,13 @@ where
 {
     fn shrink(&mut self, i: usize);
     fn sort_abs(&mut self);
-    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C);
+    fn assign<U, C>(&mut self, src: &C)
+    where
+        U: VarLit + Neg<Output = U>,
+        C: Clause<U> + ?Sized,
+        <U as TryInto<usize>>::Error: Debug,
+        T: TryFrom<U>,
+        <T as TryFrom<U>>::Error: Debug;
 
     fn simplify(&mut self) -> usize {
         let mut j = 0;
@@ -197,10 +205,17 @@ where
     fn sort_abs(&mut self) {
         self.sort_by_key(|x| x.positive());
     }
-    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C) {
+    fn assign<U, C>(&mut self, src: &C)
+    where
+        U: VarLit + Neg<Output = U>,
+        C: Clause<U> + ?Sized,
+        <U as TryInto<usize>>::Error: Debug,
+        T: TryFrom<U>,
+        <T as TryFrom<U>>::Error: Debug,
+    {
         self.resize(src.clause_len(), T::empty());
         for i in 0..src.clause_len() {
-            self[i] = T::from(src[i]);
+            self[i] = T::try_from(src[i]).unwrap();
         }
     }
 }
