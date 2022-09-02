@@ -391,6 +391,56 @@ where
     }
 }
 
+pub trait QuantSet<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn quant_len(&self) -> usize;
+    fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
+    fn quant_for_each<F: FnMut(&T)>(&self, f: F);
+
+    fn check(&self, var_num: usize) -> bool {
+        self.quant_all(|x| x.to_usize() > var_num)
+    }
+}
+
+macro_rules! impl_quant_set {
+    ($Ty:ty) => {
+        impl<T> QuantSet<T> for $Ty
+        where
+            T: VarLit,
+            <T as TryInto<usize>>::Error: Debug,
+        {
+            fn quant_len(&self) -> usize {
+                self.len()
+            }
+
+            fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+                self.iter().all(f)
+            }
+
+            fn quant_for_each<F: FnMut(&T)>(&self, f: F) {
+                self.iter().for_each(f);
+            }
+        }
+    };
+}
+
+impl_quant_set!([T]);
+impl_quant_set!(Vec<T>);
+impl_quant_set!(VecDeque<T>);
+impl_quant_set!(BTreeSet<T>);
+impl_quant_set!(BinaryHeap<T>);
+impl_quant_set!(HashSet<T>);
+impl_quant_set!(LinkedList<T>);
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Quantifier {
+    Exists,
+    ForAll,
+}
+
 #[derive(Clone, Copy, Default, Debug)]
 pub struct CNFHeader {
     pub var_num: usize,
@@ -441,6 +491,35 @@ impl<W: Write> CNFWriter<W> {
         Ok(())
     }
 
+    pub fn write_quant<T: VarLit, Q: QuantSet<T>>(
+        &mut self,
+        q: Quantifier,
+        qs: &Q,
+    ) -> io::Result<()>
+    where
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        if let Some(ref header) = self.header {
+            if !qs.check(header.var_num) {
+                panic!("Quantifier set with variable number over range");
+            }
+            self.buf.clear();
+            self.buf.extend(if q == Quantifier::Exists {
+                b"e "
+            } else {
+                b"a "
+            });
+            qs.quant_for_each(|x| {
+                x.write_to_vec(&mut self.buf);
+                self.buf.push(b' ');
+            });
+            self.buf.extend(b"0\n");
+            self.writer.write_all(&self.buf)
+        } else {
+            panic!("Header has not been written");
+        }
+    }
+
     pub fn write_varlits<T, I>(&mut self, iter: I) -> io::Result<()>
     where
         T: VarLit + Neg<Output = T>,
@@ -462,7 +541,7 @@ impl<W: Write> CNFWriter<W> {
     {
         self.write_clause(&InputClause::<T>::from_iter(iter))
     }
-    
+
     fn write_current_clause(&mut self) -> io::Result<()> {
         self.buf.clear();
         self.buf_clause.iter().for_each(|x| {
@@ -472,7 +551,7 @@ impl<W: Write> CNFWriter<W> {
         self.buf.extend(b"0\n");
         self.writer.write_all(&self.buf)
     }
-    
+
     fn write_neg_prev_clause(&mut self) -> io::Result<()> {
         self.buf_clause.iter_mut().for_each(|x| *x = -*x);
         self.write_current_clause()
@@ -521,14 +600,15 @@ impl<W: Write> CNFWriter<W> {
                     self.need_cnf_false = false;
                 } else if self.clause_real_count != 0 {
                     self.write_neg_prev_clause()?;
-                } else { // if first clause, then write while writing this first
+                } else {
+                    // if first clause, then write while writing this first
                     self.need_cnf_false = true;
                 }
             }
             self.clause_count += 1;
             Ok(())
         } else {
-            panic!("Header has already been written");
+            panic!("Header has not been written");
         }
     }
 }
