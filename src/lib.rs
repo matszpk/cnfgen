@@ -92,6 +92,7 @@ where
     fn clause_len(&self) -> usize;
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
     fn clause_for_each<F: FnMut(&T)>(&self, f: F);
+    fn is_falsed(&self) -> bool;
 
     fn simplify_to<C: SimplifiableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
@@ -117,6 +118,10 @@ macro_rules! impl_clause {
         {
             fn clause_len(&self) -> usize {
                 self.len()
+            }
+            
+            fn is_falsed(&self) -> bool {
+                false
             }
 
             fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -145,6 +150,10 @@ where
 {
     fn clause_len(&self) -> usize {
         N
+    }
+    
+    fn is_falsed(&self) -> bool {
+        false
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -229,6 +238,7 @@ pub struct InputClause<T> {
     clause: Vec<T>,
     // if clause is tautology
     tautology: bool,
+    falsed: bool,
 }
 
 impl<T: VarLit> InputClause<T> {
@@ -236,18 +246,22 @@ impl<T: VarLit> InputClause<T> {
         Self {
             clause: vec![],
             tautology: false,
+            falsed: true,
         }
     }
 
     pub fn clause(&self) -> &Vec<T> {
         &self.clause
     }
+    
     pub fn is_empty(&self) -> bool {
         self.clause.is_empty()
     }
+    
     pub fn is_tautology(&self) -> bool {
         self.tautology
     }
+    
     pub fn push(&mut self, lit: Literal<T>) {
         if !self.tautology {
             match lit {
@@ -255,9 +269,13 @@ impl<T: VarLit> InputClause<T> {
                     if t {
                         self.clause.clear();
                         self.tautology = true;
+                        self.falsed = false;
                     }
                 }
-                Literal::VarLit(v) => self.clause.push(v),
+                Literal::VarLit(v) => {
+                    self.clause.push(v);
+                    self.falsed = false;
+                }
             }
         }
     }
@@ -272,6 +290,10 @@ where
         self.clause.clause_len()
     }
 
+    fn is_falsed(&self) -> bool {
+        self.falsed
+    }
+    
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
         self.clause.clause_all(f)
     }
