@@ -20,6 +20,7 @@
 use std::collections::*;
 use std::fmt::Debug;
 use std::io::{self, Write};
+use std::iter::Extend;
 use std::ops::{Index, IndexMut, Neg};
 
 pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize> {
@@ -67,6 +68,7 @@ impl_varlit!(i32);
 impl_varlit!(i64);
 impl_varlit!(isize);
 
+#[derive(Clone, Copy)]
 pub enum Literal<T: VarLit> {
     VarLit(T),
     Value(bool),
@@ -119,7 +121,7 @@ macro_rules! impl_clause {
             fn clause_len(&self) -> usize {
                 self.len()
             }
-            
+
             fn is_falsed(&self) -> bool {
                 false
             }
@@ -151,7 +153,7 @@ where
     fn clause_len(&self) -> usize {
         N
     }
-    
+
     fn is_falsed(&self) -> bool {
         false
     }
@@ -253,15 +255,15 @@ impl<T: VarLit> InputClause<T> {
     pub fn clause(&self) -> &Vec<T> {
         &self.clause
     }
-    
+
     pub fn is_empty(&self) -> bool {
         self.clause.is_empty()
     }
-    
+
     pub fn is_tautology(&self) -> bool {
         self.tautology
     }
-    
+
     pub fn push(&mut self, lit: Literal<T>) {
         if !self.tautology {
             match lit {
@@ -281,6 +283,34 @@ impl<T: VarLit> InputClause<T> {
     }
 }
 
+impl<T> Extend<T> for InputClause<T> {
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        if !self.tautology {
+            self.clause.extend(iter);
+            if !self.clause.is_empty() {
+                self.falsed = false;
+            }
+        }
+    }
+}
+
+impl<'a, T> Extend<&'a Literal<T>> for InputClause<T>
+where
+    T: VarLit,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = &'a Literal<T>>,
+    {
+        if !self.tautology {
+            iter.into_iter().for_each(|x| self.push(*x));
+        }
+    }
+}
+
 impl<T> Clause<T> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -293,7 +323,7 @@ where
     fn is_falsed(&self) -> bool {
         self.falsed
     }
-    
+
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
         self.clause.clause_all(f)
     }
