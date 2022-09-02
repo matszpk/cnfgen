@@ -41,6 +41,7 @@ pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize>
     fn is_empty(self) -> bool;
     fn empty() -> Self;
     fn positive(self) -> Option<Self>;
+    fn write_to_vec(self, vec: &mut Vec<u8>);
 }
 
 macro_rules! impl_varlit {
@@ -57,6 +58,11 @@ macro_rules! impl_varlit {
             #[inline]
             fn positive(self) -> Option<Self> {
                 self.checked_abs()
+            }
+            
+            #[inline]
+            fn write_to_vec(self, vec: &mut Vec<u8>) {
+                itoap::write_to_vec(vec, self);
             }
         }
     };
