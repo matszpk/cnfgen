@@ -90,29 +90,21 @@ where
     <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize;
-    fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
-    fn for_each<F: FnMut(&T)>(&self, f: F);
+    fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
+    fn clause_for_each<F: FnMut(&T)>(&self, f: F);
 
     fn simplify_to<C: SimplifiableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
         out.simplify()
     }
 
-    fn check_clause(&self, var_num: usize) -> bool {
-        self.all(|x| {
+    fn check(&self, var_num: usize) -> bool {
+        self.clause_all(|x| {
             x.positive()
                 .expect("Literal in clause is too big")
                 .to_usize()
                 > var_num
         })
-    }
-
-    fn is_empty(&self) -> bool {
-        if self.clause_len() == 0 {
-            true
-        } else {
-            self.all(|x| *x == T::empty())
-        }
     }
 }
 
@@ -127,11 +119,11 @@ macro_rules! impl_clause {
                 self.len()
             }
 
-            fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+            fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
                 self.iter().all(f)
             }
 
-            fn for_each<F: FnMut(&T)>(&self, f: F) {
+            fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
                 self.iter().for_each(f);
             }
         }
@@ -155,11 +147,11 @@ where
         N
     }
 
-    fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+    fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
         self.iter().all(f)
     }
 
-    fn for_each<F: FnMut(&T)>(&self, f: F) {
+    fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
         self.iter().for_each(f);
     }
 }
@@ -170,7 +162,7 @@ where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
 {
-    fn shrink(&mut self, i: usize);
+    fn shrink(&mut self, l: usize);
     fn sort_abs(&mut self);
     fn assign<U, C>(&mut self, src: &C)
     where
@@ -226,10 +218,39 @@ where
     {
         self.resize(src.clause_len(), T::empty());
         let mut i = 0;
-        src.for_each(|x| {
+        src.clause_for_each(|x| {
             self[i] = T::try_from(*x).unwrap();
             i += 1;
         });
+    }
+}
+
+pub struct InputClause<T>
+{
+    clause: Vec<T>,
+    empty: bool,
+    falsed: bool,
+}
+
+impl<T> Clause<T> for InputClause<T>
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn clause_len(&self) -> usize {
+        if self.empty || self.falsed {
+            0
+        } else {
+            self.clause.len()
+        }
+    }
+
+    fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.clause.iter().all(f)
+    }
+
+    fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.clause.iter().for_each(f);
     }
 }
 
@@ -274,7 +295,7 @@ impl<W: Write> CNFWriter<W> {
             if self.clause_count == header.1 {
                 panic!("Too many clauses");
             }
-            if !clause.check_clause(header.0) {
+            if !clause.check(header.0) {
                 panic!("Clause with variable number over range");
             }
 
