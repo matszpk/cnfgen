@@ -24,11 +24,17 @@ use std::ops::{Index, IndexMut, Neg};
 
 pub trait VarLit: Neg + PartialEq + Ord + Default + Copy + TryInto<isize> + TryInto<usize> {
     #[inline]
-    fn to(self) -> isize where <Self as TryInto<isize>>::Error: Debug {
+    fn to(self) -> isize
+    where
+        <Self as TryInto<isize>>::Error: Debug,
+    {
         self.try_into().unwrap()
     }
     #[inline]
-    fn to_usize(self) -> usize where <Self as TryInto<usize>>::Error: Debug {
+    fn to_usize(self) -> usize
+    where
+        <Self as TryInto<usize>>::Error: Debug,
+    {
         self.try_into().unwrap()
     }
     fn is_empty(self) -> bool;
@@ -66,30 +72,28 @@ pub enum Literal<T: VarLit> {
     Value(bool),
 }
 
-pub trait Clause<T = <Self as Index<usize>>::Output>: Index<usize> + IndexMut<usize>
+pub trait Clause<T>: Index<usize, Output = T> + IndexMut<usize, Output = T>
 where
-    T: VarLit + Default,
-    <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-    <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize;
 
-    fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize
-    where
-        T: From<<Self as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
-        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug
-    {
+    fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
         out.simplify()
     }
-    
+
     fn check_clause(&self, var_num: usize) -> bool {
         for i in 0..self.clause_len() {
-            if self[i].positive().expect("Literal in clause is too big")
-                    .to_usize() > var_num { return false; }
+            if self[i]
+                .positive()
+                .expect("Literal in clause is too big")
+                .to_usize()
+                > var_num
+            {
+                return false;
+            }
         }
         true
     }
@@ -110,8 +114,8 @@ where
 
 impl<T> Clause<T> for [T]
 where
-    T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -120,8 +124,8 @@ where
 
 impl<T> Clause<T> for Vec<T>
 where
-    T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -130,8 +134,8 @@ where
 
 impl<T> Clause<T> for VecDeque<T>
 where
-    T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -140,29 +144,22 @@ where
 
 impl<T, const N: usize> Clause<T> for [T; N]
 where
-    T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize {
         N
     }
 }
 
-pub trait ResizableClause<T = <Self as Index<usize>>::Output>: Clause<T>
+pub trait ResizableClause<T>: Clause<T>
 where
-    T: VarLit + Default,
-    <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-    <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn shrink(&mut self, i: usize);
     fn sort_abs(&mut self);
-    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C)
-    where
-        T: From<<C as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
-        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug;
+    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C);
 
     fn simplify(&mut self) -> usize {
         let mut j = 0;
@@ -191,8 +188,8 @@ where
 
 impl<T> ResizableClause<T> for Vec<T>
 where
-    T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
-    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
 {
     fn shrink(&mut self, l: usize) {
         self.resize(l, T::empty());
@@ -200,13 +197,7 @@ where
     fn sort_abs(&mut self) {
         self.sort_by_key(|x| x.positive());
     }
-    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C)
-    where
-        T: From<<C as Index<usize>>::Output>,
-        <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
-        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug
-    {
+    fn assign<C: Clause<T> + ?Sized>(&mut self, src: &C) {
         self.resize(src.clause_len(), T::empty());
         for i in 0..src.clause_len() {
             self[i] = T::from(src[i]);
@@ -225,14 +216,14 @@ const DEFAULT_BUF_CAPACITY: usize = 1024;
 
 impl<W: Write> CNFWriter<W> {
     pub fn new(w: W) -> Self {
-        CNFWriter{
+        CNFWriter {
             writer: w,
             buf: Vec::with_capacity(DEFAULT_BUF_CAPACITY),
             header: None,
             clause_count: 0,
         }
     }
-    
+
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> io::Result<()> {
         self.header.expect("Header has already been written");
         self.buf.clear();
@@ -245,11 +236,12 @@ impl<W: Write> CNFWriter<W> {
         self.header = Some((var_num, clause_num));
         Ok(())
     }
-    
-    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()> where
-        <C as Index<usize>>::Output: VarLit + PartialEq<T>,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
-        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug {
+
+    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()>
+    where
+        T: Neg<Output = T>,
+        <T as TryInto<usize>>::Error: Debug,
+    {
         if let Some(header) = self.header {
             if self.clause_count == header.1 {
                 panic!("Too many clauses");
@@ -257,7 +249,7 @@ impl<W: Write> CNFWriter<W> {
             if !clause.check_clause(header.0) {
                 panic!("Clause with variable number over range");
             }
-            
+
             self.clause_count += 1;
             Ok(())
         } else {
@@ -265,7 +257,6 @@ impl<W: Write> CNFWriter<W> {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
