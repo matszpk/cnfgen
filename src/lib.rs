@@ -512,7 +512,11 @@ impl<W: Write> CNFWriter<W> {
                 self.need_cnf_false = false;
             } else {
                 // write falsification
-                if self.clause_count != 0 {
+                if self.need_cnf_false {
+                    // write two clauses if next is falsed
+                    self.writer.write_all(b"1 0\n-1 0\n")?;
+                    self.need_cnf_false = false;
+                } else if self.clause_count != 0 {
                     self.write_neg_prev_clause()?;
                 } else { // if first clause, then write while writing this first
                     self.need_cnf_false = true;
