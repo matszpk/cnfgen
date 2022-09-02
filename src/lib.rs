@@ -327,6 +327,20 @@ impl<T> Extend<T> for InputClause<T> {
     }
 }
 
+impl<T> Extend<Literal<T>> for InputClause<T>
+where
+    T: VarLit,
+{
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = Literal<T>>,
+    {
+        if !self.tautology {
+            iter.into_iter().for_each(|x| self.push(x));
+        }
+    }
+}
+
 impl<'a, T> FromIterator<&'a Literal<T>> for InputClause<T>
 where
     T: VarLit,
