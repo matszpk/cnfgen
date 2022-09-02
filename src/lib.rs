@@ -102,11 +102,6 @@ where
     fn clause_for_each<F: FnMut(&T)>(&self, f: F);
     fn is_falsed(&self) -> bool;
 
-    fn simplify_to<C: SimplifiableClause<T>>(&self, out: &mut C) -> usize {
-        out.assign(self);
-        out.simplify()
-    }
-
     fn check(&self, var_num: usize) -> bool {
         self.clause_all(|x| {
             x.positive()
@@ -339,14 +334,22 @@ where
     }
 }
 
+#[derive(Clone, Copy, Default, Debug)]
+pub struct CNFHeader {
+    pub var_num: usize,
+    pub clause_num: usize,
+}
+
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,
-    header: Option<(usize, usize)>,
+    buf_clause: Vec<isize>,
+    header: Option<CNFHeader>,
     clause_count: usize,
 }
 
 const DEFAULT_BUF_CAPACITY: usize = 1024;
+const DEFAULT_CLAUSE_CAPACITY: usize = 64;
 
 impl<W: Write> CNFWriter<W> {
     pub fn new(w: W) -> Self {
@@ -354,12 +357,13 @@ impl<W: Write> CNFWriter<W> {
             writer: w,
             buf: Vec::with_capacity(DEFAULT_BUF_CAPACITY),
             header: None,
+            buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
         }
     }
 
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> io::Result<()> {
-        self.header.expect("Header has already been written");
+        self.header.as_ref().expect("Header has already been written");
         self.buf.clear();
         self.buf.extend_from_slice(b"p cnf ");
         itoap::write_to_vec(&mut self.buf, var_num);
@@ -367,23 +371,44 @@ impl<W: Write> CNFWriter<W> {
         itoap::write_to_vec(&mut self.buf, clause_num);
         self.buf.push(b'\n');
         self.writer.write_all(&self.buf)?;
-        self.header = Some((var_num, clause_num));
+        self.header = Some(CNFHeader{ var_num, clause_num });
         Ok(())
     }
 
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()>
     where
         T: Neg<Output = T>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
         <T as TryInto<usize>>::Error: Debug,
     {
-        if let Some(header) = self.header {
-            if self.clause_count == header.1 {
+        if let Some(ref header) = self.header {
+            if self.clause_count == header.clause_num {
                 panic!("Too many clauses");
             }
-            if !clause.check(header.0) {
-                panic!("Clause with variable number over range");
+            if !clause.is_falsed() {
+                if !clause.check(header.var_num) {
+                    panic!("Clause with variable number over range");
+                }
+                if clause.clause_len() != 0 {
+                    // simplify clause
+                    self.buf_clause.assign(clause);
+                    self.buf_clause.simplify();
+                    if self.buf_clause.clause_len() != 0 {
+                        // if not empty then write
+                        self.buf.clear();
+                        self.buf_clause.iter().for_each(|x| {
+                            x.write_to_vec(&mut self.buf);
+                            self.buf.push(b' ');
+                        });
+                        self.buf.extend(b"0\n");
+                        self.writer.write_all(&self.buf)?;
+                    }
+                }
+            } else {
+                // write falsification
+                self.writer.write_all(b"1 0\n-1 0\n")?;
             }
-
             self.clause_count += 1;
             Ok(())
         } else {
