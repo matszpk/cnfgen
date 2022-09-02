@@ -59,7 +59,7 @@ macro_rules! impl_varlit {
             fn positive(self) -> Option<Self> {
                 self.checked_abs()
             }
-            
+
             #[inline]
             fn write_to_vec(self, vec: &mut Vec<u8>) {
                 itoap::write_to_vec(vec, self);
@@ -284,6 +284,35 @@ impl<T: VarLit> InputClause<T> {
     }
 }
 
+impl<'a, T: Copy + 'a> Extend<&'a T> for InputClause<T> {
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = &'a T>,
+    {
+        if !self.tautology {
+            <Vec<T> as Extend<&'a T>>::extend(&mut self.clause, iter);
+            if !self.clause.is_empty() {
+                self.falsed = false;
+            }
+        }
+    }
+}
+
+impl<T> FromIterator<T> for InputClause<T> {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut ret = Self {
+            clause: Vec::from_iter(iter),
+            tautology: false,
+            falsed: true,
+        };
+        ret.falsed = ret.clause.is_empty();
+        ret
+    }
+}
+
 impl<T> Extend<T> for InputClause<T> {
     fn extend<I>(&mut self, iter: I)
     where
@@ -295,6 +324,20 @@ impl<T> Extend<T> for InputClause<T> {
                 self.falsed = false;
             }
         }
+    }
+}
+
+impl<'a, T> FromIterator<&'a Literal<T>> for InputClause<T>
+where
+    T: VarLit,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = &'a Literal<T>>,
+    {
+        let mut ret = InputClause::new();
+        iter.into_iter().for_each(|x| ret.push(*x));
+        ret
     }
 }
 
@@ -363,7 +406,9 @@ impl<W: Write> CNFWriter<W> {
     }
 
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> io::Result<()> {
-        self.header.as_ref().expect("Header has already been written");
+        self.header
+            .as_ref()
+            .expect("Header has already been written");
         self.buf.clear();
         self.buf.extend_from_slice(b"p cnf ");
         itoap::write_to_vec(&mut self.buf, var_num);
@@ -371,8 +416,33 @@ impl<W: Write> CNFWriter<W> {
         itoap::write_to_vec(&mut self.buf, clause_num);
         self.buf.push(b'\n');
         self.writer.write_all(&self.buf)?;
-        self.header = Some(CNFHeader{ var_num, clause_num });
+        self.header = Some(CNFHeader {
+            var_num,
+            clause_num,
+        });
         Ok(())
+    }
+
+    pub fn write_varlits<T, I>(&mut self, iter: I) -> io::Result<()>
+    where
+        T: VarLit + Neg<Output = T>,
+        I: IntoIterator<Item = T>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        self.write_clause(&InputClause::<T>::from_iter(iter))
+    }
+
+    pub fn write_literals<'a, T, I>(&mut self, iter: I) -> io::Result<()>
+    where
+        T: VarLit + Neg<Output = T> + 'a,
+        I: IntoIterator<Item = &'a Literal<T>>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        self.write_clause(&InputClause::<T>::from_iter(iter))
     }
 
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()>
