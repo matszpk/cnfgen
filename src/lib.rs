@@ -17,7 +17,7 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-use std::collections::VecDeque;
+use std::collections::*;
 use std::fmt::Debug;
 use std::io::{self, Write};
 use std::ops::{Index, IndexMut, Neg};
@@ -42,7 +42,7 @@ pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize>
     fn positive(self) -> Option<Self>;
 }
 
-macro_rules! impl_variable {
+macro_rules! impl_varlit {
     ($Ty:ident) => {
         impl VarLit for $Ty {
             #[inline]
@@ -61,24 +61,36 @@ macro_rules! impl_variable {
     };
 }
 
-impl_variable!(i8);
-impl_variable!(i16);
-impl_variable!(i32);
-impl_variable!(i64);
-impl_variable!(isize);
+impl_varlit!(i8);
+impl_varlit!(i16);
+impl_varlit!(i32);
+impl_varlit!(i64);
+impl_varlit!(isize);
 
 pub enum Literal<T: VarLit> {
     VarLit(T),
     Value(bool),
 }
 
-pub trait Clause<T>: Index<usize, Output = T> + IndexMut<usize, Output = T>
+impl<T: VarLit> From<bool> for Literal<T> {
+    fn from(t: bool) -> Self {
+        Literal::Value(t)
+    }
+}
+
+impl<T: VarLit> From<T> for Literal<T> {
+    fn from(t: T) -> Self {
+        Literal::VarLit(t)
+    }
+}
+
+pub trait Clause<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize;
-    fn all(&self, value: T) -> bool;
+    fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
     fn for_each<F: FnMut(&T)>(&self, f: F);
 
     fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize {
@@ -87,81 +99,52 @@ where
     }
 
     fn check_clause(&self, var_num: usize) -> bool {
-        for i in 0..self.clause_len() {
-            if self[i]
-                .positive()
+        self.all(|x| {
+            x.positive()
                 .expect("Literal in clause is too big")
                 .to_usize()
                 > var_num
-            {
-                return false;
-            }
-        }
-        true
+        })
     }
 
     fn is_empty(&self) -> bool {
         if self.clause_len() == 0 {
             true
         } else {
-            self.all(T::empty())
+            self.all(|x| *x == T::empty())
         }
     }
 }
 
-impl<T> Clause<T> for [T]
-where
-    T: VarLit + Neg<Output = T>,
-    <T as TryInto<usize>>::Error: Debug,
-{
-    fn clause_len(&self) -> usize {
-        self.len()
-    }
-    
-    fn all(&self, value: T) -> bool {
-        self.iter().all(|x| *x==value)
-    }
-    
-    fn for_each<F: FnMut(&T)>(&self, f: F) {
-        self.iter().for_each(f);
-    }
+macro_rules! impl_clause {
+    ($Ty:ty) => {
+        impl<T> Clause<T> for $Ty
+        where
+            T: VarLit + Neg<Output = T>,
+            <T as TryInto<usize>>::Error: Debug,
+        {
+            fn clause_len(&self) -> usize {
+                self.len()
+            }
+
+            fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+                self.iter().all(f)
+            }
+
+            fn for_each<F: FnMut(&T)>(&self, f: F) {
+                self.iter().for_each(f);
+            }
+        }
+    };
 }
 
-impl<T> Clause<T> for Vec<T>
-where
-    T: VarLit + Neg<Output = T>,
-    <T as TryInto<usize>>::Error: Debug,
-{
-    fn clause_len(&self) -> usize {
-        self.len()
-    }
-    
-    fn all(&self, value: T) -> bool {
-        self.iter().all(|x| *x==value)
-    }
-    
-    fn for_each<F: FnMut(&T)>(&self, f: F) {
-        self.iter().for_each(f);
-    }
-}
-
-impl<T> Clause<T> for VecDeque<T>
-where
-    T: VarLit + Neg<Output = T>,
-    <T as TryInto<usize>>::Error: Debug,
-{
-    fn clause_len(&self) -> usize {
-        self.len()
-    }
-    
-    fn all(&self, value: T) -> bool {
-        self.iter().all(|x| *x==value)
-    }
-    
-    fn for_each<F: FnMut(&T)>(&self, f: F) {
-        self.iter().for_each(f);
-    }
-}
+impl_clause!([T]);
+impl_clause!(Vec<T>);
+impl_clause!(VecDeque<T>);
+impl_clause!(BTreeSet<T>);
+impl_clause!(BinaryHeap<T>);
+impl_clause!(HashSet<T>);
+impl_clause!(LinkedList<T>);
 
 impl<T, const N: usize> Clause<T> for [T; N]
 where
@@ -171,17 +154,18 @@ where
     fn clause_len(&self) -> usize {
         N
     }
-    
-    fn all(&self, value: T) -> bool {
-        self.iter().all(|x| *x==value)
+
+    fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
     }
-    
+
     fn for_each<F: FnMut(&T)>(&self, f: F) {
         self.iter().for_each(f);
     }
 }
 
-pub trait ResizableClause<T>: Clause<T>
+pub trait ResizableClause<T>:
+    Clause<T> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
