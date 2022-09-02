@@ -402,6 +402,7 @@ pub struct CNFWriter<W: Write> {
     buf: Vec<u8>,
     buf_clause: Vec<isize>,
     header: Option<CNFHeader>,
+    need_cnf_false: bool,
     clause_count: usize,
 }
 
@@ -416,6 +417,7 @@ impl<W: Write> CNFWriter<W> {
             header: None,
             buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
+            need_cnf_false: false,
         }
     }
 
@@ -458,6 +460,21 @@ impl<W: Write> CNFWriter<W> {
     {
         self.write_clause(&InputClause::<T>::from_iter(iter))
     }
+    
+    fn write_current_clause(&mut self) -> io::Result<()> {
+        self.buf.clear();
+        self.buf_clause.iter().for_each(|x| {
+            x.write_to_vec(&mut self.buf);
+            self.buf.push(b' ');
+        });
+        self.buf.extend(b"0\n");
+        self.writer.write_all(&self.buf)
+    }
+    
+    fn write_neg_prev_clause(&mut self) -> io::Result<()> {
+        self.buf_clause.iter_mut().for_each(|x| *x = -*x);
+        self.write_current_clause()
+    }
 
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()>
     where
@@ -474,24 +491,32 @@ impl<W: Write> CNFWriter<W> {
                 if !clause.check(header.var_num) {
                     panic!("Clause with variable number over range");
                 }
-                if clause.clause_len() != 0 {
-                    // simplify clause
-                    self.buf_clause.assign(clause);
-                    self.buf_clause.simplify();
-                    if self.buf_clause.clause_len() != 0 {
-                        // if not empty then write
-                        self.buf.clear();
-                        self.buf_clause.iter().for_each(|x| {
-                            x.write_to_vec(&mut self.buf);
-                            self.buf.push(b' ');
-                        });
-                        self.buf.extend(b"0\n");
-                        self.writer.write_all(&self.buf)?;
+                // simplify clause
+                self.buf_clause.assign(clause);
+                self.buf_clause.simplify();
+                if self.buf_clause.clause_len() != 0 {
+                    // if not empty then write
+                    self.write_current_clause()?;
+                    if self.need_cnf_false {
+                        self.write_neg_prev_clause()?;
+                    }
+                } else {
+                    // if empty true clause then
+                    if self.need_cnf_false {
+                        // two falsified clauses
+                        self.writer.write_all(b"1 0\n-1 0\n")?;
+                    } else {
+                        self.writer.write_all(b"0\n")?;
                     }
                 }
+                self.need_cnf_false = false;
             } else {
                 // write falsification
-                self.writer.write_all(b"1 0\n-1 0\n")?;
+                if self.clause_count != 0 {
+                    self.write_neg_prev_clause()?;
+                } else { // if first clause, then write while writing this first
+                    self.need_cnf_false = true;
+                }
             }
             self.clause_count += 1;
             Ok(())
