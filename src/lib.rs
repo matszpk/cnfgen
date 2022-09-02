@@ -78,8 +78,8 @@ where
     <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize;
-    // fn all(&self) -> bool;
-    // fn for_each(&self);
+    fn all(&self, value: T) -> bool;
+    fn for_each<F: FnMut(&T)>(&self, f: F);
 
     fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
@@ -104,12 +104,7 @@ where
         if self.clause_len() == 0 {
             true
         } else {
-            for i in 0..self.clause_len() {
-                if self[i] != T::empty() {
-                    return false;
-                }
-            }
-            true
+            self.all(T::empty())
         }
     }
 }
@@ -122,6 +117,14 @@ where
     fn clause_len(&self) -> usize {
         self.len()
     }
+    
+    fn all(&self, value: T) -> bool {
+        self.iter().all(|x| *x==value)
+    }
+    
+    fn for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
 }
 
 impl<T> Clause<T> for Vec<T>
@@ -131,6 +134,14 @@ where
 {
     fn clause_len(&self) -> usize {
         self.len()
+    }
+    
+    fn all(&self, value: T) -> bool {
+        self.iter().all(|x| *x==value)
+    }
+    
+    fn for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
     }
 }
 
@@ -142,6 +153,14 @@ where
     fn clause_len(&self) -> usize {
         self.len()
     }
+    
+    fn all(&self, value: T) -> bool {
+        self.iter().all(|x| *x==value)
+    }
+    
+    fn for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
 }
 
 impl<T, const N: usize> Clause<T> for [T; N]
@@ -151,6 +170,14 @@ where
 {
     fn clause_len(&self) -> usize {
         N
+    }
+    
+    fn all(&self, value: T) -> bool {
+        self.iter().all(|x| *x==value)
+    }
+    
+    fn for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
     }
 }
 
@@ -214,9 +241,11 @@ where
         <T as TryFrom<U>>::Error: Debug,
     {
         self.resize(src.clause_len(), T::empty());
-        for i in 0..src.clause_len() {
-            self[i] = T::try_from(src[i]).unwrap();
-        }
+        let mut i = 0;
+        src.for_each(|x| {
+            self[i] = T::try_from(*x).unwrap();
+            i += 1;
+        });
     }
 }
 
