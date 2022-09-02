@@ -22,20 +22,20 @@ use std::fmt::Debug;
 use std::io::{self, Write};
 use std::ops::{Index, IndexMut, Neg};
 
-pub trait VarLit: Neg + PartialEq + Ord + Default + Copy + TryInto<isize> + TryInto<usize> {
+pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize> {
     #[inline]
     fn to(self) -> isize
     where
         <Self as TryInto<isize>>::Error: Debug,
     {
-        self.try_into().unwrap()
+        self.try_into().expect("VarLit is too big")
     }
     #[inline]
     fn to_usize(self) -> usize
     where
         <Self as TryInto<usize>>::Error: Debug,
     {
-        self.try_into().unwrap()
+        self.try_into().expect("VarLit is too big")
     }
     fn is_empty(self) -> bool;
     fn empty() -> Self;
