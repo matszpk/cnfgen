@@ -93,7 +93,7 @@ where
     fn all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
     fn for_each<F: FnMut(&T)>(&self, f: F);
 
-    fn simplify_to<C: ResizableClause<T>>(&self, out: &mut C) -> usize {
+    fn simplify_to<C: SimplifiableClause<T>>(&self, out: &mut C) -> usize {
         out.assign(self);
         out.simplify()
     }
@@ -164,7 +164,7 @@ where
     }
 }
 
-pub trait ResizableClause<T>:
+pub trait SimplifiableClause<T>:
     Clause<T> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 where
     T: VarLit + Neg<Output = T>,
@@ -205,7 +205,7 @@ where
     }
 }
 
-impl<T> ResizableClause<T> for Vec<T>
+impl<T> SimplifiableClause<T> for Vec<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
