@@ -404,6 +404,7 @@ pub struct CNFWriter<W: Write> {
     header: Option<CNFHeader>,
     need_cnf_false: bool,
     clause_count: usize,
+    clause_real_count: usize,
 }
 
 const DEFAULT_BUF_CAPACITY: usize = 1024;
@@ -417,6 +418,7 @@ impl<W: Write> CNFWriter<W> {
             header: None,
             buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
+            clause_real_count: 0,
             need_cnf_false: false,
         }
     }
@@ -497,6 +499,7 @@ impl<W: Write> CNFWriter<W> {
                 if self.buf_clause.clause_len() != 0 {
                     // if not empty then write
                     self.write_current_clause()?;
+                    self.clause_real_count += 1;
                     if self.need_cnf_false {
                         self.write_neg_prev_clause()?;
                     }
@@ -516,7 +519,7 @@ impl<W: Write> CNFWriter<W> {
                     // write two clauses if next is falsed
                     self.writer.write_all(b"1 0\n-1 0\n")?;
                     self.need_cnf_false = false;
-                } else if self.clause_count != 0 {
+                } else if self.clause_real_count != 0 {
                     self.write_neg_prev_clause()?;
                 } else { // if first clause, then write while writing this first
                     self.need_cnf_false = true;
