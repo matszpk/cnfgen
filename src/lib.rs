@@ -18,24 +18,27 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::io::{self, Write};
 use std::ops::{Index, IndexMut, Neg};
 
-pub trait VarLit: Neg + PartialEq + Ord + Default + Copy {
-    fn to(self) -> isize;
+pub trait VarLit: Neg + PartialEq + Ord + Default + Copy + TryInto<isize> + TryInto<usize> {
+    #[inline]
+    fn to(self) -> isize where <Self as TryInto<isize>>::Error: Debug {
+        self.try_into().unwrap()
+    }
+    #[inline]
+    fn to_usize(self) -> usize where <Self as TryInto<usize>>::Error: Debug {
+        self.try_into().unwrap()
+    }
     fn is_empty(self) -> bool;
     fn empty() -> Self;
-    fn positive(self) -> Self;
-    fn to_usize(self) -> usize;
+    fn positive(self) -> Option<Self>;
 }
 
 macro_rules! impl_variable {
     ($Ty:ident) => {
         impl VarLit for $Ty {
-            #[inline]
-            fn to(self) -> isize {
-                self as isize
-            }
             #[inline]
             fn is_empty(self) -> bool {
                 self == 0
@@ -45,13 +48,8 @@ macro_rules! impl_variable {
                 0
             }
             #[inline]
-            fn positive(self) -> Self {
-                self.abs()
-            }
-            
-            #[inline]
-            fn to_usize(self) -> usize {
-                self as usize
+            fn positive(self) -> Option<Self> {
+                self.checked_abs()
             }
         }
     };
@@ -73,6 +71,7 @@ where
     T: VarLit + Default,
     <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
     <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn clause_len(&self) -> usize;
 
@@ -81,6 +80,7 @@ where
         T: From<<Self as Index<usize>>::Output>,
         <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
+        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug
     {
         out.assign(self);
         out.simplify()
@@ -88,7 +88,8 @@ where
     
     fn check_clause(&self, var_num: usize) -> bool {
         for i in 0..self.clause_len() {
-            if self[i].positive().to_usize() > var_num { return false; }
+            if self[i].positive().expect("Literal in clause is too big")
+                    .to_usize() > var_num { return false; }
         }
         true
     }
@@ -110,6 +111,7 @@ where
 impl<T> Clause<T> for [T]
 where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -119,6 +121,7 @@ where
 impl<T> Clause<T> for Vec<T>
 where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -128,6 +131,7 @@ where
 impl<T> Clause<T> for VecDeque<T>
 where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn clause_len(&self) -> usize {
         self.len()
@@ -137,6 +141,7 @@ where
 impl<T, const N: usize> Clause<T> for [T; N]
 where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn clause_len(&self) -> usize {
         N
@@ -148,6 +153,7 @@ where
     T: VarLit + Default,
     <Self as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
     <Self as Index<usize>>::Output: PartialEq<<<Self as Index<usize>>::Output as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn shrink(&mut self, i: usize);
     fn sort_abs(&mut self);
@@ -155,7 +161,8 @@ where
     where
         T: From<<C as Index<usize>>::Output>,
         <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>;
+        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
+        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug;
 
     fn simplify(&mut self) -> usize {
         let mut j = 0;
@@ -185,6 +192,7 @@ where
 impl<T> ResizableClause<T> for Vec<T>
 where
     T: VarLit + Default + Neg + Copy + PartialEq<<T as Neg>::Output>,
+    <<Self as Index<usize>>::Output as TryInto<usize>>::Error: Debug
 {
     fn shrink(&mut self, l: usize) {
         self.resize(l, T::empty());
@@ -197,6 +205,7 @@ where
         T: From<<C as Index<usize>>::Output>,
         <C as Index<usize>>::Output: VarLit + Default + PartialEq<T> + Neg + Ord + Copy,
         <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
+        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug
     {
         self.resize(src.clause_len(), T::empty());
         for i in 0..src.clause_len() {
@@ -232,14 +241,15 @@ impl<W: Write> CNFWriter<W> {
         self.buf.push(b' ');
         itoap::write_to_vec(&mut self.buf, clause_num);
         self.buf.push(b'\n');
-        self.writer.write(&self.buf)?;
+        self.writer.write_all(&self.buf)?;
         self.header = Some((var_num, clause_num));
         Ok(())
     }
     
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()> where
         <C as Index<usize>>::Output: VarLit + PartialEq<T>,
-        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output> {
+        <C as Index<usize>>::Output: PartialEq<<<C as Index<usize>>::Output as Neg>::Output>,
+        <<C as Index<usize>>::Output as TryInto<usize>>::Error: Debug {
         if let Some(header) = self.header {
             if self.clause_count == header.1 {
                 panic!("Too many clauses");
