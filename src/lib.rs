@@ -225,11 +225,42 @@ where
     }
 }
 
-pub struct InputClause<T>
-{
+pub struct InputClause<T> {
     clause: Vec<T>,
-    empty: bool,
-    falsed: bool,
+    // if clause is tautology
+    tautology: bool,
+}
+
+impl<T: VarLit> InputClause<T> {
+    pub fn new() -> Self {
+        Self {
+            clause: vec![],
+            tautology: false,
+        }
+    }
+
+    pub fn clause(&self) -> &Vec<T> {
+        &self.clause
+    }
+    pub fn is_empty(&self) -> bool {
+        self.clause.is_empty()
+    }
+    pub fn is_tautology(&self) -> bool {
+        self.tautology
+    }
+    pub fn push(&mut self, lit: Literal<T>) {
+        if !self.tautology {
+            match lit {
+                Literal::Value(t) => {
+                    if t {
+                        self.clause.clear();
+                        self.tautology = true;
+                    }
+                }
+                Literal::VarLit(v) => self.clause.push(v),
+            }
+        }
+    }
 }
 
 impl<T> Clause<T> for InputClause<T>
@@ -238,19 +269,15 @@ where
     <T as TryInto<usize>>::Error: Debug,
 {
     fn clause_len(&self) -> usize {
-        if self.empty || self.falsed {
-            0
-        } else {
-            self.clause.len()
-        }
+        self.clause.clause_len()
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
-        self.clause.iter().all(f)
+        self.clause.clause_all(f)
     }
 
     fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
-        self.clause.iter().for_each(f);
+        self.clause.clause_for_each(f);
     }
 }
 
