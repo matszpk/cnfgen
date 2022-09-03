@@ -675,6 +675,8 @@ impl<W: Write> CNFWriter<W> {
                     if self.need_cnf_false {
                         // two falsified clauses
                         self.writer.write_all(b"1 0\n-1 0\n")?;
+                        self.last_buf_clause.clear();
+                        self.last_buf_clause.push(-1);
                     } else {
                         self.writer.write_all(b"0\n")?;
                     }
@@ -686,6 +688,8 @@ impl<W: Write> CNFWriter<W> {
                     // write two clauses if next is falsed
                     self.writer.write_all(b"1 0\n-1 0\n")?;
                     self.need_cnf_false = false;
+                    self.last_buf_clause.clear();
+                    self.last_buf_clause.push(-1);
                 } else if !self.last_buf_clause.is_empty() {
                     self.write_neg_prev_clause()?;
                 } else {
@@ -1261,8 +1265,8 @@ mod tests {
             r##"p cnf 3 5
 1 0
 -1 0
+-1 0
 1 -2 3 0
--1 2 -3 0
 1 2 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
@@ -1284,7 +1288,7 @@ mod tests {
             r##"p cnf 3 6
 1 0
 -1 0
-1 0
+-1 0
 -1 0
 1 -2 3 0
 1 2 0
