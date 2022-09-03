@@ -491,6 +491,24 @@ impl_quant_set!(BinaryHeap<T>);
 impl_quant_set!(HashSet<T>);
 impl_quant_set!(LinkedList<T>);
 
+impl<T, const N: usize> QuantSet<T> for [T; N]
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn quant_len(&self) -> usize {
+        self.len()
+    }
+
+    fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
+    }
+
+    fn quant_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quantifier {
     Exists,
@@ -741,19 +759,82 @@ mod tests {
         assert_eq!(Literal::<isize>::VarLit(2343), lit_func(2343));
         assert_eq!(Literal::<isize>::VarLit(-59521), lit_func(-59521));
     }
-    
-    fn clause_func<T, C>(t: C) -> C where 
-        T: VarLit + Neg<Output = T>, C: Clause<T>,
-        <T as TryInto<usize>>::Error: Debug
+
+    fn clause_func<T, C>(t: C) -> C
+    where
+        T: VarLit + Neg<Output = T>,
+        C: Clause<T>,
+        <T as TryInto<usize>>::Error: Debug,
     {
         t
     }
-    
+
     #[test]
     fn test_clause() {
         let clause = [1, 2, 4];
         assert!(!clause[..].clause_is_falsed());
+        let empty_clause: [i8; 0] = [];
+        assert!(!empty_clause.clause_is_falsed()); // clause must be always true
         clause_func(clause);
         clause_func(clause.as_slice());
+
+        let mut v = vec![];
+        clause.clause_for_each(|x| v.push(*x));
+        assert_eq!(Vec::from([1, 2, 4]), v);
+        assert!(clause.clause_all(|x| *x <= 4));
+        assert!(!clause.clause_all(|x| *x > 2));
+        assert_eq!(clause.len(), clause.clause_len());
+    }
+
+    #[test]
+    fn test_clause_check_clause() {
+        for (vn, exp, c) in [
+            (5, true, [1, 4, -3].as_slice()),
+            (5, false, [1, 0, 4, -3].as_slice()),
+            (4, true, [1, -4, 2].as_slice()),
+            (4, false, [1, -5, 2].as_slice()),
+            (4, false, [3, -4, 2, 5].as_slice()),
+            ((1 << 15), false, [3, -4, 2, i16::MIN].as_slice()),
+            ((1 << 7), true, [3, -4, 2, i8::MIN as i16].as_slice()),
+        ] {
+            assert_eq!(exp, c.check_clause(vn));
+        }
+    }
+
+    fn quantset_func<T, Q>(t: Q) -> Q
+    where
+        T: VarLit,
+        Q: QuantSet<T>,
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        t
+    }
+
+    #[test]
+    fn test_quantset() {
+        let quantset = [1, 2, 4];
+        assert_eq!(3, quantset[..].quant_len());
+        quantset_func(quantset);
+        quantset_func(quantset.as_slice());
+
+        let mut v = vec![];
+        quantset.quant_for_each(|x| v.push(*x));
+        assert_eq!(Vec::from([1, 2, 4]), v);
+        assert!(quantset.quant_all(|x| *x <= 4));
+        assert!(!quantset.quant_all(|x| *x > 2));
+        assert_eq!(quantset.len(), quantset.quant_len());
+    }
+
+    #[test]
+    fn test_quantset_check_quantset() {
+        for (vn, exp, q) in [
+            (5, true, [1, 4, 3].as_slice()),
+            (5, false, [1, 0, 4, 3].as_slice()),
+            (4, true, [1, 4, 2].as_slice()),
+            (4, false, [1, 5, 2].as_slice()),
+            (5, false, [1, -4, 3].as_slice()),
+        ] {
+            assert_eq!(exp, q.check_quantset(vn));
+        }
     }
 }
