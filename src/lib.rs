@@ -524,11 +524,11 @@ pub struct CNFHeader {
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,
+    last_buf_clause: Vec<isize>,
     buf_clause: Vec<isize>,
     header: Option<CNFHeader>,
     need_cnf_false: bool,
     clause_count: usize,
-    clause_real_count: usize,
 }
 
 const DEFAULT_BUF_CAPACITY: usize = 1024;
@@ -540,13 +540,13 @@ impl<W: Write> CNFWriter<W> {
             writer: w,
             buf: Vec::with_capacity(DEFAULT_BUF_CAPACITY),
             header: None,
+            last_buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
-            clause_real_count: 0,
             need_cnf_false: false,
         }
     }
-    
+
     pub fn inner(&self) -> &W {
         &self.writer
     }
@@ -632,8 +632,14 @@ impl<W: Write> CNFWriter<W> {
     }
 
     fn write_neg_prev_clause(&mut self) -> io::Result<()> {
-        self.buf_clause.iter_mut().for_each(|x| *x = -*x);
-        self.write_current_clause()
+        self.last_buf_clause.iter_mut().for_each(|x| *x = -*x);
+        self.buf.clear();
+        self.last_buf_clause.iter().for_each(|x| {
+            x.write_to_vec(&mut self.buf);
+            self.buf.push(b' ');
+        });
+        self.buf.extend(b"0\n");
+        self.writer.write_all(&self.buf)
     }
 
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
@@ -657,7 +663,9 @@ impl<W: Write> CNFWriter<W> {
                 if self.buf_clause.clause_len() != 0 {
                     // if not empty then write
                     self.write_current_clause()?;
-                    self.clause_real_count += 1;
+                    if self.last_buf_clause.is_empty() {
+                        self.last_buf_clause.extend_from_slice(self.buf_clause.as_slice());
+                    }
                     if self.need_cnf_false {
                         self.write_neg_prev_clause()?;
                     }
@@ -677,7 +685,7 @@ impl<W: Write> CNFWriter<W> {
                     // write two clauses if next is falsed
                     self.writer.write_all(b"1 0\n-1 0\n")?;
                     self.need_cnf_false = false;
-                } else if self.clause_real_count != 0 {
+                } else if !self.last_buf_clause.is_empty() {
                     self.write_neg_prev_clause()?;
                 } else {
                     // if first clause, then write while writing this first
@@ -780,6 +788,7 @@ mod tests {
         let empty_clause: [i8; 0] = [];
         assert!(!empty_clause.clause_is_falsed()); // clause must be always true
         clause_func(clause);
+        clause_func([12isize]);
         clause_func(Vec::from(clause));
         clause_func(BTreeSet::from(clause));
         clause_func(clause.as_slice());
@@ -842,14 +851,14 @@ mod tests {
             assert_eq!((exp, expres), (sclause.as_slice(), resr));
         }
     }
-    
+
     macro_rules! input_clause_assert {
         ($cls:ident, $list:expr, $tau:expr, $falsed:expr) => {
             assert_eq!($list.as_slice(), $cls.clause().as_slice());
             assert_eq!($tau, $cls.is_tautology());
             assert_eq!($falsed, $cls.clause_is_falsed());
         };
-        
+
         ($cls:ident, $tau:expr, $falsed:expr) => {
             assert!($cls.clause().is_empty());
             assert_eq!($tau, $cls.is_tautology());
@@ -888,7 +897,7 @@ mod tests {
         iclause.push(true);
         input_clause_assert!(iclause, true, false);
     }
-    
+
     #[test]
     fn test_input_clause_extend() {
         let mut iclause = InputClause::new();
@@ -911,22 +920,17 @@ mod tests {
         let mut iclause = InputClause::new();
         iclause.extend(Vec::<i32>::new());
         input_clause_assert!(iclause, false, true);
-        
+
         // literals
         let mut iclause = InputClause::new();
         iclause.push(2);
         iclause.extend([Literal::Value(false), 4.into(), (-1).into(), 3.into()]);
         input_clause_assert!(iclause, [2, 4, -1, 3], false, false);
-        
+
         let mut iclause = InputClause::<i32>::new();
-        iclause.extend([
-            Literal::Value(false),
-            4.into(),
-            (-1).into(),
-            3.into(),
-        ]);
+        iclause.extend([Literal::Value(false), 4.into(), (-1).into(), 3.into()]);
         input_clause_assert!(iclause, [4, -1, 3], false, false);
-        
+
         // with tautology
         let mut iclause = InputClause::<i32>::new();
         iclause.extend([
@@ -937,36 +941,34 @@ mod tests {
             3.into(),
         ]);
         input_clause_assert!(iclause, true, false);
-        
+
         let mut iclause = InputClause::<i32>::new();
         iclause.extend(Vec::<Literal<i32>>::new());
         input_clause_assert!(iclause, false, true);
     }
-    
+
     #[test]
     fn test_input_clause_from_iter() {
         let iclause = InputClause::from_iter([4, -1, 3]);
         input_clause_assert!(iclause, [4, -1, 3], false, false);
-        
+
         let iclause = InputClause::from_iter(Vec::<i32>::new());
         input_clause_assert!(iclause, false, true);
-        
-        let iclause = InputClause::from_iter([Literal::Value(false),
-            4.into(),
-            (-1).into(),
-            3.into(),
-        ]);
+
+        let iclause =
+            InputClause::from_iter([Literal::Value(false), 4.into(), (-1).into(), 3.into()]);
         input_clause_assert!(iclause, [4, -1, 3], false, false);
-        
+
         // from literals iterator
-        let iclause = InputClause::<i32>::from_iter([Literal::Value(false),
+        let iclause = InputClause::<i32>::from_iter([
+            Literal::Value(false),
             4.into(),
             true.into(),
             (-1).into(),
             3.into(),
         ]);
         input_clause_assert!(iclause, true, false);
-        
+
         let iclause = InputClause::<i32>::from_iter(Vec::<Literal<i32>>::new());
         input_clause_assert!(iclause, false, true);
     }
@@ -1009,29 +1011,284 @@ mod tests {
             assert_eq!(exp, q.check_quantset(vn));
         }
     }
-    
+
     #[test]
     fn test_cnfwriter_write_header() {
         let mut cnf_writer = CNFWriter::new(vec![]);
-        assert_eq!(Ok(()), cnf_writer.write_header(7, 4).map_err(|x| x.to_string()));
+        assert_eq!(
+            Ok(()),
+            cnf_writer.write_header(7, 4).map_err(|x| x.to_string())
+        );
         assert_eq!("p cnf 7 4\n", String::from_utf8_lossy(cnf_writer.inner()));
-        assert_eq!(Err("Header has already been written".to_string()),
-            cnf_writer.write_header(7, 4).map_err(|x| x.to_string()));
-        
+        assert_eq!(
+            Err("Header has already been written".to_string()),
+            cnf_writer.write_header(7, 4).map_err(|x| x.to_string())
+        );
+
         let mut cnf_writer = CNFWriter::new(vec![]);
-        assert_eq!(Ok(()), cnf_writer.write_header(0, 0).map_err(|x| x.to_string()));
+        assert_eq!(
+            Ok(()),
+            cnf_writer.write_header(0, 0).map_err(|x| x.to_string())
+        );
         assert_eq!("p cnf 0 0\n", String::from_utf8_lossy(cnf_writer.inner()));
     }
-    
+
     #[test]
     fn test_cnfwriter_write_clause() {
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 2).unwrap();
-        assert_eq!(Ok(()), cnf_writer.write_clause([-1, 2, 3]).map_err(|x| x.to_string()));
-        assert_eq!(Ok(()), cnf_writer.write_clause([1, -2]).map_err(|x| x.to_string()));
-        assert_eq!(r##"p cnf 3 2
+        assert_eq!(
+            Ok(()),
+            cnf_writer
+                .write_clause([-1, 2, 3])
+                .map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Ok(()),
+            cnf_writer.write_clause([1, -2]).map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            r##"p cnf 3 2
 -1 2 3 0
 1 -2 0
-"##, String::from_utf8_lossy(cnf_writer.inner()));
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+
+        // check error handling
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        assert_eq!(
+            Err("Header has not been written".to_string()),
+            cnf_writer
+                .write_clause([-1, 2, 3])
+                .map_err(|x| x.to_string())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 2).unwrap();
+        assert_eq!(
+            Err("Variable literal is out of range".to_string()),
+            cnf_writer
+                .write_clause([-1, 4, 3])
+                .map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Ok(()),
+            cnf_writer
+                .write_clause([-1, -1, 2, 3, 3])
+                .map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Ok(()),
+            cnf_writer
+                .write_clause([-2, 1, -2])
+                .map_err(|x| x.to_string())
+        );
+        // check written cnf
+        assert_eq!(
+            r##"p cnf 3 2
+-1 2 3 0
+1 -2 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        assert_eq!(
+            Err("Too many clauses to write".to_string()),
+            cnf_writer.write_clause([1, -3]).map_err(|x| x.to_string())
+        );
+    }
+
+    #[test]
+    fn test_cnfwriter_write_clauses_with_empty() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            [-2, 1, 3].as_slice(),
+            [2, 1].as_slice(),
+            [].as_slice(),
+            [3, -1, 2].as_slice(),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 -2 3 0
+1 2 0
+0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+    }
+
+    #[test]
+    fn test_cnfwriter_write_clauses_with_falsed() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([2, 1]),
+            InputClause::new(),
+            InputClause::from_iter([3, -1, 2]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 -2 3 0
+1 2 0
+-1 2 -3 0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([Literal::Value(true)]),
+            InputClause::new(),
+            InputClause::from_iter([3, -1, 2]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 -2 3 0
+0
+-1 2 -3 0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 5).unwrap();
+        for c in [
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([Literal::Value(true)]),
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::from_iter([3, -1, 2]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 5
+1 -2 3 0
+0
+-1 2 -3 0
+1 -2 3 0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::from_iter([3, -1, 2]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 -2 3 0
+-1 2 -3 0
+1 -2 3 0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            InputClause::new(),
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([2, 1]),
+            InputClause::from_iter([3, -1, 2]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 -2 3 0
+-1 2 -3 0
+1 2 0
+-1 2 3 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 4).unwrap();
+        for c in [
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([2, 1]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 4
+1 0
+-1 0
+1 -2 3 0
+1 2 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 5).unwrap();
+        for c in [
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([2, 1]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 5
+1 0
+-1 0
+1 -2 3 0
+-1 2 -3 0
+1 2 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 6).unwrap();
+        for c in [
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::new(),
+            InputClause::from_iter([-2, 1, 3]),
+            InputClause::from_iter([2, 1]),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 3 6
+1 0
+-1 0
+1 0
+-1 0
+1 -2 3 0
+1 2 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
     }
 }
