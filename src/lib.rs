@@ -114,9 +114,9 @@ where
     fn clause_len(&self) -> usize;
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
     fn clause_for_each<F: FnMut(&T)>(&self, f: F);
-    fn is_falsed(&self) -> bool;
+    fn clause_is_falsed(&self) -> bool;
 
-    fn check(&self, var_num: usize) -> bool {
+    fn check_clause(&self, var_num: usize) -> bool {
         self.clause_all(|x| {
             *x != T::empty()
                 && if let Some(p) = x.positive() {
@@ -139,7 +139,7 @@ macro_rules! impl_clause {
                 self.len()
             }
 
-            fn is_falsed(&self) -> bool {
+            fn clause_is_falsed(&self) -> bool {
                 false
             }
 
@@ -171,7 +171,7 @@ where
         N
     }
 
-    fn is_falsed(&self) -> bool {
+    fn clause_is_falsed(&self) -> bool {
         false
     }
 
@@ -394,7 +394,7 @@ where
         self.clause.clause_len()
     }
 
-    fn is_falsed(&self) -> bool {
+    fn clause_is_falsed(&self) -> bool {
         self.falsed
     }
 
@@ -416,7 +416,7 @@ where
     fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
     fn quant_for_each<F: FnMut(&T)>(&self, f: F);
 
-    fn check(&self, var_num: usize) -> bool {
+    fn check_quantset(&self, var_num: usize) -> bool {
         self.quant_all(|x| *x > T::empty() && x.to_usize() <= var_num)
     }
 }
@@ -517,7 +517,7 @@ impl<W: Write> CNFWriter<W> {
         <T as TryInto<usize>>::Error: Debug,
     {
         if let Some(ref header) = self.header {
-            if !qs.check(header.var_num) {
+            if !qs.check_quantset(header.var_num) {
                 return Err(Error::VarLitOutOfRange);
             }
             self.buf.clear();
@@ -585,8 +585,8 @@ impl<W: Write> CNFWriter<W> {
             if self.clause_count == header.clause_num {
                 return Err(Error::TooManyClauses);
             }
-            if !clause.is_falsed() {
-                if !clause.check(header.var_num) {
+            if !clause.clause_is_falsed() {
+                if !clause.check_clause(header.var_num) {
                     return Err(Error::VarLitOutOfRange);
                 }
                 // simplify clause
