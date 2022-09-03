@@ -54,6 +54,7 @@ pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<u
     }
     fn is_empty(self) -> bool;
     fn empty() -> Self;
+    fn first_value() -> Self;
     fn positive(self) -> Option<Self>;
     fn write_to_vec(self, vec: &mut Vec<u8>);
 }
@@ -68,6 +69,10 @@ macro_rules! impl_varlit {
             #[inline]
             fn empty() -> Self {
                 0
+            }
+            #[inline]
+            fn first_value() -> Self {
+                1
             }
             #[inline]
             fn positive(self) -> Option<Self> {
@@ -164,7 +169,7 @@ where
     }
 
     fn clause_is_falsed(&self) -> bool {
-        false
+        self.len() == 0
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -194,7 +199,7 @@ where
     }
 
     fn clause_is_falsed(&self) -> bool {
-        false
+        self.len() == 0
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -239,8 +244,10 @@ where
         for i in 0..j {
             if i < j - 1 && self[i] == -self[i + 1] {
                 // if tautology
-                self.shrink(0);
-                return 0;
+                self.shrink(2);
+                self[0] = T::first_value();
+                self[1] = -T::first_value();
+                return self.clause_len();
             }
         }
         self.clause_len()
@@ -279,15 +286,13 @@ pub struct InputClause<T> {
     clause: Vec<T>,
     // if clause is tautology
     tautology: bool,
-    falsed: bool,
 }
 
-impl<T: VarLit> InputClause<T> {
+impl<T: VarLit + Neg<Output = T>> InputClause<T> {
     pub fn new() -> Self {
         Self {
             clause: vec![],
             tautology: false,
-            falsed: true,
         }
     }
 
@@ -309,14 +314,11 @@ impl<T: VarLit> InputClause<T> {
                 Literal::Value(t) => {
                     if t {
                         self.clause.clear();
+                        self.clause.extend([T::first_value(), -T::first_value()]);
                         self.tautology = true;
-                        self.falsed = false;
                     }
                 }
-                Literal::VarLit(v) => {
-                    self.clause.push(v);
-                    self.falsed = false;
-                }
+                Literal::VarLit(v) => self.clause.push(v)
             }
         }
     }
@@ -329,9 +331,6 @@ impl<'a, T: Copy + 'a> Extend<&'a T> for InputClause<T> {
     {
         if !self.tautology {
             <Vec<T> as Extend<&'a T>>::extend(&mut self.clause, iter);
-            if !self.clause.is_empty() {
-                self.falsed = false;
-            }
         }
     }
 }
@@ -341,13 +340,10 @@ impl<T> FromIterator<T> for InputClause<T> {
     where
         I: IntoIterator<Item = T>,
     {
-        let mut ret = Self {
+        Self {
             clause: Vec::from_iter(iter),
             tautology: false,
-            falsed: true,
-        };
-        ret.falsed = ret.clause.is_empty();
-        ret
+        }
     }
 }
 
@@ -358,16 +354,13 @@ impl<T> Extend<T> for InputClause<T> {
     {
         if !self.tautology {
             self.clause.extend(iter);
-            if !self.clause.is_empty() {
-                self.falsed = false;
-            }
         }
     }
 }
 
 impl<T> Extend<Literal<T>> for InputClause<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
 {
     fn extend<I>(&mut self, iter: I)
     where
@@ -381,7 +374,7 @@ where
 
 impl<T> FromIterator<Literal<T>> for InputClause<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
 {
     fn from_iter<I>(iter: I) -> Self
     where
@@ -395,7 +388,7 @@ where
 
 impl<'a, T> Extend<&'a Literal<T>> for InputClause<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
 {
     fn extend<I>(&mut self, iter: I)
     where
@@ -417,7 +410,7 @@ where
     }
 
     fn clause_is_falsed(&self) -> bool {
-        self.falsed
+        self.clause.is_empty()
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -524,10 +517,8 @@ pub struct CNFHeader {
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,
-    last_buf_clause: Vec<isize>,
     buf_clause: Vec<isize>,
     header: Option<CNFHeader>,
-    need_cnf_false: bool,
     clause_count: usize,
 }
 
@@ -540,10 +531,8 @@ impl<W: Write> CNFWriter<W> {
             writer: w,
             buf: Vec::with_capacity(DEFAULT_BUF_CAPACITY),
             header: None,
-            last_buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
-            need_cnf_false: false,
         }
     }
 
@@ -621,27 +610,6 @@ impl<W: Write> CNFWriter<W> {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
     
-    fn put_specified_clause(mut buf: &mut Vec<u8>, clause: &Vec<isize>) {
-        buf.clear();
-        clause.iter().for_each(|x| {
-            x.write_to_vec(&mut buf);
-            buf.push(b' ');
-        });
-        buf.extend(b"0\n");
-    }
-
-    #[inline]
-    fn write_current_clause(&mut self) -> io::Result<()> {
-        Self::put_specified_clause(&mut self.buf, &self.buf_clause);
-        self.writer.write_all(&self.buf)
-    }
-
-    #[inline]
-    fn write_neg_prev_clause(&mut self) -> io::Result<()> {
-        Self::put_specified_clause(&mut self.buf, &self.last_buf_clause);
-        self.writer.write_all(&self.buf)
-    }
-
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
     where
         T: Neg<Output = T>,
@@ -653,51 +621,19 @@ impl<W: Write> CNFWriter<W> {
             if self.clause_count == header.clause_num {
                 return Err(Error::TooManyClauses);
             }
-            if !clause.clause_is_falsed() {
-                if !clause.check_clause(header.var_num) {
-                    return Err(Error::VarLitOutOfRange);
-                }
-                // simplify clause
-                self.buf_clause.assign(clause);
-                self.buf_clause.simplify();
-                if self.buf_clause.clause_len() != 0 {
-                    // if not empty then write
-                    self.write_current_clause()?;
-                    if self.last_buf_clause.is_empty() {
-                        self.last_buf_clause
-                            .extend_from_slice(self.buf_clause.as_slice());
-                        self.last_buf_clause.iter_mut().for_each(|x| *x = -*x);
-                    }
-                    if self.need_cnf_false {
-                        self.write_neg_prev_clause()?;
-                    }
-                } else {
-                    // if empty true clause then write tautology
-                    if self.need_cnf_false {
-                        // two falsified clauses
-                        self.writer.write_all(b"1 0\n-1 0\n")?;
-                        self.last_buf_clause.clear();
-                        self.last_buf_clause.push(-1);
-                    } else {
-                        self.writer.write_all(b"1 -1 0\n")?;
-                    }
-                }
-                self.need_cnf_false = false;
-            } else {
-                // write falsification
-                if self.need_cnf_false {
-                    // write two clauses if next is falsed
-                    self.writer.write_all(b"1 0\n-1 0\n")?;
-                    self.need_cnf_false = false;
-                    self.last_buf_clause.clear();
-                    self.last_buf_clause.push(-1);
-                } else if !self.last_buf_clause.is_empty() {
-                    self.write_neg_prev_clause()?;
-                } else {
-                    // if first clause, then write while writing this first
-                    self.need_cnf_false = true;
-                }
+            if !clause.check_clause(header.var_num) {
+                return Err(Error::VarLitOutOfRange);
             }
+            // simplify clause
+            self.buf_clause.assign(clause);
+            self.buf_clause.simplify();
+            self.buf.clear();
+            self.buf_clause.iter().for_each(|x| {
+                x.write_to_vec(&mut self.buf);
+                self.buf.push(b' ');
+            });
+            self.buf.extend(b"0\n");
+            self.writer.write_all(&mut self.buf)?;
             self.clause_count += 1;
             Ok(())
         } else {
@@ -792,7 +728,7 @@ mod tests {
         let clause = [1, 2, 4];
         assert!(!clause[..].clause_is_falsed());
         let empty_clause: [i8; 0] = [];
-        assert!(!empty_clause.clause_is_falsed()); // clause must be always true
+        assert!(empty_clause.clause_is_falsed());
         clause_func(clause);
         clause_func([12isize]);
         clause_func(Vec::from(clause));
@@ -847,8 +783,8 @@ mod tests {
                 [1, -3, 5].as_slice(),
                 3,
             ),
-            ([-3, 3, 1, 0, 5, 5].as_slice(), [].as_slice(), 0),
-            ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [].as_slice(), 0),
+            ([-3, 3, 1, 0, 5, 5].as_slice(), [1, -1].as_slice(), 2),
+            ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [1, -1].as_slice(), 2),
             ([1, 2, -4].as_slice(), [1, 2, -4].as_slice(), 3),
             ([0, 0].as_slice(), [].as_slice(), 0),
         ] {
@@ -894,14 +830,14 @@ mod tests {
         assert!(!iclause.clause().is_empty());
 
         iclause.push(Literal::Value(true));
-        assert_eq!(0, iclause.clause().clause_len());
+        assert_eq!([1, -1].as_slice(), iclause.clause().as_slice());
         assert!(iclause.is_tautology());
         iclause.push(-7);
-        input_clause_assert!(iclause, true, false);
-        assert_eq!(0, iclause.clause().clause_len());
+        input_clause_assert!(iclause, [1, -1], true, false);
+        assert_eq!(2, iclause.clause().clause_len());
 
         iclause.push(true);
-        input_clause_assert!(iclause, true, false);
+        input_clause_assert!(iclause, [1, -1], true, false);
     }
 
     #[test]
@@ -916,7 +852,7 @@ mod tests {
         iclause.push(2);
         iclause.push(true);
         iclause.extend([4, -1, 3]);
-        input_clause_assert!(iclause, true, false);
+        input_clause_assert!(iclause, [1, -1], true, false);
 
         let mut iclause = InputClause::new();
         iclause.push(2);
@@ -946,7 +882,7 @@ mod tests {
             true.into(),
             3.into(),
         ]);
-        input_clause_assert!(iclause, true, false);
+        input_clause_assert!(iclause, [1, -1], true, false);
 
         let mut iclause = InputClause::<i32>::new();
         iclause.extend(Vec::<Literal<i32>>::new());
@@ -973,7 +909,7 @@ mod tests {
             (-1).into(),
             3.into(),
         ]);
-        input_clause_assert!(iclause, true, false);
+        input_clause_assert!(iclause, [1, -1], true, false);
 
         let iclause = InputClause::<i32>::from_iter(Vec::<Literal<i32>>::new());
         input_clause_assert!(iclause, false, true);
@@ -1120,179 +1056,8 @@ mod tests {
             r##"p cnf 3 4
 1 -2 3 0
 1 2 0
-1 -1 0
+0
 -1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-    }
-
-    #[test]
-    fn test_cnfwriter_write_clauses_with_falsed() {
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 4).unwrap();
-        for c in [
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([2, 1]),
-            InputClause::new(),
-            InputClause::from_iter([3, -1, 2]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 4
-1 -2 3 0
-1 2 0
--1 2 -3 0
--1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 4).unwrap();
-        for c in [
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([Literal::Value(true)]),
-            InputClause::new(),
-            InputClause::from_iter([3, -1, 2]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 4
-1 -2 3 0
-1 -1 0
--1 2 -3 0
--1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 5).unwrap();
-        for c in [
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([Literal::Value(true)]),
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::from_iter([3, -1, 2]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 5
-1 -2 3 0
-1 -1 0
--1 2 -3 0
--1 2 -3 0
--1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 4).unwrap();
-        for c in [
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::from_iter([3, -1, 2]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 4
-1 -2 3 0
--1 2 -3 0
--1 2 -3 0
--1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 4).unwrap();
-        for c in [
-            InputClause::new(),
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([2, 1]),
-            InputClause::from_iter([3, -1, 2]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 4
-1 -2 3 0
--1 2 -3 0
-1 2 0
--1 2 3 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 4).unwrap();
-        for c in [
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([2, 1]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 4
-1 0
--1 0
-1 -2 3 0
-1 2 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 5).unwrap();
-        for c in [
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([2, 1]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 5
-1 0
--1 0
--1 0
-1 -2 3 0
-1 2 0
-"##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
-
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        cnf_writer.write_header(3, 6).unwrap();
-        for c in [
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::new(),
-            InputClause::from_iter([-2, 1, 3]),
-            InputClause::from_iter([2, 1]),
-        ] {
-            cnf_writer.write_clause(c).unwrap();
-        }
-        assert_eq!(
-            r##"p cnf 3 6
-1 0
--1 0
--1 0
--1 0
-1 -2 3 0
-1 2 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
