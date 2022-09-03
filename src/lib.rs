@@ -37,7 +37,7 @@ pub enum Error {
     IOError(#[from] io::Error),
 }
 
-pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize> {
+pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> {
     #[inline]
     fn to(self) -> isize
     where
@@ -88,7 +88,7 @@ impl_varlit!(i32);
 impl_varlit!(i64);
 impl_varlit!(isize);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Literal<T: VarLit> {
     VarLit(T),
     Value(bool),
@@ -688,5 +688,17 @@ mod tests {
             x.write_to_vec(&mut bytes);
             assert_eq!(exp.as_bytes(), &bytes);
         }
+    }
+    
+    fn lit_func<T: VarLit>(t: impl Into<Literal<T>>) -> Literal<T> {
+        t.into()
+    }
+    
+    #[test]
+    fn test_literal() {
+        assert_eq!(Literal::<isize>::Value(false), lit_func(false));
+        assert_eq!(Literal::<isize>::Value(true), lit_func(true));
+        assert_eq!(Literal::<isize>::VarLit(2343), lit_func(2343));
+        assert_eq!(Literal::<isize>::VarLit(-59521), lit_func(-59521));
     }
 }
