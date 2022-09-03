@@ -236,7 +236,7 @@ where
         }
         // check tautology - v or ~v
         for i in 0..j {
-            if i <= j - 1 && self[i] == -self[i + 1] {
+            if i < j - 1 && self[i] == -self[i + 1] {
                 // if tautology
                 self.shrink(0);
                 return 0;
@@ -546,6 +546,10 @@ impl<W: Write> CNFWriter<W> {
             need_cnf_false: false,
         }
     }
+    
+    pub fn inner(&self) -> &W {
+        &self.writer
+    }
 
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
         if self.header.is_none() {
@@ -813,6 +817,8 @@ mod tests {
         sclause.assign([3, 1, -5, 7, -4]);
         sclause.sort_abs();
         assert_eq!([1, 3, -4, -5, 7].as_slice(), sclause.as_slice());
+        sclause.assign([-1, 2, 3]);
+        assert_eq!([-1, 2, 3].as_slice(), sclause.as_slice());
     }
 
     #[test]
@@ -828,6 +834,7 @@ mod tests {
             ),
             ([-3, 3, 1, 0, 5, 5].as_slice(), [].as_slice(), 0),
             ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [].as_slice(), 0),
+            ([1, 2, -4].as_slice(), [1, 2, -4].as_slice(), 3),
             ([0, 0].as_slice(), [].as_slice(), 0),
         ] {
             let mut sclause = Vec::from(clause);
@@ -1001,5 +1008,30 @@ mod tests {
         ] {
             assert_eq!(exp, q.check_quantset(vn));
         }
+    }
+    
+    #[test]
+    fn test_cnfwriter_write_header() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        assert_eq!(Ok(()), cnf_writer.write_header(7, 4).map_err(|x| x.to_string()));
+        assert_eq!("p cnf 7 4\n", String::from_utf8_lossy(cnf_writer.inner()));
+        assert_eq!(Err("Header has already been written".to_string()),
+            cnf_writer.write_header(7, 4).map_err(|x| x.to_string()));
+        
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        assert_eq!(Ok(()), cnf_writer.write_header(0, 0).map_err(|x| x.to_string()));
+        assert_eq!("p cnf 0 0\n", String::from_utf8_lossy(cnf_writer.inner()));
+    }
+    
+    #[test]
+    fn test_cnfwriter_write_clause() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 2).unwrap();
+        assert_eq!(Ok(()), cnf_writer.write_clause([-1, 2, 3]).map_err(|x| x.to_string()));
+        assert_eq!(Ok(()), cnf_writer.write_clause([1, -2]).map_err(|x| x.to_string()));
+        assert_eq!(r##"p cnf 3 2
+-1 2 3 0
+1 -2 0
+"##, String::from_utf8_lossy(cnf_writer.inner()));
     }
 }
