@@ -154,6 +154,28 @@ macro_rules! impl_clause {
     };
 }
 
+impl<'a, T> Clause<T> for &'a [T]
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn clause_len(&self) -> usize {
+        self.len()
+    }
+
+    fn clause_is_falsed(&self) -> bool {
+        false
+    }
+
+    fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
+    }
+
+    fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
+}
+
 impl_clause!([T]);
 impl_clause!(Vec<T>);
 impl_clause!(VecDeque<T>);
@@ -443,6 +465,24 @@ macro_rules! impl_quant_set {
     };
 }
 
+impl<'a, T> QuantSet<T> for &'a [T]
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn quant_len(&self) -> usize {
+        self.len()
+    }
+
+    fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
+    }
+
+    fn quant_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
+}
+
 impl_quant_set!([T]);
 impl_quant_set!(Vec<T>);
 impl_quant_set!(VecDeque<T>);
@@ -689,16 +729,31 @@ mod tests {
             assert_eq!(exp.as_bytes(), &bytes);
         }
     }
-    
+
     fn lit_func<T: VarLit>(t: impl Into<Literal<T>>) -> Literal<T> {
         t.into()
     }
-    
+
     #[test]
     fn test_literal() {
         assert_eq!(Literal::<isize>::Value(false), lit_func(false));
         assert_eq!(Literal::<isize>::Value(true), lit_func(true));
         assert_eq!(Literal::<isize>::VarLit(2343), lit_func(2343));
         assert_eq!(Literal::<isize>::VarLit(-59521), lit_func(-59521));
+    }
+    
+    fn clause_func<T, C>(t: C) -> C where 
+        T: VarLit + Neg<Output = T>, C: Clause<T>,
+        <T as TryInto<usize>>::Error: Debug
+    {
+        t
+    }
+    
+    #[test]
+    fn test_clause() {
+        let clause = [1, 2, 4];
+        assert!(!clause[..].clause_is_falsed());
+        clause_func(clause);
+        clause_func(clause.as_slice());
     }
 }
