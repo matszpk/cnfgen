@@ -632,7 +632,6 @@ impl<W: Write> CNFWriter<W> {
     }
 
     fn write_neg_prev_clause(&mut self) -> io::Result<()> {
-        self.last_buf_clause.iter_mut().for_each(|x| *x = -*x);
         self.buf.clear();
         self.last_buf_clause.iter().for_each(|x| {
             x.write_to_vec(&mut self.buf);
@@ -666,6 +665,7 @@ impl<W: Write> CNFWriter<W> {
                     if self.last_buf_clause.is_empty() {
                         self.last_buf_clause
                             .extend_from_slice(self.buf_clause.as_slice());
+                        self.last_buf_clause.iter_mut().for_each(|x| *x = -*x);
                     }
                     if self.need_cnf_false {
                         self.write_neg_prev_clause()?;
@@ -1180,7 +1180,7 @@ mod tests {
 1 -2 3 0
 0
 -1 2 -3 0
-1 -2 3 0
+-1 2 -3 0
 -1 2 3 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
@@ -1200,7 +1200,7 @@ mod tests {
             r##"p cnf 3 4
 1 -2 3 0
 -1 2 -3 0
-1 -2 3 0
+-1 2 -3 0
 -1 2 3 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
