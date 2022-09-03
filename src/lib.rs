@@ -664,7 +664,8 @@ impl<W: Write> CNFWriter<W> {
                     // if not empty then write
                     self.write_current_clause()?;
                     if self.last_buf_clause.is_empty() {
-                        self.last_buf_clause.extend_from_slice(self.buf_clause.as_slice());
+                        self.last_buf_clause
+                            .extend_from_slice(self.buf_clause.as_slice());
                     }
                     if self.need_cnf_false {
                         self.write_neg_prev_clause()?;
@@ -1142,7 +1143,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 4).unwrap();
         for c in [
@@ -1162,7 +1163,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 5).unwrap();
         for c in [
@@ -1184,7 +1185,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 4).unwrap();
         for c in [
@@ -1204,7 +1205,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 4).unwrap();
         for c in [
@@ -1224,7 +1225,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 4).unwrap();
         for c in [
@@ -1244,7 +1245,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 5).unwrap();
         for c in [
@@ -1266,7 +1267,7 @@ mod tests {
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
-        
+
         let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(3, 6).unwrap();
         for c in [
