@@ -236,7 +236,7 @@ where
         }
         // check tautology - v or ~v
         for i in 0..j {
-            if i >= j - 1 || self[i] != -self[i + 1] {
+            if i <= j - 1 && self[i] == -self[i + 1] {
                 // if tautology
                 self.shrink(0);
                 return 0;
@@ -800,6 +800,21 @@ mod tests {
             ((1 << 7), true, [3, -4, 2, i8::MIN as i16].as_slice()),
         ] {
             assert_eq!(exp, c.check_clause(vn));
+        }
+    }
+
+    #[test]
+    fn test_simplifiable_clause_simplify() {
+        for (clause, exp, expres) in [
+            ([1, 1, -4].as_slice(), [1, -4].as_slice(), 2),
+            ([-3, -3, 1, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
+            ([-3, -3, 1, 0, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
+            ([-3, 3, 1, 0, 5, 5].as_slice(), [].as_slice(), 0),
+            ([0, 0].as_slice(), [].as_slice(), 0),
+        ] {
+            let mut sclause = Vec::from(clause);
+            let resr = sclause.simplify();
+            assert_eq!((exp, expres), (sclause.as_slice(), resr));
         }
     }
 
