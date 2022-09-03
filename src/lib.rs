@@ -34,7 +34,7 @@ pub enum Error {
     #[error("Variable literal is out of range")]
     VarLitOutOfRange,
     #[error("IO error: {0}")]
-    IOError(#[from] io::Error)
+    IOError(#[from] io::Error),
 }
 
 pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize> {
@@ -518,7 +518,7 @@ impl<W: Write> CNFWriter<W> {
     {
         if let Some(ref header) = self.header {
             if !qs.check(header.var_num) {
-                return Err(Error::VarLitOutOfRange)
+                return Err(Error::VarLitOutOfRange);
             }
             self.buf.clear();
             self.buf.extend(if q == Quantifier::Exists {
@@ -635,8 +635,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn test_varlit() {
+        for (exp, x) in [
+            (Some(0), 0),
+            (Some(1), -1),
+            (Some(43), 43),
+            (Some(113), -113),
+            (Some(i16::MAX), i16::MAX),
+            (None, i16::MIN),
+        ] {
+            assert_eq!(exp, x.positive());
+        }
+        for (exp, x) in [
+            (Some(0), 0),
+            (Some(1), -1),
+            (Some(454), 454),
+            (Some(113), -113),
+            (Some(isize::MAX), isize::MAX),
+            (None, isize::MIN),
+        ] {
+            assert_eq!(exp, x.positive());
+        }
+        assert_eq!(33, 33.to());
+        assert_eq!(33, 33.to_usize());
+        assert_eq!(0, i32::empty());
+        assert!(!32.is_empty());
+        assert!(0.is_empty());
+    }
+
+    #[test]
+    fn test_varlit_write_to_vec() {
+        for (exp, x) in [("xx23", 23i8), ("xx-45", -45i8), ("xx0", 0i8)] {
+            let mut bytes = Vec::from(b"xx".as_slice());
+            x.write_to_vec(&mut bytes);
+            assert_eq!(exp.as_bytes(), &bytes);
+        }
+        for (exp, x) in [
+            ("xx123323", 123323i32),
+            ("xx-113145", -113145i32),
+            ("xx0", 0i32),
+        ] {
+            let mut bytes = Vec::from(b"xx".as_slice());
+            x.write_to_vec(&mut bytes);
+            assert_eq!(exp.as_bytes(), &bytes);
+        }
+        for (exp, x) in [
+            ("xx123323", 123323isize),
+            ("xx-113145", -113145isize),
+            ("xx0", 0isize),
+        ] {
+            let mut bytes = Vec::from(b"xx".as_slice());
+            x.write_to_vec(&mut bytes);
+            assert_eq!(exp.as_bytes(), &bytes);
+        }
     }
 }
