@@ -234,6 +234,7 @@ where
                 j += 1;
             }
         }
+        self.shrink(j);
         // check tautology - v or ~v
         for i in 0..j {
             if i < j - 1 && self[i] == -self[i + 1] {
@@ -242,7 +243,6 @@ where
                 return 0;
             }
         }
-        self.shrink(j);
         self.clause_len()
     }
 }
