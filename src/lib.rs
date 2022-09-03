@@ -776,6 +776,8 @@ mod tests {
         let empty_clause: [i8; 0] = [];
         assert!(!empty_clause.clause_is_falsed()); // clause must be always true
         clause_func(clause);
+        clause_func(Vec::from(clause));
+        clause_func(BTreeSet::from(clause));
         clause_func(clause.as_slice());
 
         let mut v = vec![];
@@ -815,6 +817,8 @@ mod tests {
         let quantset = [1, 2, 4];
         assert_eq!(3, quantset[..].quant_len());
         quantset_func(quantset);
+        quantset_func(Vec::from(quantset));
+        quantset_func(BTreeSet::from(quantset));
         quantset_func(quantset.as_slice());
 
         let mut v = vec![];
