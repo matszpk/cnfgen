@@ -548,7 +548,7 @@ impl<W: Write> CNFWriter<W> {
     }
 
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
-        if self.header.is_some() {
+        if self.header.is_none() {
             self.buf.clear();
             self.buf.extend_from_slice(b"p cnf ");
             itoap::write_to_vec(&mut self.buf, var_num);
