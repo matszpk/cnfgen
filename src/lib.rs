@@ -620,24 +620,25 @@ impl<W: Write> CNFWriter<W> {
     {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
-
-    fn write_current_clause(&mut self) -> io::Result<()> {
-        self.buf.clear();
-        self.buf_clause.iter().for_each(|x| {
-            x.write_to_vec(&mut self.buf);
-            self.buf.push(b' ');
+    
+    fn put_specified_clause(mut buf: &mut Vec<u8>, clause: &Vec<isize>) {
+        buf.clear();
+        clause.iter().for_each(|x| {
+            x.write_to_vec(&mut buf);
+            buf.push(b' ');
         });
-        self.buf.extend(b"0\n");
+        buf.extend(b"0\n");
+    }
+
+    #[inline]
+    fn write_current_clause(&mut self) -> io::Result<()> {
+        Self::put_specified_clause(&mut self.buf, &self.buf_clause);
         self.writer.write_all(&self.buf)
     }
 
+    #[inline]
     fn write_neg_prev_clause(&mut self) -> io::Result<()> {
-        self.buf.clear();
-        self.last_buf_clause.iter().for_each(|x| {
-            x.write_to_vec(&mut self.buf);
-            self.buf.push(b' ');
-        });
-        self.buf.extend(b"0\n");
+        Self::put_specified_clause(&mut self.buf, &self.last_buf_clause);
         self.writer.write_all(&self.buf)
     }
 
@@ -671,14 +672,14 @@ impl<W: Write> CNFWriter<W> {
                         self.write_neg_prev_clause()?;
                     }
                 } else {
-                    // if empty true clause then
+                    // if empty true clause then write tautology
                     if self.need_cnf_false {
                         // two falsified clauses
                         self.writer.write_all(b"1 0\n-1 0\n")?;
                         self.last_buf_clause.clear();
                         self.last_buf_clause.push(-1);
                     } else {
-                        self.writer.write_all(b"0\n")?;
+                        self.writer.write_all(b"1 -1 0\n")?;
                     }
                 }
                 self.need_cnf_false = false;
@@ -1119,7 +1120,7 @@ mod tests {
             r##"p cnf 3 4
 1 -2 3 0
 1 2 0
-0
+1 -1 0
 -1 2 3 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
@@ -1161,7 +1162,7 @@ mod tests {
         assert_eq!(
             r##"p cnf 3 4
 1 -2 3 0
-0
+1 -1 0
 -1 2 -3 0
 -1 2 3 0
 "##,
@@ -1182,7 +1183,7 @@ mod tests {
         assert_eq!(
             r##"p cnf 3 5
 1 -2 3 0
-0
+1 -1 0
 -1 2 -3 0
 -1 2 -3 0
 -1 2 3 0
