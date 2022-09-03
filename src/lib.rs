@@ -804,12 +804,15 @@ mod tests {
     }
     
     #[test]
-    fn test_simplifiable_clause_assign() {
+    fn test_simplifiable_clause() {
         let mut sclause = Vec::from([2, 5, 4]);
         sclause.assign([1, 6, 2]);
         assert_eq!([1, 6, 2].as_slice(), sclause.as_slice());
         sclause.assign([3, 1, 5]);
         assert_eq!([3, 1, 5].as_slice(), sclause.as_slice());
+        sclause.assign([3, 1, -5, 7, -4]);
+        sclause.sort_abs();
+        assert_eq!([1, 3, -4, -5, 7].as_slice(), sclause.as_slice());
     }
 
     #[test]
