@@ -811,6 +811,7 @@ mod tests {
             ([-3, -3, 1, 0, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
             ([5, -3, 1, 0, 5, 1, 5, 0, -3].as_slice(), [1, -3, 5].as_slice(), 3),
             ([-3, 3, 1, 0, 5, 5].as_slice(), [].as_slice(), 0),
+            ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [].as_slice(), 0),
             ([0, 0].as_slice(), [].as_slice(), 0),
         ] {
             let mut sclause = Vec::from(clause);
