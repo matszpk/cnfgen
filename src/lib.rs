@@ -105,10 +105,11 @@ where
     fn check(&self, var_num: usize) -> bool {
         self.clause_all(|x| {
             *x != T::empty()
-                && x.positive()
-                    .expect("Literal in clause is too big")
-                    .to_usize()
-                    <= var_num
+                && if let Some(p) = x.positive() {
+                    p.to_usize() <= var_num
+                } else {
+                    false
+                }
         })
     }
 }
@@ -177,10 +178,10 @@ where
 {
     fn shrink(&mut self, l: usize);
     fn sort_abs(&mut self);
-    fn assign<U, C>(&mut self, src: &C)
+    fn assign<U, C>(&mut self, src: C)
     where
         U: VarLit + Neg<Output = U>,
-        C: Clause<U> + ?Sized,
+        C: Clause<U>,
         <U as TryInto<usize>>::Error: Debug,
         T: TryFrom<U>,
         <T as TryFrom<U>>::Error: Debug;
@@ -221,10 +222,10 @@ where
     fn sort_abs(&mut self) {
         self.sort_by_key(|x| x.positive());
     }
-    fn assign<U, C>(&mut self, src: &C)
+    fn assign<U, C>(&mut self, src: C)
     where
         U: VarLit + Neg<Output = U>,
-        C: Clause<U> + ?Sized,
+        C: Clause<U>,
         <U as TryInto<usize>>::Error: Debug,
         T: TryFrom<U>,
         <T as TryFrom<U>>::Error: Debug,
@@ -529,7 +530,7 @@ impl<W: Write> CNFWriter<W> {
         <isize as TryFrom<T>>::Error: Debug,
         <T as TryInto<usize>>::Error: Debug,
     {
-        self.write_clause(&InputClause::<T>::from_iter(iter))
+        self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
     pub fn write_literals<'a, T, I>(&mut self, iter: I) -> io::Result<()>
@@ -540,7 +541,7 @@ impl<W: Write> CNFWriter<W> {
         <isize as TryFrom<T>>::Error: Debug,
         <T as TryInto<usize>>::Error: Debug,
     {
-        self.write_clause(&InputClause::<T>::from_iter(iter))
+        self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
     fn write_current_clause(&mut self) -> io::Result<()> {
@@ -558,7 +559,7 @@ impl<W: Write> CNFWriter<W> {
         self.write_current_clause()
     }
 
-    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: &C) -> io::Result<()>
+    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> io::Result<()>
     where
         T: Neg<Output = T>,
         isize: TryFrom<T>,
