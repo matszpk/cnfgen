@@ -303,9 +303,9 @@ impl<T: VarLit> InputClause<T> {
         self.tautology
     }
 
-    pub fn push(&mut self, lit: Literal<T>) {
+    pub fn push(&mut self, lit: impl Into<Literal<T>>) {
         if !self.tautology {
-            match lit {
+            match lit.into() {
                 Literal::Value(t) => {
                     if t {
                         self.clause.clear();
@@ -379,16 +379,16 @@ where
     }
 }
 
-impl<'a, T> FromIterator<&'a Literal<T>> for InputClause<T>
+impl<T> FromIterator<Literal<T>> for InputClause<T>
 where
     T: VarLit,
 {
     fn from_iter<I>(iter: I) -> Self
     where
-        I: IntoIterator<Item = &'a Literal<T>>,
+        I: IntoIterator<Item = Literal<T>>,
     {
         let mut ret = InputClause::new();
-        iter.into_iter().for_each(|x| ret.push(*x));
+        iter.into_iter().for_each(|x| ret.push(x));
         ret
     }
 }
@@ -606,10 +606,10 @@ impl<W: Write> CNFWriter<W> {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
-    pub fn write_literals<'a, T, I>(&mut self, iter: I) -> Result<(), Error>
+    pub fn write_literals<T, I>(&mut self, iter: I) -> Result<(), Error>
     where
-        T: VarLit + Neg<Output = T> + 'a,
-        I: IntoIterator<Item = &'a Literal<T>>,
+        T: VarLit + Neg<Output = T>,
+        I: IntoIterator<Item = Literal<T>>,
         isize: TryFrom<T>,
         <isize as TryFrom<T>>::Error: Debug,
         <T as TryInto<usize>>::Error: Debug,
@@ -802,7 +802,7 @@ mod tests {
             assert_eq!(exp, c.check_clause(vn));
         }
     }
-    
+
     #[test]
     fn test_simplifiable_clause() {
         let mut sclause = Vec::from([2, 5, 4]);
@@ -821,7 +821,11 @@ mod tests {
             ([1, 1, -4].as_slice(), [1, -4].as_slice(), 2),
             ([-3, -3, 1, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
             ([-3, -3, 1, 0, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
-            ([5, -3, 1, 0, 5, 1, 5, 0, -3].as_slice(), [1, -3, 5].as_slice(), 3),
+            (
+                [5, -3, 1, 0, 5, 1, 5, 0, -3].as_slice(),
+                [1, -3, 5].as_slice(),
+                3,
+            ),
             ([-3, 3, 1, 0, 5, 5].as_slice(), [].as_slice(), 0),
             ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [].as_slice(), 0),
             ([0, 0].as_slice(), [].as_slice(), 0),
@@ -830,6 +834,146 @@ mod tests {
             let resr = sclause.simplify();
             assert_eq!((exp, expres), (sclause.as_slice(), resr));
         }
+    }
+
+    #[test]
+    fn test_input_clause_push() {
+        let mut iclause = InputClause::new();
+        assert_eq!(0, iclause.clause().clause_len());
+        assert!(iclause.clause().is_empty());
+        assert!(iclause.clause_is_falsed());
+        assert!(!iclause.is_tautology());
+        iclause.push(false);
+
+        assert!(iclause.clause_is_falsed());
+        iclause.push(2);
+        assert!(!iclause.clause_is_falsed());
+        iclause.push(-3);
+        assert!(!iclause.clause_is_falsed());
+        iclause.push(Literal::VarLit(-4)); // literal
+        assert!(!iclause.clause_is_falsed());
+        iclause.push(false);
+        assert!(!iclause.clause_is_falsed());
+        assert_eq!([2, -3, -4].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert_eq!(3, iclause.clause_len());
+        assert!(!iclause.clause().is_empty());
+
+        iclause.push(Literal::Value(true));
+        assert_eq!(0, iclause.clause().clause_len());
+        assert!(iclause.is_tautology());
+        iclause.push(-7);
+        assert!(!iclause.clause_is_falsed());
+        assert_eq!(0, iclause.clause().clause_len());
+        assert!(iclause.clause().is_empty());
+        assert!(iclause.is_tautology());
+
+        iclause.push(true);
+        assert_eq!(0, iclause.clause().clause_len());
+        assert!(iclause.is_tautology());
+    }
+
+    #[test]
+    fn test_input_clause_extend() {
+        let mut iclause = InputClause::new();
+        iclause.push(2);
+        iclause.extend([4, -1, 3]);
+        assert_eq!([2, 4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+
+        // with tautology
+        let mut iclause = InputClause::new();
+        iclause.push(2);
+        iclause.push(true);
+        iclause.extend([4, -1, 3]);
+        assert!(iclause.clause().is_empty());
+
+        let mut iclause = InputClause::new();
+        iclause.push(2);
+        iclause.extend([4, -1, 3]);
+        assert_eq!([2, 4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+
+        let mut iclause = InputClause::new();
+        iclause.extend(Vec::<i32>::new());
+        assert!(iclause.clause().is_empty());
+        assert!(!iclause.is_tautology());
+        assert!(iclause.clause_is_falsed());
+        
+        // literals
+        let mut iclause = InputClause::new();
+        iclause.push(2);
+        iclause.extend([Literal::Value(false), 4.into(), (-1).into(), 3.into()]);
+        assert_eq!([2, 4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+        
+        let mut iclause = InputClause::<i32>::new();
+        iclause.extend([
+            Literal::Value(false),
+            4.into(),
+            (-1).into(),
+            3.into(),
+        ]);
+        assert_eq!([4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.clause_is_falsed());
+        
+        // with tautology
+        let mut iclause = InputClause::<i32>::new();
+        iclause.extend([
+            Literal::Value(false),
+            4.into(),
+            (-1).into(),
+            true.into(),
+            3.into(),
+        ]);
+        assert!(iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+        
+        let mut iclause = InputClause::<i32>::new();
+        iclause.extend(Vec::<Literal<i32>>::new());
+        assert!(iclause.clause().is_empty());
+        assert!(!iclause.is_tautology());
+        assert!(iclause.clause_is_falsed());
+    }
+    
+    #[test]
+    fn test_input_clause_from_iter() {
+        let iclause = InputClause::from_iter([4, -1, 3]);
+        assert_eq!([4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+        
+        let iclause = InputClause::from_iter(Vec::<i32>::new());
+        assert!(iclause.is_empty());
+        assert!(!iclause.is_tautology());
+        assert!(iclause.clause_is_falsed());
+        
+        let iclause = InputClause::from_iter([Literal::Value(false),
+            4.into(),
+            (-1).into(),
+            3.into(),
+        ]);
+        assert_eq!([4, -1, 3].as_slice(), iclause.clause().as_slice());
+        assert!(!iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+        
+        // from literals iterator
+        let iclause = InputClause::<i32>::from_iter([Literal::Value(false),
+            4.into(),
+            true.into(),
+            (-1).into(),
+            3.into(),
+        ]);
+        assert!(iclause.is_tautology());
+        assert!(!iclause.clause_is_falsed());
+        
+        let iclause = InputClause::<i32>::from_iter(Vec::<Literal<i32>>::new());
+        assert!(iclause.is_empty());
+        assert!(!iclause.is_tautology());
+        assert!(iclause.clause_is_falsed());
     }
 
     fn quantset_func<T, Q>(t: Q) -> Q
