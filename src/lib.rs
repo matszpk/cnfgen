@@ -23,6 +23,20 @@ use std::io::{self, Write};
 use std::iter::Extend;
 use std::ops::{Index, IndexMut, Neg};
 
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("Header has already been written")]
+    HeaderAlreadyWritten,
+    #[error("Header has not been written")]
+    HeaderNotWritten,
+    #[error("Too many clauses to write")]
+    TooManyClauses,
+    #[error("Variable literal is out of range")]
+    VarLitOutOfRange,
+    #[error("IO error: {0}")]
+    IOError(#[from] io::Error)
+}
+
 pub trait VarLit: Neg + PartialEq + Ord + Copy + TryInto<isize> + TryInto<usize> {
     #[inline]
     fn to(self) -> isize
@@ -475,35 +489,36 @@ impl<W: Write> CNFWriter<W> {
         }
     }
 
-    pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> io::Result<()> {
-        self.header
-            .as_ref()
-            .expect("Header has already been written");
-        self.buf.clear();
-        self.buf.extend_from_slice(b"p cnf ");
-        itoap::write_to_vec(&mut self.buf, var_num);
-        self.buf.push(b' ');
-        itoap::write_to_vec(&mut self.buf, clause_num);
-        self.buf.push(b'\n');
-        self.writer.write_all(&self.buf)?;
-        self.header = Some(CNFHeader {
-            var_num,
-            clause_num,
-        });
-        Ok(())
+    pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
+        if self.header.is_some() {
+            self.buf.clear();
+            self.buf.extend_from_slice(b"p cnf ");
+            itoap::write_to_vec(&mut self.buf, var_num);
+            self.buf.push(b' ');
+            itoap::write_to_vec(&mut self.buf, clause_num);
+            self.buf.push(b'\n');
+            self.writer.write_all(&self.buf)?;
+            self.header = Some(CNFHeader {
+                var_num,
+                clause_num,
+            });
+            Ok(())
+        } else {
+            Err(Error::HeaderAlreadyWritten)
+        }
     }
 
     pub fn write_quant<T: VarLit, Q: QuantSet<T>>(
         &mut self,
         q: Quantifier,
         qs: &Q,
-    ) -> io::Result<()>
+    ) -> Result<(), Error>
     where
         <T as TryInto<usize>>::Error: Debug,
     {
         if let Some(ref header) = self.header {
             if !qs.check(header.var_num) {
-                panic!("Quantifier set with variable number over range");
+                return Err(Error::VarLitOutOfRange)
             }
             self.buf.clear();
             self.buf.extend(if q == Quantifier::Exists {
@@ -516,13 +531,13 @@ impl<W: Write> CNFWriter<W> {
                 self.buf.push(b' ');
             });
             self.buf.extend(b"0\n");
-            self.writer.write_all(&self.buf)
+            self.writer.write_all(&self.buf).map_err(|e| Error::from(e))
         } else {
-            panic!("Header has not been written");
+            Err(Error::HeaderNotWritten)
         }
     }
 
-    pub fn write_varlits<T, I>(&mut self, iter: I) -> io::Result<()>
+    pub fn write_varlits<T, I>(&mut self, iter: I) -> Result<(), Error>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = T>,
@@ -533,7 +548,7 @@ impl<W: Write> CNFWriter<W> {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
-    pub fn write_literals<'a, T, I>(&mut self, iter: I) -> io::Result<()>
+    pub fn write_literals<'a, T, I>(&mut self, iter: I) -> Result<(), Error>
     where
         T: VarLit + Neg<Output = T> + 'a,
         I: IntoIterator<Item = &'a Literal<T>>,
@@ -559,7 +574,7 @@ impl<W: Write> CNFWriter<W> {
         self.write_current_clause()
     }
 
-    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> io::Result<()>
+    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
     where
         T: Neg<Output = T>,
         isize: TryFrom<T>,
@@ -568,11 +583,11 @@ impl<W: Write> CNFWriter<W> {
     {
         if let Some(ref header) = self.header {
             if self.clause_count == header.clause_num {
-                panic!("Too many clauses");
+                return Err(Error::TooManyClauses);
             }
             if !clause.is_falsed() {
                 if !clause.check(header.var_num) {
-                    panic!("Clause with variable number over range");
+                    return Err(Error::VarLitOutOfRange);
                 }
                 // simplify clause
                 self.buf_clause.assign(clause);
@@ -610,7 +625,7 @@ impl<W: Write> CNFWriter<W> {
             self.clause_count += 1;
             Ok(())
         } else {
-            panic!("Header has not been written");
+            Err(Error::HeaderNotWritten)
         }
     }
 }

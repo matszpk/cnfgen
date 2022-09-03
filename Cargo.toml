@@ -10,3 +10,4 @@ categories = ["science", "logic", "mathematics"]
 
 [dependencies]
 itoap = "1.0"
+thiserror = "1.0"
