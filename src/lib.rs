@@ -220,7 +220,7 @@ where
         self.sort_abs();
         // and remove zeroes and duplicates
         for i in 0..self.clause_len() {
-            if (i <= 0 || self[i - 1] != self[i]) && self[i] != T::empty() {
+            if i <= 0 || self[i - 1] != self[i] {
                 // if no zero and if no this same literal
                 self[j] = self[i];
                 j += 1;
@@ -305,7 +305,7 @@ impl<T: VarLit + Neg<Output = T>> InputClause<T> {
                         self.tautology = true;
                     }
                 }
-                Literal::VarLit(v) => self.clause.push(v)
+                Literal::VarLit(v) => self.clause.push(v),
             }
         }
     }
@@ -592,7 +592,7 @@ impl<W: Write> CNFWriter<W> {
     {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
-    
+
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
     where
         T: Neg<Output = T>,
@@ -757,16 +757,10 @@ mod tests {
         for (clause, exp, expres) in [
             ([1, 1, -4].as_slice(), [1, -4].as_slice(), 2),
             ([-3, -3, 1, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
-            ([-3, -3, 1, 0, 5, 5].as_slice(), [1, -3, 5].as_slice(), 3),
-            (
-                [5, -3, 1, 0, 5, 1, 5, 0, -3].as_slice(),
-                [1, -3, 5].as_slice(),
-                3,
-            ),
-            ([-3, 3, 1, 0, 5, 5].as_slice(), [1, -1].as_slice(), 2),
-            ([1, 3, 3, 1, 0, 5, -3, -3, 5].as_slice(), [1, -1].as_slice(), 2),
+            ([5, -3, 1, 5, 1, 5, -3].as_slice(), [1, -3, 5].as_slice(), 3),
+            ([-3, 3, 1, 5, 5].as_slice(), [1, -1].as_slice(), 2),
+            ([1, 3, 3, 1, 5, -3, -3, 5].as_slice(), [1, -1].as_slice(), 2),
             ([1, 2, -4].as_slice(), [1, 2, -4].as_slice(), 3),
-            ([0, 0].as_slice(), [].as_slice(), 0),
         ] {
             let mut sclause = Vec::from(clause);
             let resr = sclause.simplify();
