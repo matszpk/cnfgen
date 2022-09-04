@@ -283,7 +283,7 @@ where
         // and remove zeroes and duplicates
         for i in 0..self.clause_len() {
             if i <= 0 || self[i - 1] != self[i] {
-                // if no zero and if no this same literal
+                // if no this same literal
                 self[j] = self[i];
                 j += 1;
             }
