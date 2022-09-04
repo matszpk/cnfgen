@@ -802,6 +802,10 @@ mod tests {
         assert_eq!(Literal::<isize>::Value(true), lit_func(true));
         assert_eq!(Literal::<isize>::VarLit(2343), lit_func(2343));
         assert_eq!(Literal::<isize>::VarLit(-59521), lit_func(-59521));
+        assert!(!Literal::<isize>::Value(false).is_varlit());
+        assert!(Literal::<isize>::Value(false).is_value());
+        assert!(Literal::<isize>::VarLit(3).is_varlit());
+        assert!(!Literal::<isize>::VarLit(4).is_value());
     }
 
     fn clause_func<T, C>(t: C) -> C
