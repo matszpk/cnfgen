@@ -17,6 +17,9 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+//! The library to generate CNF (Conjuctive Normal Form) formulaes.
+
 use std::collections::*;
 use std::fmt::Debug;
 use std::io::{self, Write};
@@ -24,24 +27,35 @@ use std::iter::Extend;
 use std::ops::{Index, IndexMut, Neg};
 
 #[derive(thiserror::Error, Debug)]
+/// An error type.
 pub enum Error {
+    /// It caused if header has already been written.
     #[error("Header has already been written")]
     HeaderAlreadyWritten,
+    /// It caused if header has not been written.
     #[error("Header has not been written")]
     HeaderNotWritten,
+    /// It caused if attempt to write quantifier after clauses.
     #[error("Quantifier after clauses")]
     QuantifierAfterClauses,
+    /// It caused if attempt to write this same type of quantifier as previously.
     #[error("Quantifier's duplicate")]
     QuantifierDuplicate,
+    /// It caused after write all clauses.
     #[error("Too many clauses to write")]
     TooManyClauses,
+    /// It caused if clause have variable literal out of range.
     #[error("Variable literal is out of range")]
     VarLitOutOfRange,
+    /// It caused if I/O error encountered.
     #[error("IO error: {0}")]
     IOError(#[from] io::Error),
 }
 
+/// A variable literal. It holds variable number if it is not negated,
+/// or negated variable number if it is negated. Zero value is not allowed.
 pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> {
+    /// Converts variable literal to isize.
     #[inline]
     fn to(self) -> isize
     where
@@ -49,6 +63,7 @@ pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<u
     {
         self.try_into().expect("VarLit is too big")
     }
+    /// Converts variable literal to usize.
     #[inline]
     fn to_usize(self) -> usize
     where
@@ -56,15 +71,21 @@ pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<u
     {
         self.try_into().expect("VarLit is too big")
     }
+    /// Returns true if literal is empty (zero value - not allowed).
     fn is_empty(self) -> bool;
+    /// Returns empty literal - zero.
     fn empty() -> Self;
+    /// Returns first variable - 1.
     fn first_value() -> Self;
+    /// Returns some positive value (absolute value) if no overflow encountered.
     fn positive(self) -> Option<Self>;
+    /// Write self value to vector of bytes.
     fn write_to_vec(self, vec: &mut Vec<u8>);
 }
 
 macro_rules! impl_varlit {
     ($Ty:ident) => {
+        /// Implementation for an integer type.
         impl VarLit for $Ty {
             #[inline]
             fn is_empty(self) -> bool {
@@ -97,33 +118,61 @@ impl_varlit!(i32);
 impl_varlit!(i64);
 impl_varlit!(isize);
 
+/// A literal. It holds variable literal or value literal (false or true). It can be used
+/// to construct clause from either variables or constants. T type must be a VarLit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Literal<T: VarLit> {
+    /// It holds variable literal.
     VarLit(T),
+    /// It holds boolean value.
     Value(bool),
 }
 
+impl<T: VarLit> Literal<T> {
+    /// Returns true if self is variable literal.
+    pub fn is_varlit(self) -> bool {
+        matches!(self, Literal::VarLit(_))
+    }
+
+    /// Returns true if self is value.
+    pub fn is_value(self) -> bool {
+        matches!(self, Literal::Value(_))
+    }
+}
+
+/// Converts boolean value to Literal.
 impl<T: VarLit> From<bool> for Literal<T> {
     fn from(t: bool) -> Self {
         Literal::Value(t)
     }
 }
 
+/// Converts variable literal to Literal.
 impl<T: VarLit> From<T> for Literal<T> {
     fn from(t: T) -> Self {
         Literal::VarLit(t)
     }
 }
 
+/// Basic clause trait. It contains variable literals.
+/// This clause is a disjuction of literals.
+/// An empty clause is always false - formulaue contains that clause going
+/// to be unsatisfied.
 pub trait Clause<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
 {
+    /// Mainly to internal use. Returns length of clause - number of literals.
     fn clause_len(&self) -> usize;
+    /// Mainly to internal use. Returns true only if this function returns true for
+    /// all items.
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
+    /// Mainly to internal use. It performs function for each item.
     fn clause_for_each<F: FnMut(&T)>(&self, f: F);
 
+    /// Checks clause whether it have only allowed variable literals and variables
+    /// used in this clause doesn't have number greater than var_num.
     fn check_clause(&self, var_num: usize) -> bool {
         self.clause_all(|x| {
             *x != T::empty()
@@ -138,6 +187,7 @@ where
 
 macro_rules! impl_clause {
     ($Ty:ty) => {
+        /// An implementation for this type.
         impl<T> Clause<T> for $Ty
         where
             T: VarLit + Neg<Output = T>,
@@ -158,6 +208,7 @@ macro_rules! impl_clause {
     };
 }
 
+/// An implementation for a reference of slice.
 impl<'a, T> Clause<T> for &'a [T]
 where
     T: VarLit + Neg<Output = T>,
@@ -184,6 +235,7 @@ impl_clause!(BinaryHeap<T>);
 impl_clause!(HashSet<T>);
 impl_clause!(LinkedList<T>);
 
+/// An implementation for an array.
 impl<T, const N: usize> Clause<T> for [T; N]
 where
     T: VarLit + Neg<Output = T>,
@@ -202,14 +254,19 @@ where
     }
 }
 
+/// Trait of clause that can be simplified. This clause type is used during writing clause
+/// by CNF writer to prepare clause to write.
 pub trait SimplifiableClause<T>:
     Clause<T> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
 {
+    /// Shrinks clause to specified length.
     fn shrink(&mut self, l: usize);
+    /// Sorts literal by variable number (absolute value).
     fn sort_abs(&mut self);
+    /// Assigns source clause to self.
     fn assign<U, C>(&mut self, src: C)
     where
         U: VarLit + Neg<Output = U>,
@@ -218,6 +275,7 @@ where
         T: TryFrom<U>,
         <T as TryFrom<U>>::Error: Debug;
 
+    /// Simplifies clause and returns its final length.
     fn simplify(&mut self) -> usize {
         let mut j = 0;
         // sort clause
@@ -245,6 +303,7 @@ where
     }
 }
 
+/// An implementation for vector.
 impl<T> SimplifiableClause<T> for Vec<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -273,13 +332,15 @@ where
     }
 }
 
+/// A input clause that can be used to construct clauses. It can be easily constructed
+/// by using `push` or `extend` methods. The push method accepts Literal.
 pub struct InputClause<T> {
     clause: Vec<T>,
-    // if clause is tautology
     tautology: bool,
 }
 
 impl<T: VarLit + Neg<Output = T>> InputClause<T> {
+    /// Creates new an input clause.
     pub fn new() -> Self {
         Self {
             clause: vec![],
@@ -287,18 +348,24 @@ impl<T: VarLit + Neg<Output = T>> InputClause<T> {
         }
     }
 
+    /// Returns inner clause (container).
     pub fn clause(&self) -> &Vec<T> {
         &self.clause
     }
 
+    /// Returns true if clause is empty.
     pub fn is_empty(&self) -> bool {
         self.clause.is_empty()
     }
 
+    /// Returns true if clause is tautology after pushing true.
     pub fn is_tautology(&self) -> bool {
         self.tautology
     }
 
+    /// Pushes a literal to clause. If literal is variable literal then it pushed to clause.
+    /// If literal is false then nothing happens. If literal is true then clause
+    /// going to be a tautology and any further literals going to be ignored.
     pub fn push(&mut self, lit: impl Into<Literal<T>>) {
         if !self.tautology {
             match lit.into() {
@@ -315,6 +382,7 @@ impl<T: VarLit + Neg<Output = T>> InputClause<T> {
     }
 }
 
+/// An implementation Extend for InputClause for reference of VarLit items.
 impl<'a, T: Copy + 'a> Extend<&'a T> for InputClause<T> {
     fn extend<I>(&mut self, iter: I)
     where
@@ -326,6 +394,7 @@ impl<'a, T: Copy + 'a> Extend<&'a T> for InputClause<T> {
     }
 }
 
+/// An implementation FromIterator for InputClause for VarLit items.
 impl<T> FromIterator<T> for InputClause<T> {
     fn from_iter<I>(iter: I) -> Self
     where
@@ -338,6 +407,7 @@ impl<T> FromIterator<T> for InputClause<T> {
     }
 }
 
+/// An implementation Extend for InputClause for VarLit items.
 impl<T> Extend<T> for InputClause<T> {
     fn extend<I>(&mut self, iter: I)
     where
@@ -349,6 +419,7 @@ impl<T> Extend<T> for InputClause<T> {
     }
 }
 
+/// An implementation Extend for InputClause for Literal items.
 impl<T> Extend<Literal<T>> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -363,6 +434,7 @@ where
     }
 }
 
+/// An implementation FromIterator for InputClause for Literal items.
 impl<T> FromIterator<Literal<T>> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -377,6 +449,7 @@ where
     }
 }
 
+/// An implementation FromIterator for InputClause for reference of Literal items.
 impl<'a, T> Extend<&'a Literal<T>> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -391,6 +464,7 @@ where
     }
 }
 
+/// An implementation Clause for InputCaluse.
 impl<T> Clause<T> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -409,15 +483,22 @@ where
     }
 }
 
+/// Quantified literal's set. It contains variables that will be used with quantifier.
 pub trait QuantSet<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
 {
+    /// Mainly interal usage. Returns length of set.
     fn quant_len(&self) -> usize;
+    /// Mainly to internal use. Returns true only if this function returns true for
+    /// all items.
     fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool;
+    /// Mainly to internal use. It performs function for each item.
     fn quant_for_each<F: FnMut(&T)>(&self, f: F);
 
+    /// Checks set. Returns true if set contains only positive numbers of variables and
+    /// only that is not greater than var_num.
     fn check_quantset(&self, var_num: usize) -> bool {
         self.quant_all(|x| *x > T::empty() && x.to_usize() <= var_num)
     }
@@ -425,6 +506,7 @@ where
 
 macro_rules! impl_quant_set {
     ($Ty:ty) => {
+        /// An implementation for this type.
         impl<T> QuantSet<T> for $Ty
         where
             T: VarLit,
@@ -445,6 +527,7 @@ macro_rules! impl_quant_set {
     };
 }
 
+/// An implementation for a reference of slice.
 impl<'a, T> QuantSet<T> for &'a [T]
 where
     T: VarLit,
@@ -471,6 +554,7 @@ impl_quant_set!(BinaryHeap<T>);
 impl_quant_set!(HashSet<T>);
 impl_quant_set!(LinkedList<T>);
 
+/// An implementation for an array.
 impl<T, const N: usize> QuantSet<T> for [T; N]
 where
     T: VarLit,
@@ -489,18 +573,25 @@ where
     }
 }
 
+/// Quantifier type. It can be a existential and universal.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quantifier {
+    /// An existential quantifier type - exists.
     Exists,
+    /// An universal quantifier type - for all.
     ForAll,
 }
 
+/// CNF file header. It contains a number of variables and a number of clauses.
 #[derive(Clone, Copy, Default, Debug)]
 pub struct CNFHeader {
+    /// Number of variables in formulae. It can be zero.
     pub var_num: usize,
+    /// Number of clauses in formulae. It can be zero.
     pub clause_num: usize,
 }
 
+/// A CNF formulae writer.
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,
@@ -513,7 +604,9 @@ pub struct CNFWriter<W: Write> {
 const DEFAULT_BUF_CAPACITY: usize = 1024;
 const DEFAULT_CLAUSE_CAPACITY: usize = 64;
 
+/// An implementation for Write.
 impl<W: Write> CNFWriter<W> {
+    /// Creates new CNF writer. Parameter is writer.
     pub fn new(w: W) -> Self {
         CNFWriter {
             writer: w,
@@ -525,10 +618,12 @@ impl<W: Write> CNFWriter<W> {
         }
     }
 
+    /// Returns an inner writer.
     pub fn inner(&self) -> &W {
         &self.writer
     }
 
+    /// Writes a CNF header. It returns Ok if no error encountered.
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
         if self.header.is_none() {
             self.buf.clear();
@@ -548,6 +643,8 @@ impl<W: Write> CNFWriter<W> {
         }
     }
 
+    /// Writes quantifier. It returns Ok if no error encountered.
+    /// It must be called after header write and before any clause write.
     pub fn write_quant<T: VarLit, Q: QuantSet<T>>(
         &mut self,
         q: Quantifier,
@@ -588,6 +685,9 @@ impl<W: Write> CNFWriter<W> {
         }
     }
 
+    /// Writes Literals as clause. It returns Ok if no error encountered.
+    /// It must be called after header write.
+    /// It construct from literals clause and try to write this clause.
     pub fn write_literals<T, I>(&mut self, iter: I) -> Result<(), Error>
     where
         T: VarLit + Neg<Output = T>,
@@ -599,6 +699,7 @@ impl<W: Write> CNFWriter<W> {
         self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
+    /// Writes clause. It must be called after header write.
     pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
     where
         T: Neg<Output = T>,
