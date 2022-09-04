@@ -29,6 +29,10 @@ pub enum Error {
     HeaderAlreadyWritten,
     #[error("Header has not been written")]
     HeaderNotWritten,
+    #[error("Quantifier after clauses")]
+    QuantifierAfterClauses,
+    #[error("Quantifier's duplicate")]
+    QuantifierDuplicate,
     #[error("Too many clauses to write")]
     TooManyClauses,
     #[error("Variable literal is out of range")]
@@ -503,6 +507,7 @@ pub struct CNFWriter<W: Write> {
     buf_clause: Vec<isize>,
     header: Option<CNFHeader>,
     clause_count: usize,
+    last_quant: Option<Quantifier>,
 }
 
 const DEFAULT_BUF_CAPACITY: usize = 1024;
@@ -516,6 +521,7 @@ impl<W: Write> CNFWriter<W> {
             header: None,
             buf_clause: Vec::<isize>::with_capacity(DEFAULT_CLAUSE_CAPACITY),
             clause_count: 0,
+            last_quant: None,
         }
     }
 
@@ -545,14 +551,22 @@ impl<W: Write> CNFWriter<W> {
     pub fn write_quant<T: VarLit, Q: QuantSet<T>>(
         &mut self,
         q: Quantifier,
-        qs: &Q,
+        qs: Q,
     ) -> Result<(), Error>
     where
         <T as TryInto<usize>>::Error: Debug,
     {
         if let Some(ref header) = self.header {
+            if self.clause_count != 0 {
+                return Err(Error::QuantifierAfterClauses);
+            }
             if !qs.check_quantset(header.var_num) {
                 return Err(Error::VarLitOutOfRange);
+            }
+            if let Some(lastq) = self.last_quant {
+                if lastq == q {
+                    return Err(Error::QuantifierDuplicate);
+                }
             }
             self.buf.clear();
             self.buf.extend(if q == Quantifier::Exists {
@@ -565,21 +579,13 @@ impl<W: Write> CNFWriter<W> {
                 self.buf.push(b' ');
             });
             self.buf.extend(b"0\n");
-            self.writer.write_all(&self.buf).map_err(|e| Error::from(e))
+            self.writer.write_all(&self.buf)?;
+
+            self.last_quant = Some(q);
+            Ok(())
         } else {
             Err(Error::HeaderNotWritten)
         }
-    }
-
-    pub fn write_varlits<T, I>(&mut self, iter: I) -> Result<(), Error>
-    where
-        T: VarLit + Neg<Output = T>,
-        I: IntoIterator<Item = T>,
-        isize: TryFrom<T>,
-        <isize as TryFrom<T>>::Error: Debug,
-        <T as TryInto<usize>>::Error: Debug,
-    {
-        self.write_clause(InputClause::<T>::from_iter(iter))
     }
 
     pub fn write_literals<T, I>(&mut self, iter: I) -> Result<(), Error>
@@ -1027,6 +1033,82 @@ mod tests {
 -1 2 3 0
 "##,
             String::from_utf8_lossy(cnf_writer.inner())
+        );
+    }
+
+    #[test]
+    fn test_cnfwriter_write_literals() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(3, 2).unwrap();
+        cnf_writer
+            .write_literals([
+                Literal::from(-1),
+                (-1).into(),
+                false.into(),
+                2.into(),
+                3.into(),
+                3.into(),
+            ])
+            .unwrap();
+        cnf_writer
+            .write_literals([Literal::from(2), false.into(), (1).into()])
+            .unwrap();
+        assert_eq!(
+            r##"p cnf 3 2
+-1 2 3 0
+1 2 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+    }
+
+    #[test]
+    fn test_cnfwriter_write_quantifiers() {
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(5, 4).unwrap();
+        cnf_writer.write_quant(Quantifier::ForAll, [3, 1]).unwrap();
+        cnf_writer.write_quant(Quantifier::Exists, [2]).unwrap();
+        cnf_writer.write_quant(Quantifier::ForAll, [4, 5]).unwrap();
+        for c in [
+            [-2, 1, 3].as_slice(),
+            [2, 4].as_slice(),
+            [5, -1, 2].as_slice(),
+            [-5, 3, -4].as_slice(),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 5 4
+a 3 1 0
+e 2 0
+a 4 5 0
+1 -2 3 0
+2 4 0
+-1 2 5 0
+3 -4 -5 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(5, 4).unwrap();
+        cnf_writer.write_clause([1, 4]).unwrap();
+        assert_eq!(
+            Err("Quantifier after clauses".to_string()),
+            cnf_writer
+                .write_quant(Quantifier::ForAll, [3, 1])
+                .map_err(|x| x.to_string())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(5, 4).unwrap();
+        cnf_writer.write_quant(Quantifier::ForAll, [3, 1]).unwrap();
+        cnf_writer.write_quant(Quantifier::Exists, [2]).unwrap();
+        assert_eq!(
+            Err("Quantifier's duplicate".to_string()),
+            cnf_writer
+                .write_quant(Quantifier::Exists, [4, 5])
+                .map_err(|x| x.to_string())
         );
     }
 }
