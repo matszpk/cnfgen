@@ -29,5 +29,5 @@ pub mod prelude {
     pub use crate::CNFWriter;
 }
 
-mod writer;
+pub mod writer;
 pub use writer::{VarLit, Literal, Clause, SimplifiableClause, InputClause, CNFWriter};
