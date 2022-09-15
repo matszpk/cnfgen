@@ -1,4 +1,4 @@
-// lib.rs - main library
+// boolexpr.rs - main library
 //
 // cnfgen - Generate the DIMACS CNF formulae from operations
 // Copyright (C) 2022  Mateusz Szpakowski
@@ -18,18 +18,4 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The library to generate CNF (Conjuctive Normal Form) formulaes.
-
-pub mod prelude {
-    pub use crate::VarLit;
-    pub use crate::Literal;
-    pub use crate::Clause;
-    pub use crate::SimplifiableClause;
-    pub use crate::InputClause;
-    pub use crate::CNFWriter;
-}
-
-pub mod writer;
-pub use writer::{VarLit, Literal, Clause, SimplifiableClause, InputClause, CNFWriter};
-
-pub mod boolexpr;
+//! The module to generate CNF clauses from boolean expressions.
