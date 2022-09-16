@@ -24,7 +24,7 @@ use std::collections::*;
 use std::fmt::Debug;
 use std::io::{self, Write};
 use std::iter::Extend;
-use std::ops::{Index, IndexMut, Neg};
+use std::ops::{Index, IndexMut, Neg, Not};
 
 #[derive(thiserror::Error, Debug)]
 /// An error type.
@@ -137,6 +137,17 @@ impl<T: VarLit> Literal<T> {
     /// Returns true if self is value.
     pub fn is_value(self) -> bool {
         matches!(self, Literal::Value(_))
+    }
+}
+
+impl<T: VarLit + Neg<Output = T>> Not for Literal<T> {
+    type Output = Literal<T>;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Literal::Value(t) => Literal::Value(!t),
+            Literal::VarLit(t) => Literal::VarLit(-t),
+        }
     }
 }
 
@@ -1217,4 +1228,3 @@ a 4 5 0
         );
     }
 }
-

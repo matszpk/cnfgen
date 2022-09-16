@@ -21,15 +21,15 @@
 //! The library to generate CNF (Conjuctive Normal Form) formulaes.
 
 pub mod prelude {
-    pub use crate::VarLit;
-    pub use crate::Literal;
-    pub use crate::Clause;
-    pub use crate::SimplifiableClause;
-    pub use crate::InputClause;
     pub use crate::CNFWriter;
+    pub use crate::Clause;
+    pub use crate::InputClause;
+    pub use crate::Literal;
+    pub use crate::SimplifiableClause;
+    pub use crate::VarLit;
 }
 
 pub mod writer;
-pub use writer::{VarLit, Literal, Clause, SimplifiableClause, InputClause, CNFWriter};
+pub use writer::{CNFWriter, Clause, InputClause, Literal, SimplifiableClause, VarLit};
 
 pub mod boolexpr;
