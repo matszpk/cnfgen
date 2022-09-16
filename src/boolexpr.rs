@@ -83,17 +83,17 @@ impl<'a, T: VarLit> ExprNode<'a, T> {
     }
 }
 
-/*impl<'a, T: VarLit + Neg<Output = T>> Not for ExprNode<'a, T> {
+impl<'a, T: VarLit + Neg<Output = T>> Not for &'a ExprNode<'a, T> {
     type Output = ExprNode<'a, T>;
 
     fn not(self) -> Self::Output {
         match self {
-            ExprNode::Single(t) => ExprNode::Single(!t),
-            ExprNode::Negated(t) => *t,
+            ExprNode::Single(ref t) => ExprNode::Single(!*t),
+            ExprNode::Negated(t) => **t,
             ExprNode::And(_, _) | ExprNode::Or(_, _) => ExprNode::Negated(&self),
         }
     }
-}*/
+}
 
 impl<'a, T: VarLit, U: Into<Literal<T>>> From<U> for ExprNode<'a, T> {
     fn from(t: U) -> Self {
