@@ -20,83 +20,146 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to generate CNF clauses from boolean expressions.
 
-use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
+use std::cell::RefCell;
+use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Deref, DerefMut, Neg, Not};
+use std::rc::Rc;
+use std::sync::{Arc, LockResult, Mutex, MutexGuard};
 
 use crate::{Literal, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Usage {
-    Normal,
-    Negated,
-    Both,
+enum Node<T: VarLit> {
+    Single(Literal<T>),
+    Negated(usize),
+    And(usize, usize),
+    Or(usize, usize),
+    Xor(usize, usize),
+    Equal(usize, usize),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum NodeLink {
-    NoLink,
-    AndLink(isize),
-    OrLink(isize),
-    AndNotLink(isize),
-    OrNotLink(isize),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct Node<T: VarLit> {
-    lvar: T, // linking variable, 0 - no variable, must be positive
-    usage: Usage,
-    next: NodeLink,
-    literal: Literal<T>, //literal of this node
-}
-
-struct Container<T: VarLit> {
-    var_count: isize,
+#[derive(Debug)]
+pub struct ExprCreator<T: VarLit> {
+    var_count: T,
     nodes: Vec<Node<T>>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ExprNode<'a, T: VarLit> {
-    Single(Literal<T>),
-    Negated(&'a ExprNode<'a, T>),
-    And(&'a ExprNode<'a, T>, &'a ExprNode<'a, T>),
-    Or(&'a ExprNode<'a, T>, &'a ExprNode<'a, T>),
+macro_rules! new_xxx {
+    ($t:ident, $u:ident) => {
+        pub fn $t(&mut self, a_index: usize, b_index: usize) -> usize {
+            assert!(a_index < self.nodes.len());
+            assert!(b_index < self.nodes.len());
+            self.nodes.push(Node::$u(a_index, b_index));
+            self.nodes.len() - 1
+        }
+    };
 }
 
-impl<'a, T: VarLit> ExprNode<'a, T> {
-    pub fn new_not(a: &'a ExprNode<'a, T>) -> Self {
-        ExprNode::Negated(a)
+impl<T: VarLit + AddAssign> ExprCreator<T> {
+    pub fn new() -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(ExprCreator {
+            var_count: T::empty(),
+            nodes: vec![],
+        }))
     }
 
-    pub fn new_and(a: &'a ExprNode<'a, T>, b: &'a ExprNode<'a, T>) -> Self {
-        ExprNode::And(a, b)
+    pub fn new_variable(&mut self) -> T {
+        self.var_count += T::first_value();
+        self.var_count
     }
 
-    pub fn new_or(a: &'a ExprNode<'a, T>, b: &'a ExprNode<'a, T>) -> Self {
-        ExprNode::Or(a, b)
+    pub fn new_single(&mut self, l: T) -> usize {
+        assert!(l.positive().unwrap() <= self.var_count);
+        self.nodes.push(Node::Single(Literal::VarLit(l)));
+        self.nodes.len() - 1
     }
 
-    pub fn is_negated(self) -> bool {
-        matches!(self, ExprNode::Negated(_))
+    pub fn new_not(&mut self, index: usize) -> usize {
+        assert!(index < self.nodes.len());
+        self.nodes.push(Node::Negated(index));
+        self.nodes.len() - 1
     }
 
-    pub fn is_binary(self) -> bool {
-        matches!(self, ExprNode::And(_, _) | ExprNode::Or(_, _))
-    }
+    new_xxx!(new_and, And);
+    new_xxx!(new_or, Or);
+    new_xxx!(new_xor, Xor);
+    new_xxx!(new_equal, Equal);
 }
 
-impl<'a, T: VarLit + Neg<Output = T>> Not for &'a ExprNode<'a, T> {
-    type Output = ExprNode<'a, T>;
+#[derive(Clone, Debug)]
+pub struct ExprNode<T: VarLit> {
+    creator: Rc<RefCell<ExprCreator<T>>>,
+    index: usize,
+}
 
-    fn not(self) -> Self::Output {
-        match self {
-            ExprNode::Single(ref t) => ExprNode::Single(!*t),
-            ExprNode::Negated(t) => **t,
-            ExprNode::And(_, _) | ExprNode::Or(_, _) => ExprNode::Negated(&self),
+impl<T: VarLit + AddAssign> ExprNode<T> {
+    pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: T) -> Self {
+        let index = creator.borrow_mut().new_single(l);
+        ExprNode { creator, index }
+    }
+
+    pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
+        let index = {
+            let mut creator = creator.borrow_mut();
+            let l = creator.new_variable();
+            creator.new_single(l)
+        };
+        ExprNode { creator, index }
+    }
+
+    pub fn equal(self, rhs: Self) -> Self {
+        let index = self.creator.borrow_mut().new_equal(self.index, rhs.index);
+        ExprNode {
+            creator: self.creator,
+            index,
         }
     }
 }
 
-impl<'a, T: VarLit, U: Into<Literal<T>>> From<U> for ExprNode<'a, T> {
-    fn from(t: U) -> Self {
-        ExprNode::Single(t.into())
+impl<T: VarLit + AddAssign> Not for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn not(self) -> Self::Output {
+        let index = self.creator.borrow_mut().new_not(self.index);
+        ExprNode {
+            creator: self.creator,
+            index,
+        }
+    }
+}
+
+macro_rules! new_op_impl {
+    ($t:ident, $u:ident, $v:ident) => {
+        impl<T: VarLit + AddAssign> $t for ExprNode<T> {
+            type Output = ExprNode<T>;
+
+            fn $v(self, rhs: Self) -> Self::Output {
+                let index = self.creator.borrow_mut().$u(self.index, rhs.index);
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    };
+}
+
+new_op_impl!(BitAnd, new_and, bitand);
+new_op_impl!(BitOr, new_or, bitor);
+new_op_impl!(BitXor, new_xor, bitxor);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_expr_nodes() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec);
+        let expr = !v1.clone() & v2.clone() | !v3 ^ (v1 | v2);
+        //let xn = ExprNode::And(&(3.into()), &(6.into()));
+        //print!("{:?}", xn);
+        // !&xn;
     }
 }
