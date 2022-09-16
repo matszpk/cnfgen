@@ -215,6 +215,37 @@ impl<T: VarLit + Hash> BitAnd<ExprNode<T>> for Literal<T> {
     }
 }
 
+macro_rules! new_op_l_xn_impl {
+    ($t:ty, $u: ident, $v: ident) => {
+        impl $u<ExprNode<$t>> for $t {
+            type Output = ExprNode<$t>;
+
+            fn $v(self, rhs: ExprNode<$t>) -> Self::Output {
+                rhs.$v(Literal::from(self))
+            }
+        }
+    };
+}
+
+macro_rules! new_all_op_l_xn_impls {
+    ($u: ident, $v: ident) => {
+        impl<T: VarLit + Hash + Neg<Output = T>> $u<ExprNode<T>> for bool {
+            type Output = ExprNode<T>;
+
+            fn $v(self, rhs: ExprNode<T>) -> Self::Output {
+                rhs.$v(Literal::from(self))
+            }
+        }
+        new_op_l_xn_impl!(i8, $u, $v);
+        new_op_l_xn_impl!(i16, $u, $v);
+        new_op_l_xn_impl!(i32, $u, $v);
+        new_op_l_xn_impl!(i64, $u, $v);
+        new_op_l_xn_impl!(isize, $u, $v);
+    };
+}
+
+new_all_op_l_xn_impls!(BitAnd, bitand);
+
 impl<T: VarLit + Hash, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
@@ -248,6 +279,8 @@ impl<T: VarLit + Hash> BitOr<ExprNode<T>> for Literal<T> {
     }
 }
 
+new_all_op_l_xn_impls!(BitOr, bitor);
+
 impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
@@ -278,6 +311,8 @@ impl<T: VarLit + Hash + Neg<Output = T>> BitXor<ExprNode<T>> for Literal<T> {
     }
 }
 
+new_all_op_l_xn_impls!(BitXor, bitxor);
+
 impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
@@ -307,6 +342,8 @@ impl<T: VarLit + Hash + Neg<Output = T>> BoolEqual<ExprNode<T>> for Literal<T> {
         rhs.equal(self)
     }
 }
+
+new_all_op_l_xn_impls!(BoolEqual, equal);
 
 #[cfg(test)]
 mod tests {
@@ -368,7 +405,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_nodes_lits() {
+    fn test_expr_nodes_lits_1() {
         let ec = ExprCreator::<isize>::new();
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
@@ -376,11 +413,53 @@ mod tests {
         let v4x = ec.borrow_mut().new_variable();
         let v5x = ec.borrow_mut().new_variable();
         let _ = Literal::from(v5x)
-            | (v1.clone() ^ true)
+            | (v1.clone() ^ Literal::from(true))
             | (Literal::from(true) ^ v2)
             | (v3 & Literal::from(true))
             | (Literal::from(v4x) & v1)
             | Literal::from(false);
+        assert_eq!(
+            ExprCreator {
+                var_count: 5,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Single(Literal::VarLit(5)),
+                    Node::Or(5, 6),
+                    Node::Single(Literal::VarLit(-2)),
+                    Node::Or(7, 8),
+                    Node::Or(9, 4),
+                    Node::Single(Literal::VarLit(4)),
+                    Node::And(2, 11),
+                    Node::Or(10, 12),
+                ],
+                lit_to_index: HashMap::from([
+                    (3, 4),
+                    (1, 2),
+                    (5, 6),
+                    (2, 3),
+                    (4, 11),
+                    (-1, 5),
+                    (-2, 8)
+                ]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_2() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let v4x = ec.borrow_mut().new_variable();
+        let v5x = ec.borrow_mut().new_variable();
+        let _ = v5x | (v1.clone() ^ true) | (true ^ v2) | (v3 & true) | (v4x & v1) | false;
         assert_eq!(
             ExprCreator {
                 var_count: 5,
