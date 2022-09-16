@@ -158,7 +158,24 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let expr = !v1.clone() & v2.clone() | !v3 ^ (v1 | v2);
+        let _ = !v1.clone() & v2.clone() | !v3 ^ (v1 | v2);
+        assert_eq!(
+            ExprCreator {
+                var_count: 3,
+                nodes: vec![
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Negated(0),
+                    Node::And(3, 1),
+                    Node::Negated(2),
+                    Node::Or(0, 1),
+                    Node::Xor(5, 6),
+                    Node::Or(4, 7),
+                ]
+            },
+            *ec.borrow()
+        );
         print!("xxx: {:?}", ec);
     }
 }
