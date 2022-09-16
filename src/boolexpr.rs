@@ -21,6 +21,8 @@
 //! The module to generate CNF clauses from boolean expressions.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
+use std::hash::Hash;
 use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::rc::Rc;
 
@@ -37,9 +39,10 @@ enum Node<T: VarLit> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ExprCreator<T: VarLit> {
+pub struct ExprCreator<T: VarLit + Hash> {
     var_count: T,
     nodes: Vec<Node<T>>,
+    lit_to_index: HashMap<T, usize>,
 }
 
 macro_rules! new_xxx {
@@ -53,11 +56,15 @@ macro_rules! new_xxx {
     };
 }
 
-impl<T: VarLit> ExprCreator<T> {
+impl<T: VarLit + Hash> ExprCreator<T> {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
             var_count: T::empty(),
-            nodes: vec![],
+            nodes: vec![
+                Node::Single(Literal::Value(false)),
+                Node::Single(Literal::Value(true)),
+            ],
+            lit_to_index: HashMap::new(),
         }))
     }
 
@@ -67,12 +74,20 @@ impl<T: VarLit> ExprCreator<T> {
     }
 
     pub fn new_single(&mut self, l: impl Into<Literal<T>>) -> usize {
-        let l = l.into();
-        if let Literal::VarLit(ll) = l {
-            assert!(ll.positive().unwrap() <= self.var_count);
+        match l.into() {
+            Literal::Value(false) => 0,
+            Literal::Value(true) => 1,
+            Literal::VarLit(ll) => {
+                assert!(ll.positive().unwrap() <= self.var_count);
+                if let Some(index) = self.lit_to_index.get(&ll) {
+                    *index
+                } else {
+                    self.nodes.push(Node::Single(Literal::VarLit(ll)));
+                    self.lit_to_index.insert(ll, self.nodes.len() - 1);
+                    self.nodes.len() - 1
+                }
+            }
         }
-        self.nodes.push(Node::Single(l));
-        self.nodes.len() - 1
     }
 
     pub fn new_not(&mut self, index: usize) -> usize {
@@ -94,12 +109,12 @@ pub trait BoolEqual<Rhs = Self> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit> {
+pub struct ExprNode<T: VarLit + Hash> {
     creator: Rc<RefCell<ExprCreator<T>>>,
     index: usize,
 }
 
-impl<T: VarLit> ExprNode<T> {
+impl<T: VarLit + Hash> ExprNode<T> {
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().new_single(l);
         ExprNode { creator, index }
@@ -115,7 +130,7 @@ impl<T: VarLit> ExprNode<T> {
     }
 }
 
-impl<T: VarLit> BoolEqual for ExprNode<T> {
+impl<T: VarLit + Hash> BoolEqual for ExprNode<T> {
     type Output = Self;
 
     fn equal(self, rhs: Self) -> Self {
@@ -128,7 +143,7 @@ impl<T: VarLit> BoolEqual for ExprNode<T> {
     }
 }
 
-impl<T: VarLit> Not for ExprNode<T> {
+impl<T: VarLit + Hash> Not for ExprNode<T> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -142,7 +157,7 @@ impl<T: VarLit> Not for ExprNode<T> {
 
 macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident) => {
-        impl<T: VarLit> $t for ExprNode<T> {
+        impl<T: VarLit + Hash> $t for ExprNode<T> {
             type Output = Self;
 
             fn $v(self, rhs: Self) -> Self::Output {
@@ -161,18 +176,15 @@ new_op_impl!(BitAnd, new_and, bitand);
 new_op_impl!(BitOr, new_or, bitor);
 new_op_impl!(BitXor, new_xor, bitxor);
 
-impl<T: VarLit, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
+impl<T: VarLit + Hash, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn bitand(self, rhs: U) -> Self::Output {
         match rhs.into() {
-            Literal::Value(false) => {
-                let index = self.creator.borrow_mut().new_single(false);
-                ExprNode {
-                    creator: self.creator,
-                    index,
-                }
-            }
+            Literal::Value(false) => ExprNode {
+                creator: self.creator,
+                index: 0,
+            },
             Literal::Value(true) => self,
             Literal::VarLit(l) => {
                 let index = {
@@ -189,7 +201,7 @@ impl<T: VarLit, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit> BitAnd<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash> BitAnd<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn bitand(self, rhs: ExprNode<T>) -> Self::Output {
@@ -197,19 +209,16 @@ impl<T: VarLit> BitAnd<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
+impl<T: VarLit + Hash, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn bitor(self, rhs: U) -> Self::Output {
         match rhs.into() {
             Literal::Value(false) => self,
-            Literal::Value(true) => {
-                let index = self.creator.borrow_mut().new_single(true);
-                ExprNode {
-                    creator: self.creator,
-                    index,
-                }
-            }
+            Literal::Value(true) => ExprNode {
+                creator: self.creator,
+                index: 1,
+            },
             Literal::VarLit(l) => {
                 let index = {
                     let mut creator = self.creator.borrow_mut();
@@ -225,7 +234,7 @@ impl<T: VarLit, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash> BitOr<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn bitor(self, rhs: ExprNode<T>) -> Self::Output {
@@ -233,7 +242,7 @@ impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
+impl<T: VarLit + Hash, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: U) -> Self::Output {
@@ -255,7 +264,7 @@ impl<T: VarLit, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit> BitXor<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash> BitXor<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: ExprNode<T>) -> Self::Output {
@@ -263,7 +272,7 @@ impl<T: VarLit> BitXor<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
+impl<T: VarLit + Hash, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: U) -> Self::Output {
@@ -285,7 +294,7 @@ impl<T: VarLit, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit> BoolEqual<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash> BoolEqual<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: ExprNode<T>) -> Self::Output {
@@ -309,16 +318,19 @@ mod tests {
             ExprCreator {
                 var_count: 3,
                 nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
                     Node::Single(Literal::VarLit(1)),
                     Node::Single(Literal::VarLit(2)),
                     Node::Single(Literal::VarLit(3)),
-                    Node::Negated(0),
-                    Node::And(3, 1),
                     Node::Negated(2),
-                    Node::Or(0, 1),
-                    Node::Xor(5, 6),
-                    Node::Or(4, 7),
-                ]
+                    Node::And(5, 3),
+                    Node::Negated(4),
+                    Node::Or(2, 3),
+                    Node::Xor(7, 8),
+                    Node::Or(6, 9),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
             },
             *ec.borrow()
         );
@@ -327,19 +339,22 @@ mod tests {
             ExprCreator {
                 var_count: 3,
                 nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
                     Node::Single(Literal::VarLit(1)),
                     Node::Single(Literal::VarLit(2)),
                     Node::Single(Literal::VarLit(3)),
-                    Node::Negated(0),
-                    Node::And(3, 1),
                     Node::Negated(2),
-                    Node::Or(0, 1),
-                    Node::Xor(5, 6),
-                    Node::Or(4, 7),
-                    Node::Equal(1, 2),
-                    Node::Xor(0, 9),
-                    Node::Or(10, 4),
-                ]
+                    Node::And(5, 3),
+                    Node::Negated(4),
+                    Node::Or(2, 3),
+                    Node::Xor(7, 8),
+                    Node::Or(6, 9),
+                    Node::Equal(3, 4),
+                    Node::Xor(2, 11),
+                    Node::Or(12, 6),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
             },
             *ec.borrow()
         );
