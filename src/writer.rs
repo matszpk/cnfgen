@@ -79,6 +79,8 @@ pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<u
     fn first_value() -> Self;
     /// Returns some positive value (absolute value) if no overflow encountered.
     fn positive(self) -> Option<Self>;
+    /// Returns next value.
+    fn next_value(self) -> Option<Self>;
     /// Write self value to vector of bytes.
     fn write_to_vec(self, vec: &mut Vec<u8>);
 }
@@ -102,6 +104,11 @@ macro_rules! impl_varlit {
             #[inline]
             fn positive(self) -> Option<Self> {
                 self.checked_abs()
+            }
+
+            #[inline]
+            fn next_value(self) -> Option<Self> {
+                self.checked_add(1)
             }
 
             #[inline]

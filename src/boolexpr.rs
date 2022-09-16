@@ -21,9 +21,8 @@
 //! The module to generate CNF clauses from boolean expressions.
 
 use std::cell::RefCell;
-use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Deref, DerefMut, Neg, Not};
+use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Not};
 use std::rc::Rc;
-use std::sync::{Arc, LockResult, Mutex, MutexGuard};
 
 use crate::{Literal, VarLit};
 
@@ -37,7 +36,7 @@ enum Node<T: VarLit> {
     Equal(usize, usize),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit> {
     var_count: T,
     nodes: Vec<Node<T>>,
@@ -63,7 +62,7 @@ impl<T: VarLit + AddAssign> ExprCreator<T> {
     }
 
     pub fn new_variable(&mut self) -> T {
-        self.var_count += T::first_value();
+        self.var_count = self.var_count.next_value().unwrap();
         self.var_count
     }
 
@@ -85,7 +84,7 @@ impl<T: VarLit + AddAssign> ExprCreator<T> {
     new_xxx!(new_equal, Equal);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit> {
     creator: Rc<RefCell<ExprCreator<T>>>,
     index: usize,
@@ -107,6 +106,7 @@ impl<T: VarLit + AddAssign> ExprNode<T> {
     }
 
     pub fn equal(self, rhs: Self) -> Self {
+        assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
         let index = self.creator.borrow_mut().new_equal(self.index, rhs.index);
         ExprNode {
             creator: self.creator,
@@ -133,6 +133,7 @@ macro_rules! new_op_impl {
             type Output = ExprNode<T>;
 
             fn $v(self, rhs: Self) -> Self::Output {
+                assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
                 let index = self.creator.borrow_mut().$u(self.index, rhs.index);
                 ExprNode {
                     creator: self.creator,
@@ -156,10 +157,8 @@ mod tests {
         let ec = ExprCreator::<isize>::new();
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec);
+        let v3 = ExprNode::variable(ec.clone());
         let expr = !v1.clone() & v2.clone() | !v3 ^ (v1 | v2);
-        //let xn = ExprNode::And(&(3.into()), &(6.into()));
-        //print!("{:?}", xn);
-        // !&xn;
+        print!("xxx: {:?}", ec);
     }
 }
