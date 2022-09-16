@@ -66,9 +66,12 @@ impl<T: VarLit> ExprCreator<T> {
         self.var_count
     }
 
-    pub fn new_single(&mut self, l: T) -> usize {
-        assert!(l.positive().unwrap() <= self.var_count);
-        self.nodes.push(Node::Single(Literal::VarLit(l)));
+    pub fn new_single(&mut self, l: impl Into<Literal<T>>) -> usize {
+        let l = l.into();
+        if let Literal::VarLit(ll) = l {
+            assert!(ll.positive().unwrap() <= self.var_count);
+        }
+        self.nodes.push(Node::Single(l));
         self.nodes.len() - 1
     }
 
@@ -84,6 +87,12 @@ impl<T: VarLit> ExprCreator<T> {
     new_xxx!(new_equal, Equal);
 }
 
+pub trait BoolEqual<Rhs = Self> {
+    type Output;
+
+    fn equal(self, rhs: Rhs) -> Self::Output;
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit> {
     creator: Rc<RefCell<ExprCreator<T>>>,
@@ -91,7 +100,7 @@ pub struct ExprNode<T: VarLit> {
 }
 
 impl<T: VarLit> ExprNode<T> {
-    pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: T) -> Self {
+    pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().new_single(l);
         ExprNode { creator, index }
     }
@@ -104,8 +113,12 @@ impl<T: VarLit> ExprNode<T> {
         };
         ExprNode { creator, index }
     }
+}
 
-    pub fn equal(self, rhs: Self) -> Self {
+impl<T: VarLit> BoolEqual for ExprNode<T> {
+    type Output = Self;
+
+    fn equal(self, rhs: Self) -> Self {
         assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
         let index = self.creator.borrow_mut().new_equal(self.index, rhs.index);
         ExprNode {
@@ -116,7 +129,7 @@ impl<T: VarLit> ExprNode<T> {
 }
 
 impl<T: VarLit> Not for ExprNode<T> {
-    type Output = ExprNode<T>;
+    type Output = Self;
 
     fn not(self) -> Self::Output {
         let index = self.creator.borrow_mut().new_not(self.index);
@@ -130,7 +143,7 @@ impl<T: VarLit> Not for ExprNode<T> {
 macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident) => {
         impl<T: VarLit> $t for ExprNode<T> {
-            type Output = ExprNode<T>;
+            type Output = Self;
 
             fn $v(self, rhs: Self) -> Self::Output {
                 assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
@@ -147,6 +160,138 @@ macro_rules! new_op_impl {
 new_op_impl!(BitAnd, new_and, bitand);
 new_op_impl!(BitOr, new_or, bitor);
 new_op_impl!(BitXor, new_xor, bitxor);
+
+impl<T: VarLit, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn bitand(self, rhs: U) -> Self::Output {
+        match rhs.into() {
+            Literal::Value(false) => {
+                let index = self.creator.borrow_mut().new_single(false);
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+            Literal::Value(true) => self,
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    let index = creator.new_single(l);
+                    creator.new_and(self.index, index)
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit> BitAnd<ExprNode<T>> for Literal<T> {
+    type Output = ExprNode<T>;
+
+    fn bitand(self, rhs: ExprNode<T>) -> Self::Output {
+        rhs.bitand(self)
+    }
+}
+
+impl<T: VarLit, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn bitor(self, rhs: U) -> Self::Output {
+        match rhs.into() {
+            Literal::Value(false) => self,
+            Literal::Value(true) => {
+                let index = self.creator.borrow_mut().new_single(true);
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    let index = creator.new_single(l);
+                    creator.new_or(self.index, index)
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T> {
+    type Output = ExprNode<T>;
+
+    fn bitor(self, rhs: ExprNode<T>) -> Self::Output {
+        rhs.bitor(self)
+    }
+}
+
+impl<T: VarLit, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn bitxor(self, rhs: U) -> Self::Output {
+        match rhs.into() {
+            Literal::Value(false) => self,
+            Literal::Value(true) => !self,
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    let index = creator.new_single(l);
+                    creator.new_xor(self.index, index)
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit> BitXor<ExprNode<T>> for Literal<T> {
+    type Output = ExprNode<T>;
+
+    fn bitxor(self, rhs: ExprNode<T>) -> Self::Output {
+        rhs.bitxor(self)
+    }
+}
+
+impl<T: VarLit, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn equal(self, rhs: U) -> Self::Output {
+        match rhs.into() {
+            Literal::Value(false) => !self,
+            Literal::Value(true) => self,
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    let index = creator.new_single(l);
+                    creator.new_equal(self.index, index)
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit> BoolEqual<ExprNode<T>> for Literal<T> {
+    type Output = ExprNode<T>;
+
+    fn equal(self, rhs: ExprNode<T>) -> Self::Output {
+        rhs.equal(self)
+    }
+}
 
 #[cfg(test)]
 mod tests {
