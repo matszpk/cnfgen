@@ -23,7 +23,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::{BitAnd, BitOr, BitXor, Not};
+use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
 use std::rc::Rc;
 
 use crate::{Literal, VarLit};
@@ -143,11 +143,17 @@ impl<T: VarLit + Hash> BoolEqual for ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> Not for ExprNode<T> {
+impl<T: VarLit + Hash + Neg<Output = T>> Not for ExprNode<T> {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        let index = self.creator.borrow_mut().new_not(self.index);
+        let index = {
+            let mut creator = self.creator.borrow_mut();
+            match creator.nodes[self.index] {
+                Node::Single(l) => creator.new_single(!l),
+                _ => creator.new_not(self.index),
+            }
+        };
         ExprNode {
             creator: self.creator,
             index,
@@ -242,7 +248,7 @@ impl<T: VarLit + Hash> BitOr<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit + Hash, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
+impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: U) -> Self::Output {
@@ -264,7 +270,7 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> BitXor<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash + Neg<Output = T>> BitXor<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: ExprNode<T>) -> Self::Output {
@@ -272,7 +278,7 @@ impl<T: VarLit + Hash> BitXor<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit + Hash, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
+impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: U) -> Self::Output {
@@ -294,7 +300,7 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> BoolEqual<ExprNode<T>> for Literal<T> {
+impl<T: VarLit + Hash + Neg<Output = T>> BoolEqual<ExprNode<T>> for Literal<T> {
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: ExprNode<T>) -> Self::Output {
@@ -323,18 +329,18 @@ mod tests {
                     Node::Single(Literal::VarLit(1)),
                     Node::Single(Literal::VarLit(2)),
                     Node::Single(Literal::VarLit(3)),
-                    Node::Negated(2),
+                    Node::Single(Literal::VarLit(-1)),
                     Node::And(5, 3),
-                    Node::Negated(4),
+                    Node::Single(Literal::VarLit(-3)),
                     Node::Or(2, 3),
                     Node::Xor(7, 8),
                     Node::Or(6, 9),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
+                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4), (-1, 5), (-3, 7)]),
             },
             *ec.borrow()
         );
-        let _ = v1.clone() ^ v2.clone().equal(v3) | xp1;
+        let _ = v1.clone() ^ v2.clone().equal(v3) | !xp1;
         assert_eq!(
             ExprCreator {
                 var_count: 3,
@@ -344,17 +350,65 @@ mod tests {
                     Node::Single(Literal::VarLit(1)),
                     Node::Single(Literal::VarLit(2)),
                     Node::Single(Literal::VarLit(3)),
-                    Node::Negated(2),
+                    Node::Single(Literal::VarLit(-1)),
                     Node::And(5, 3),
-                    Node::Negated(4),
+                    Node::Single(Literal::VarLit(-3)),
                     Node::Or(2, 3),
                     Node::Xor(7, 8),
                     Node::Or(6, 9),
                     Node::Equal(3, 4),
                     Node::Xor(2, 11),
-                    Node::Or(12, 6),
+                    Node::Negated(6),
+                    Node::Or(12, 13),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
+                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4), (-1, 5), (-3, 7)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let v4x = ec.borrow_mut().new_variable();
+        let v5x = ec.borrow_mut().new_variable();
+        let _ = Literal::from(v5x)
+            | (v1.clone() ^ true)
+            | (Literal::from(true) ^ v2)
+            | (v3 & Literal::from(true))
+            | (Literal::from(v4x) & v1)
+            | Literal::from(false);
+        assert_eq!(
+            ExprCreator {
+                var_count: 5,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Single(Literal::VarLit(5)),
+                    Node::Or(5, 6),
+                    Node::Single(Literal::VarLit(-2)),
+                    Node::Or(7, 8),
+                    Node::Or(9, 4),
+                    Node::Single(Literal::VarLit(4)),
+                    Node::And(2, 11),
+                    Node::Or(10, 12),
+                ],
+                lit_to_index: HashMap::from([
+                    (3, 4),
+                    (1, 2),
+                    (5, 6),
+                    (2, 3),
+                    (4, 11),
+                    (-1, 5),
+                    (-2, 8)
+                ]),
             },
             *ec.borrow()
         );
