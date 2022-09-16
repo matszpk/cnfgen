@@ -21,7 +21,7 @@
 //! The module to generate CNF clauses from boolean expressions.
 
 use std::cell::RefCell;
-use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Not};
+use std::ops::{BitAnd, BitOr, BitXor, Not};
 use std::rc::Rc;
 
 use crate::{Literal, VarLit};
@@ -53,7 +53,7 @@ macro_rules! new_xxx {
     };
 }
 
-impl<T: VarLit + AddAssign> ExprCreator<T> {
+impl<T: VarLit> ExprCreator<T> {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
             var_count: T::empty(),
@@ -90,7 +90,7 @@ pub struct ExprNode<T: VarLit> {
     index: usize,
 }
 
-impl<T: VarLit + AddAssign> ExprNode<T> {
+impl<T: VarLit> ExprNode<T> {
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: T) -> Self {
         let index = creator.borrow_mut().new_single(l);
         ExprNode { creator, index }
@@ -115,7 +115,7 @@ impl<T: VarLit + AddAssign> ExprNode<T> {
     }
 }
 
-impl<T: VarLit + AddAssign> Not for ExprNode<T> {
+impl<T: VarLit> Not for ExprNode<T> {
     type Output = ExprNode<T>;
 
     fn not(self) -> Self::Output {
@@ -129,7 +129,7 @@ impl<T: VarLit + AddAssign> Not for ExprNode<T> {
 
 macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident) => {
-        impl<T: VarLit + AddAssign> $t for ExprNode<T> {
+        impl<T: VarLit> $t for ExprNode<T> {
             type Output = ExprNode<T>;
 
             fn $v(self, rhs: Self) -> Self::Output {
@@ -158,7 +158,8 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let _ = !v1.clone() & v2.clone() | !v3 ^ (v1 | v2);
+        let xp1 = !v1.clone() & v2.clone();
+        let _ = xp1.clone() | !v3.clone() ^ (v1.clone() | v2.clone());
         assert_eq!(
             ExprCreator {
                 var_count: 3,
@@ -176,6 +177,26 @@ mod tests {
             },
             *ec.borrow()
         );
-        print!("xxx: {:?}", ec);
+        let _ = v1.clone() ^ v2.clone().equal(v3) | xp1;
+        assert_eq!(
+            ExprCreator {
+                var_count: 3,
+                nodes: vec![
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Negated(0),
+                    Node::And(3, 1),
+                    Node::Negated(2),
+                    Node::Or(0, 1),
+                    Node::Xor(5, 6),
+                    Node::Or(4, 7),
+                    Node::Equal(1, 2),
+                    Node::Xor(0, 9),
+                    Node::Or(10, 4),
+                ]
+            },
+            *ec.borrow()
+        );
     }
 }
