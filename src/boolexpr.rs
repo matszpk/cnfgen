@@ -73,7 +73,7 @@ impl<T: VarLit + Hash> ExprCreator<T> {
         self.var_count
     }
 
-    pub fn new_single(&mut self, l: impl Into<Literal<T>>) -> usize {
+    pub fn single(&mut self, l: impl Into<Literal<T>>) -> usize {
         match l.into() {
             Literal::Value(false) => 0,
             Literal::Value(true) => 1,
@@ -116,7 +116,7 @@ pub struct ExprNode<T: VarLit + Hash> {
 
 impl<T: VarLit + Hash> ExprNode<T> {
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
-        let index = creator.borrow_mut().new_single(l);
+        let index = creator.borrow_mut().single(l);
         ExprNode { creator, index }
     }
 
@@ -124,7 +124,7 @@ impl<T: VarLit + Hash> ExprNode<T> {
         let index = {
             let mut creator = creator.borrow_mut();
             let l = creator.new_variable();
-            creator.new_single(l)
+            creator.single(l)
         };
         ExprNode { creator, index }
     }
@@ -150,7 +150,7 @@ impl<T: VarLit + Hash + Neg<Output = T>> Not for ExprNode<T> {
         let index = {
             let mut creator = self.creator.borrow_mut();
             match creator.nodes[self.index] {
-                Node::Single(l) => creator.new_single(!l),
+                Node::Single(l) => creator.single(!l),
                 _ => creator.new_not(self.index),
             }
         };
@@ -195,7 +195,7 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
             Literal::VarLit(l) => {
                 let index = {
                     let mut creator = self.creator.borrow_mut();
-                    let index = creator.new_single(l);
+                    let index = creator.single(l);
                     creator.new_and(self.index, index)
                 };
                 ExprNode {
@@ -228,7 +228,7 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
             Literal::VarLit(l) => {
                 let index = {
                     let mut creator = self.creator.borrow_mut();
-                    let index = creator.new_single(l);
+                    let index = creator.single(l);
                     creator.new_or(self.index, index)
                 };
                 ExprNode {
@@ -258,7 +258,7 @@ impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BitXor<U> for Expr
             Literal::VarLit(l) => {
                 let index = {
                     let mut creator = self.creator.borrow_mut();
-                    let index = creator.new_single(l);
+                    let index = creator.single(l);
                     creator.new_xor(self.index, index)
                 };
                 ExprNode {
@@ -288,7 +288,7 @@ impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolEqual<U> for E
             Literal::VarLit(l) => {
                 let index = {
                     let mut creator = self.creator.borrow_mut();
-                    let index = creator.new_single(l);
+                    let index = creator.single(l);
                     creator.new_equal(self.index, index)
                 };
                 ExprNode {
