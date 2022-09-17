@@ -614,7 +614,7 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let _ = v1.imp(v2.equal(v3));
+        let _ = v3.clone().equal(v1.imp(v2.equal(v3)));
         assert_eq!(
             ExprCreator {
                 var_count: 3,
@@ -626,6 +626,7 @@ mod tests {
                     Node::Single(Literal::VarLit(3)),
                     Node::Equal(3, 4),
                     Node::Impl(2, 5),
+                    Node::Equal(4, 6),
                 ],
                 lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
             },
