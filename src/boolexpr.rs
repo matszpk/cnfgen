@@ -499,7 +499,7 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
         let v3 = ExprNode::variable(ec.clone());
-        let _ = v2 | (!v1).equal(Literal::from(v2).equal(v3));
+        let _ = v2.equal((!v1).equal(Literal::from(v2).equal(v3)));
         assert_eq!(
             ExprCreator {
                 var_count: 3,
@@ -512,7 +512,7 @@ mod tests {
                     Node::Single(Literal::VarLit(2)),
                     Node::Equal(3, 5),
                     Node::Equal(4, 6),
-                    Node::Or(7, 5),
+                    Node::Equal(7, 5),
                 ],
                 lit_to_index: HashMap::from([(1, 2), (-1, 4), (2, 5), (3, 3)]),
             },
