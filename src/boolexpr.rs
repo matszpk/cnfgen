@@ -36,6 +36,7 @@ enum Node<T: VarLit> {
     Or(usize, usize),
     Xor(usize, usize),
     Equal(usize, usize),
+    Impl(usize, usize),
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -100,12 +101,19 @@ impl<T: VarLit + Hash> ExprCreator<T> {
     new_xxx!(new_or, Or);
     new_xxx!(new_xor, Xor);
     new_xxx!(new_equal, Equal);
+    new_xxx!(new_impl, Impl);
 }
 
 pub trait BoolEqual<Rhs = Self> {
     type Output;
 
     fn equal(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait BoolImpl<Rhs = Self> {
+    type Output;
+
+    fn imp(self, rhs: Rhs) -> Self::Output;
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -344,6 +352,97 @@ impl<T: VarLit + Hash + Neg<Output = T>> BoolEqual<ExprNode<T>> for Literal<T> {
 }
 
 new_all_op_l_xn_impls!(BoolEqual, equal);
+
+impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolImpl<U> for ExprNode<T> {
+    type Output = ExprNode<T>;
+
+    fn imp(self, rhs: U) -> Self::Output {
+        match rhs.into() {
+            Literal::Value(false) => !self,
+            Literal::Value(true) => ExprNode {
+                creator: self.creator,
+                index: 1,
+            },
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    let index = creator.single(l);
+                    creator.new_impl(self.index, index)
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit + Hash> BoolImpl<ExprNode<T>> for Literal<T> {
+    type Output = ExprNode<T>;
+
+    fn imp(self, rhs: ExprNode<T>) -> Self::Output {
+        match self.into() {
+            Literal::Value(false) => ExprNode {
+                creator: rhs.creator,
+                index: 1,
+            },
+            Literal::Value(true) => rhs,
+            Literal::VarLit(l) => {
+                let index = {
+                    let mut creator = rhs.creator.borrow_mut();
+                    let index = creator.single(l);
+                    creator.new_impl(index, rhs.index)
+                };
+                ExprNode {
+                    creator: rhs.creator,
+                    index,
+                }
+            }
+        }
+    }
+}
+
+impl<T: VarLit + Hash> BoolImpl<ExprNode<T>> for bool {
+    type Output = ExprNode<T>;
+
+    fn imp(self, rhs: ExprNode<T>) -> Self::Output {
+        if self {
+            rhs
+        } else {
+            ExprNode {
+                creator: rhs.creator,
+                index: 1,
+            }
+        }
+    }
+}
+
+macro_rules! new_impl_imp_impls {
+    ($ty: ty) => {
+        impl BoolImpl<ExprNode<$ty>> for $ty {
+            type Output = ExprNode<$ty>;
+
+            fn imp(self, rhs: ExprNode<$ty>) -> Self::Output {
+                let index = {
+                    let mut creator = rhs.creator.borrow_mut();
+                    let index = creator.single(self);
+                    creator.new_impl(index, rhs.index)
+                };
+                ExprNode {
+                    creator: rhs.creator,
+                    index,
+                }
+            }
+        }
+    };
+}
+
+new_impl_imp_impls!(i8);
+new_impl_imp_impls!(i16);
+new_impl_imp_impls!(i32);
+new_impl_imp_impls!(i64);
+new_impl_imp_impls!(isize);
 
 #[cfg(test)]
 mod tests {
