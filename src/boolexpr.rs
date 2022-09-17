@@ -138,19 +138,6 @@ impl<T: VarLit + Hash> ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> BoolEqual for ExprNode<T> {
-    type Output = Self;
-
-    fn equal(self, rhs: Self) -> Self {
-        assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
-        let index = self.creator.borrow_mut().new_equal(self.index, rhs.index);
-        ExprNode {
-            creator: self.creator,
-            index,
-        }
-    }
-}
-
 impl<T: VarLit + Hash + Neg<Output = T>> Not for ExprNode<T> {
     type Output = Self;
 
@@ -189,6 +176,8 @@ macro_rules! new_op_impl {
 new_op_impl!(BitAnd, new_and, bitand);
 new_op_impl!(BitOr, new_or, bitor);
 new_op_impl!(BitXor, new_xor, bitxor);
+new_op_impl!(BoolEqual, new_equal, equal);
+new_op_impl!(BoolImpl, new_impl, imp);
 
 impl<T: VarLit + Hash, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
     type Output = ExprNode<T>;
@@ -614,6 +603,31 @@ mod tests {
                     Node::Equal(7, 5),
                 ],
                 lit_to_index: HashMap::from([(1, 2), (-1, 4), (2, 5), (3, 3)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_imp_equal() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let _ = v1.imp(v2.equal(v3));
+        assert_eq!(
+            ExprCreator {
+                var_count: 3,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Equal(3, 4),
+                    Node::Impl(2, 5),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
             },
             *ec.borrow()
         );
