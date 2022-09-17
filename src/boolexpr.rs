@@ -38,6 +38,33 @@ enum Node<T: VarLit> {
     Impl(usize, usize),
 }
 
+// internals
+struct CalcSizeNode {
+    clauses_count: usize,
+    normal_usage: bool,
+    negated_usage: bool,
+    use_linkvar: bool,
+}
+
+enum OpJoin {
+    NoJoin,
+    AndJoin,
+    OrJoin,
+    NotJoin,
+}
+
+struct GenSizeEntry {
+    node_index: usize,
+    join_index: usize,
+    second_path: bool,
+    op_join: OpJoin,
+    normal_usage: bool,
+    negated_usage: bool,
+    negated: bool,
+}
+
+//
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit> {
     nodes: Vec<Node<T>>,
@@ -113,6 +140,8 @@ where
     new_xxx!(new_xor, Xor);
     new_xxx!(new_equal, Equal);
     new_xxx!(new_impl, Impl);
+
+    // TODO: try write, writer. first - determine real dependencies - and mark them.
 }
 
 pub trait BoolEqual<Rhs = Self> {
