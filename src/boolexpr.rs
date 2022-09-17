@@ -21,8 +21,7 @@
 //! The module to generate CNF clauses from boolean expressions.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::hash::Hash;
+use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
 use std::rc::Rc;
 
@@ -40,10 +39,10 @@ enum Node<T: VarLit> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ExprCreator<T: VarLit + Hash> {
+pub struct ExprCreator<T: VarLit> {
     var_count: T,
     nodes: Vec<Node<T>>,
-    lit_to_index: HashMap<T, usize>,
+    lit_to_index: Vec<usize>,
 }
 
 macro_rules! new_xxx {
@@ -57,7 +56,11 @@ macro_rules! new_xxx {
     };
 }
 
-impl<T: VarLit + Hash> ExprCreator<T> {
+impl<T> ExprCreator<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
             var_count: T::empty(),
@@ -65,12 +68,14 @@ impl<T: VarLit + Hash> ExprCreator<T> {
                 Node::Single(Literal::Value(false)),
                 Node::Single(Literal::Value(true)),
             ],
-            lit_to_index: HashMap::new(),
+            lit_to_index: vec![],
         }))
     }
 
     pub fn new_variable(&mut self) -> Literal<T> {
         self.var_count = self.var_count.next_value().unwrap();
+        self.lit_to_index.push(0); // zero - no variable
+        self.lit_to_index.push(0);
         self.var_count.into()
     }
 
@@ -80,11 +85,14 @@ impl<T: VarLit + Hash> ExprCreator<T> {
             Literal::Value(true) => 1,
             Literal::VarLit(ll) => {
                 assert!(ll.positive().unwrap() <= self.var_count);
-                if let Some(index) = self.lit_to_index.get(&ll) {
-                    *index
+                let ltoi = ((ll.positive().unwrap().to_usize() - 1) << 1)
+                    + if ll < T::empty() { 1 } else { 0 };
+                let node_index = self.lit_to_index[ltoi];
+                if node_index != 0 {
+                    node_index
                 } else {
                     self.nodes.push(Node::Single(Literal::VarLit(ll)));
-                    self.lit_to_index.insert(ll, self.nodes.len() - 1);
+                    self.lit_to_index[ltoi] = self.nodes.len() - 1;
                     self.nodes.len() - 1
                 }
             }
@@ -117,12 +125,16 @@ pub trait BoolImpl<Rhs = Self> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit + Hash> {
+pub struct ExprNode<T: VarLit> {
     creator: Rc<RefCell<ExprCreator<T>>>,
     index: usize,
 }
 
-impl<T: VarLit + Hash> ExprNode<T> {
+impl<T> ExprNode<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
         ExprNode { creator, index }
@@ -138,7 +150,11 @@ impl<T: VarLit + Hash> ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash + Neg<Output = T>> Not for ExprNode<T> {
+impl<T> Not for ExprNode<T>
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = Self;
 
     fn not(self) -> Self::Output {
@@ -158,7 +174,11 @@ impl<T: VarLit + Hash + Neg<Output = T>> Not for ExprNode<T> {
 
 macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident) => {
-        impl<T: VarLit + Hash> $t for ExprNode<T> {
+        impl<T> $t for ExprNode<T>
+        where
+            T: VarLit,
+            <T as TryInto<usize>>::Error: Debug,
+        {
             type Output = Self;
 
             fn $v(self, rhs: Self) -> Self::Output {
@@ -179,7 +199,12 @@ new_op_impl!(BitXor, new_xor, bitxor);
 new_op_impl!(BoolEqual, new_equal, equal);
 new_op_impl!(BoolImpl, new_impl, imp);
 
-impl<T: VarLit + Hash, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
+impl<T, U> BitAnd<U> for ExprNode<T>
+where
+    T: VarLit,
+    U: Into<Literal<T>>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitand(self, rhs: U) -> Self::Output {
@@ -204,7 +229,11 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BitAnd<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> BitAnd<ExprNode<T>> for Literal<T> {
+impl<T> BitAnd<ExprNode<T>> for Literal<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitand(self, rhs: ExprNode<T>) -> Self::Output {
@@ -226,7 +255,11 @@ macro_rules! new_op_l_xn_impl {
 
 macro_rules! new_all_op_l_xn_impls {
     ($u: ident, $v: ident) => {
-        impl<T: VarLit + Hash + Neg<Output = T>> $u<ExprNode<T>> for bool {
+        impl<T> $u<ExprNode<T>> for bool
+        where
+            T: VarLit + Neg<Output = T>,
+            <T as TryInto<usize>>::Error: Debug,
+        {
             type Output = ExprNode<T>;
 
             fn $v(self, rhs: ExprNode<T>) -> Self::Output {
@@ -243,7 +276,12 @@ macro_rules! new_all_op_l_xn_impls {
 
 new_all_op_l_xn_impls!(BitAnd, bitand);
 
-impl<T: VarLit + Hash, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
+impl<T, U> BitOr<U> for ExprNode<T>
+where
+    T: VarLit,
+    U: Into<Literal<T>>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitor(self, rhs: U) -> Self::Output {
@@ -268,7 +306,11 @@ impl<T: VarLit + Hash, U: Into<Literal<T>>> BitOr<U> for ExprNode<T> {
     }
 }
 
-impl<T: VarLit + Hash> BitOr<ExprNode<T>> for Literal<T> {
+impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitor(self, rhs: ExprNode<T>) -> Self::Output {
@@ -278,7 +320,12 @@ impl<T: VarLit + Hash> BitOr<ExprNode<T>> for Literal<T> {
 
 new_all_op_l_xn_impls!(BitOr, bitor);
 
-impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BitXor<U> for ExprNode<T> {
+impl<T, U> BitXor<U> for ExprNode<T>
+where
+    T: VarLit + Neg<Output = T>,
+    U: Into<Literal<T>>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: U) -> Self::Output {
@@ -300,7 +347,11 @@ impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BitXor<U> for Expr
     }
 }
 
-impl<T: VarLit + Hash + Neg<Output = T>> BitXor<ExprNode<T>> for Literal<T> {
+impl<T> BitXor<ExprNode<T>> for Literal<T>
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: ExprNode<T>) -> Self::Output {
@@ -310,7 +361,12 @@ impl<T: VarLit + Hash + Neg<Output = T>> BitXor<ExprNode<T>> for Literal<T> {
 
 new_all_op_l_xn_impls!(BitXor, bitxor);
 
-impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolEqual<U> for ExprNode<T> {
+impl<T, U> BoolEqual<U> for ExprNode<T>
+where
+    T: VarLit + Neg<Output = T>,
+    U: Into<Literal<T>>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: U) -> Self::Output {
@@ -332,7 +388,11 @@ impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolEqual<U> for E
     }
 }
 
-impl<T: VarLit + Hash + Neg<Output = T>> BoolEqual<ExprNode<T>> for Literal<T> {
+impl<T> BoolEqual<ExprNode<T>> for Literal<T>
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: ExprNode<T>) -> Self::Output {
@@ -342,7 +402,12 @@ impl<T: VarLit + Hash + Neg<Output = T>> BoolEqual<ExprNode<T>> for Literal<T> {
 
 new_all_op_l_xn_impls!(BoolEqual, equal);
 
-impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolImpl<U> for ExprNode<T> {
+impl<T, U> BoolImpl<U> for ExprNode<T>
+where
+    T: VarLit + Neg<Output = T>,
+    U: Into<Literal<T>>,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: U) -> Self::Output {
@@ -367,7 +432,11 @@ impl<T: VarLit + Hash + Neg<Output = T>, U: Into<Literal<T>>> BoolImpl<U> for Ex
     }
 }
 
-impl<T: VarLit + Hash> BoolImpl<ExprNode<T>> for Literal<T> {
+impl<T> BoolImpl<ExprNode<T>> for Literal<T>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: ExprNode<T>) -> Self::Output {
@@ -392,7 +461,7 @@ impl<T: VarLit + Hash> BoolImpl<ExprNode<T>> for Literal<T> {
     }
 }
 
-impl<T: VarLit + Hash> BoolImpl<ExprNode<T>> for bool {
+impl<T: VarLit> BoolImpl<ExprNode<T>> for bool {
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: ExprNode<T>) -> Self::Output {
@@ -461,7 +530,7 @@ mod tests {
                     Node::Xor(7, 8),
                     Node::Or(6, 9),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4), (-1, 5), (-3, 7)]),
+                lit_to_index: vec![2, 5, 3, 0, 4, 7],
             },
             *ec.borrow()
         );
@@ -486,7 +555,7 @@ mod tests {
                     Node::Negated(6),
                     Node::Or(12, 13),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4), (-1, 5), (-3, 7)]),
+                lit_to_index: vec![2, 5, 3, 0, 4, 7],
             },
             *ec.borrow()
         );
@@ -525,15 +594,7 @@ mod tests {
                     Node::And(2, 11),
                     Node::Or(10, 12),
                 ],
-                lit_to_index: HashMap::from([
-                    (3, 4),
-                    (1, 2),
-                    (5, 6),
-                    (2, 3),
-                    (4, 11),
-                    (-1, 5),
-                    (-2, 8)
-                ]),
+                lit_to_index: vec![2, 5, 3, 8, 4, 0, 11, 0, 6, 0],
             },
             *ec.borrow()
         );
@@ -567,15 +628,7 @@ mod tests {
                     Node::And(2, 11),
                     Node::Or(10, 12),
                 ],
-                lit_to_index: HashMap::from([
-                    (3, 4),
-                    (1, 2),
-                    (5, 6),
-                    (2, 3),
-                    (4, 11),
-                    (-1, 5),
-                    (-2, 8)
-                ]),
+                lit_to_index: vec![2, 5, 3, 8, 4, 0, 11, 0, 6, 0],
             },
             *ec.borrow()
         );
@@ -602,7 +655,7 @@ mod tests {
                     Node::Equal(4, 6),
                     Node::Equal(7, 5),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (-1, 4), (2, 5), (3, 3)]),
+                lit_to_index: vec![2, 4, 5, 0, 3, 0],
             },
             *ec.borrow()
         );
@@ -628,7 +681,7 @@ mod tests {
                     Node::Impl(2, 5),
                     Node::Equal(4, 6),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 3), (3, 4)]),
+                lit_to_index: vec![2, 0, 3, 0, 4, 0],
             },
             *ec.borrow()
         );
@@ -675,7 +728,7 @@ mod tests {
                     Node::And(2, 10),
                     Node::Xor(16, 17),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 10)]),
+                lit_to_index: vec![2, 0, 10, 0],
             },
             *ec.borrow()
         );
@@ -722,7 +775,7 @@ mod tests {
                     Node::Or(2, 10),
                     Node::Xor(16, 17),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 10)]),
+                lit_to_index: vec![2, 0, 10, 0],
             },
             *ec.borrow()
         );
@@ -770,7 +823,7 @@ mod tests {
                     Node::Xor(2, 11),
                     Node::Xor(17, 18),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 6)]),
+                lit_to_index: vec![2, 6, 11, 0],
             },
             *ec.borrow()
         );
@@ -818,7 +871,7 @@ mod tests {
                     Node::Equal(2, 11),
                     Node::Xor(17, 18),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 3)]),
+                lit_to_index: vec![2, 3, 11, 0],
             },
             *ec.borrow()
         );
@@ -866,7 +919,7 @@ mod tests {
                     Node::Impl(11, 2),
                     Node::Xor(17, 18),
                 ],
-                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 3)]),
+                lit_to_index: vec![2, 3, 11, 0],
             },
             *ec.borrow()
         );
