@@ -841,7 +841,22 @@ mod tests {
         assert!(!Literal::<isize>::Value(false).is_varlit());
         assert!(Literal::<isize>::Value(false).is_value());
         assert!(Literal::<isize>::VarLit(3).is_varlit());
+        assert_eq!(None, Literal::<isize>::Value(true).varlit());
+        assert_eq!(Some(-4), Literal::<isize>::VarLit(-4).varlit());
+        assert_eq!(Some(true), Literal::<isize>::Value(true).value());
+        assert_eq!(Some(false), Literal::<isize>::Value(false).value());
+        assert_eq!(None, Literal::<isize>::VarLit(-4).value());
         assert!(!Literal::<isize>::VarLit(4).is_value());
+        assert_eq!(
+            Literal::<isize>::Value(true),
+            !Literal::<isize>::Value(false)
+        );
+        assert_eq!(
+            Literal::<isize>::Value(false),
+            !Literal::<isize>::Value(true)
+        );
+        assert_eq!(Literal::<isize>::VarLit(4), !Literal::<isize>::VarLit(-4));
+        assert_eq!(Literal::<isize>::VarLit(-7), !Literal::<isize>::VarLit(7));
     }
 
     fn clause_func<T, C>(t: C) -> C
