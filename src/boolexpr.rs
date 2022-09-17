@@ -68,9 +68,9 @@ impl<T: VarLit + Hash> ExprCreator<T> {
         }))
     }
 
-    pub fn new_variable(&mut self) -> T {
+    pub fn new_variable(&mut self) -> Literal<T> {
         self.var_count = self.var_count.next_value().unwrap();
-        self.var_count
+        self.var_count.into()
     }
 
     pub fn single(&mut self, l: impl Into<Literal<T>>) -> usize {
@@ -457,8 +457,8 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let v4x = ec.borrow_mut().new_variable();
-        let v5x = ec.borrow_mut().new_variable();
+        let v4x = ec.borrow_mut().new_variable().varlit().unwrap();
+        let v5x = ec.borrow_mut().new_variable().varlit().unwrap();
         let _ = v5x | (v1.clone() ^ true) | (true ^ v2) | (v3 & true) | (v4x & v1) | false;
         assert_eq!(
             ExprCreator {
@@ -488,6 +488,33 @@ mod tests {
                     (-1, 5),
                     (-2, 8)
                 ]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_3() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let v3 = ExprNode::variable(ec.clone());
+        let _ = v2 | (!v1).equal(Literal::from(v2).equal(v3));
+        assert_eq!(
+            ExprCreator {
+                var_count: 3,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Equal(3, 5),
+                    Node::Equal(4, 6),
+                    Node::Or(7, 5),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (-1, 4), (2, 5), (3, 3)]),
             },
             *ec.borrow()
         );

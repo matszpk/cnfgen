@@ -145,6 +145,24 @@ impl<T: VarLit> Literal<T> {
     pub fn is_value(self) -> bool {
         matches!(self, Literal::Value(_))
     }
+
+    /// Returns value if it is.
+    pub fn value(self) -> Option<bool> {
+        if let Literal::Value(t) = self {
+            Some(t)
+        } else {
+            None
+        }
+    }
+
+    /// Returns variable literal if it is.
+    pub fn varlit(self) -> Option<T> {
+        if let Literal::VarLit(t) = self {
+            Some(t)
+        } else {
+            None
+        }
+    }
 }
 
 impl<T: VarLit + Neg<Output = T>> Not for Literal<T> {
