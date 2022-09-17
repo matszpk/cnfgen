@@ -164,10 +164,24 @@ pub trait BoolEqual<Rhs = Self> {
     fn equal(self, rhs: Rhs) -> Self::Output;
 }
 
+impl BoolEqual for bool {
+    type Output = bool;
+    fn equal(self, rhs: bool) -> Self::Output {
+        !(self ^ rhs)
+    }
+}
+
 pub trait BoolImpl<Rhs = Self> {
     type Output;
 
     fn imp(self, rhs: Rhs) -> Self::Output;
+}
+
+impl BoolImpl for bool {
+    type Output = bool;
+    fn imp(self, rhs: bool) -> Self::Output {
+        (!self) | rhs
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -224,7 +238,7 @@ macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident) => {
         impl<T> $t for ExprNode<T>
         where
-            T: VarLit,
+            T: VarLit + Neg<Output = T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
         {
@@ -232,10 +246,41 @@ macro_rules! new_op_impl {
 
             fn $v(self, rhs: Self) -> Self::Output {
                 assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
-                let index = self.creator.borrow_mut().$u(self.index, rhs.index);
-                ExprNode {
-                    creator: self.creator,
-                    index,
+                let (node1, node2) = {
+                    let creator = self.creator.borrow();
+                    (creator.nodes[self.index], creator.nodes[rhs.index])
+                };
+                if let Node::Single(lit1) = node1 {
+                    if let Node::Single(lit2) = node2 {
+                        // lit1, lit2
+                        if let Literal::Value(val1) = lit1 {
+                            if let Literal::Value(val2) = lit2 {
+                                ExprNode::single(self.creator, val1.$v(val2))
+                            } else {
+                                val1.$v(rhs)
+                            }
+                        } else {
+                            if let Literal::Value(val2) = lit2 {
+                                self.$v(val2)
+                            } else {
+                                self.$v(lit2)
+                            }
+                        }
+                    } else {
+                        // lit1 op node2
+                        lit1.$v(rhs)
+                    }
+                } else {
+                    if let Node::Single(lit2) = node2 {
+                        self.$v(lit2)
+                    } else {
+                        // complicated
+                        let index = self.creator.borrow_mut().$u(self.index, rhs.index);
+                        ExprNode {
+                            creator: self.creator,
+                            index,
+                        }
+                    }
                 }
             }
         }
@@ -586,7 +631,7 @@ mod tests {
                     Node::And(5, 3),
                     Node::Single(Literal::VarLit(-3)),
                     Node::Or(2, 3),
-                    Node::Xor(7, 8),
+                    Node::Xor(8, 7),
                     Node::Or(6, 9),
                 ],
                 lit_to_index: vec![2, 5, 3, 0, 4, 7],
@@ -606,10 +651,10 @@ mod tests {
                     Node::And(5, 3),
                     Node::Single(Literal::VarLit(-3)),
                     Node::Or(2, 3),
-                    Node::Xor(7, 8),
+                    Node::Xor(8, 7),
                     Node::Or(6, 9),
                     Node::Equal(3, 4),
-                    Node::Xor(2, 11),
+                    Node::Xor(11, 2),
                     Node::Negated(6),
                     Node::Or(12, 13),
                 ],
@@ -707,7 +752,7 @@ mod tests {
                     Node::Single(Literal::VarLit(-1)),
                     Node::Single(Literal::VarLit(2)),
                     Node::Equal(3, 5),
-                    Node::Equal(4, 6),
+                    Node::Equal(6, 4),
                     Node::Equal(7, 5),
                 ],
                 lit_to_index: vec![2, 4, 5, 0, 3, 0],
@@ -733,7 +778,7 @@ mod tests {
                     Node::Single(Literal::VarLit(3)),
                     Node::Equal(3, 4),
                     Node::Impl(2, 5),
-                    Node::Equal(4, 6),
+                    Node::Equal(6, 4),
                 ],
                 lit_to_index: vec![2, 0, 3, 0, 4, 0],
             },
@@ -764,24 +809,20 @@ mod tests {
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
                     Node::Single(Literal::VarLit(1)),
-                    Node::Xor(0, 0),
-                    Node::Xor(3, 0),
-                    Node::Xor(4, 0),
-                    Node::Xor(5, 2),
-                    Node::Xor(6, 2),
-                    Node::Xor(7, 2),
-                    Node::Xor(8, 2),
+                    Node::Xor(2, 2),
+                    Node::Xor(3, 2),
+                    Node::Xor(4, 2),
                     Node::Single(Literal::VarLit(2)),
-                    Node::And(2, 10),
-                    Node::Xor(9, 11),
-                    Node::And(2, 10),
+                    Node::And(2, 6),
+                    Node::Xor(5, 7),
+                    Node::And(2, 6),
+                    Node::Xor(8, 9),
+                    Node::And(2, 6),
+                    Node::Xor(10, 11),
+                    Node::And(2, 6),
                     Node::Xor(12, 13),
-                    Node::And(2, 10),
-                    Node::Xor(14, 15),
-                    Node::And(2, 10),
-                    Node::Xor(16, 17),
                 ],
-                lit_to_index: vec![2, 0, 10, 0],
+                lit_to_index: vec![2, 0, 6, 0],
             },
             *ec.borrow()
         );
@@ -813,10 +854,10 @@ mod tests {
                     Node::Xor(2, 2),
                     Node::Xor(3, 2),
                     Node::Xor(4, 2),
-                    Node::Xor(5, 1),
-                    Node::Xor(6, 1),
-                    Node::Xor(7, 1),
-                    Node::Xor(8, 1),
+                    Node::Negated(5),
+                    Node::Negated(6),
+                    Node::Negated(7),
+                    Node::Negated(8),
                     Node::Single(Literal::VarLit(2)),
                     Node::Or(2, 10),
                     Node::Xor(9, 11),
@@ -951,24 +992,23 @@ mod tests {
                     Node::Single(Literal::Value(true)),
                     Node::Single(Literal::VarLit(1)),
                     Node::Single(Literal::VarLit(-1)),
-                    Node::Xor(3, 1),
-                    Node::Xor(4, 3),
-                    Node::Xor(5, 1),
-                    Node::Xor(6, 1),
-                    Node::Xor(7, 2),
-                    Node::Xor(8, 1),
-                    Node::Xor(9, 2),
+                    Node::Xor(2, 3),
+                    Node::Negated(4),
+                    Node::Negated(5),
+                    Node::Xor(6, 2),
+                    Node::Negated(7),
+                    Node::Xor(8, 2),
                     Node::Single(Literal::VarLit(2)),
-                    Node::Impl(2, 11),
-                    Node::Xor(10, 12),
-                    Node::Impl(11, 2),
-                    Node::Xor(13, 14),
-                    Node::Impl(2, 11),
-                    Node::Xor(15, 16),
-                    Node::Impl(11, 2),
-                    Node::Xor(17, 18),
+                    Node::Impl(2, 10),
+                    Node::Xor(9, 11),
+                    Node::Impl(10, 2),
+                    Node::Xor(12, 13),
+                    Node::Impl(2, 10),
+                    Node::Xor(14, 15),
+                    Node::Impl(10, 2),
+                    Node::Xor(16, 17),
                 ],
-                lit_to_index: vec![2, 3, 11, 0],
+                lit_to_index: vec![2, 3, 10, 0],
             },
             *ec.borrow()
         );
