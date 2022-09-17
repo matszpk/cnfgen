@@ -190,6 +190,8 @@ pub struct ExprNode<T: VarLit> {
     index: usize,
 }
 
+// TODO: Optimize: (v1 op v1) and (-v1 op -v1).
+
 impl<T> ExprNode<T>
 where
     T: VarLit,
