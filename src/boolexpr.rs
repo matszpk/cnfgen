@@ -40,7 +40,6 @@ enum Node<T: VarLit> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit> {
-    var_count: T,
     nodes: Vec<Node<T>>,
     lit_to_index: Vec<usize>,
 }
@@ -60,10 +59,10 @@ impl<T> ExprCreator<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
-            var_count: T::empty(),
             nodes: vec![
                 Node::Single(Literal::Value(false)),
                 Node::Single(Literal::Value(true)),
@@ -72,11 +71,15 @@ where
         }))
     }
 
+    #[inline]
+    pub fn var_count(&self) -> T {
+        T::from_usize(self.lit_to_index.len() >> 1)
+    }
+
     pub fn new_variable(&mut self) -> Literal<T> {
-        self.var_count = self.var_count.next_value().unwrap();
         self.lit_to_index.push(0); // zero - no variable
         self.lit_to_index.push(0);
-        self.var_count.into()
+        Literal::from(self.var_count())
     }
 
     pub fn single(&mut self, l: impl Into<Literal<T>>) -> usize {
@@ -84,7 +87,7 @@ where
             Literal::Value(false) => 0,
             Literal::Value(true) => 1,
             Literal::VarLit(ll) => {
-                assert!(ll.positive().unwrap() <= self.var_count);
+                assert!(ll.positive().unwrap() <= self.var_count());
                 let ltoi = ((ll.positive().unwrap().to_usize() - 1) << 1)
                     + if ll < T::empty() { 1 } else { 0 };
                 let node_index = self.lit_to_index[ltoi];
@@ -134,6 +137,7 @@ impl<T> ExprNode<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
@@ -154,6 +158,7 @@ impl<T> Not for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = Self;
 
@@ -178,6 +183,7 @@ macro_rules! new_op_impl {
         where
             T: VarLit,
             <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
         {
             type Output = Self;
 
@@ -204,6 +210,7 @@ where
     T: VarLit,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -233,6 +240,7 @@ impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -259,6 +267,7 @@ macro_rules! new_all_op_l_xn_impls {
         where
             T: VarLit + Neg<Output = T>,
             <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
         {
             type Output = ExprNode<T>;
 
@@ -281,6 +290,7 @@ where
     T: VarLit,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -310,6 +320,7 @@ impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -325,6 +336,7 @@ where
     T: VarLit + Neg<Output = T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -351,6 +363,7 @@ impl<T> BitXor<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -366,6 +379,7 @@ where
     T: VarLit + Neg<Output = T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -392,6 +406,7 @@ impl<T> BoolEqual<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -407,6 +422,7 @@ where
     T: VarLit + Neg<Output = T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -436,6 +452,7 @@ impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
     T: VarLit,
     <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -516,7 +533,6 @@ mod tests {
         let _ = xp1.clone() | !v3.clone() ^ (v1.clone() | v2.clone());
         assert_eq!(
             ExprCreator {
-                var_count: 3,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -537,7 +553,6 @@ mod tests {
         let _ = v1.clone() ^ v2.clone().equal(v3) | !xp1;
         assert_eq!(
             ExprCreator {
-                var_count: 3,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -577,7 +592,6 @@ mod tests {
             | Literal::from(false);
         assert_eq!(
             ExprCreator {
-                var_count: 5,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -611,7 +625,6 @@ mod tests {
         let _ = v5x | (v1.clone() ^ true) | (true ^ v2) | (v3 & true) | (v4x & v1) | false;
         assert_eq!(
             ExprCreator {
-                var_count: 5,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -643,7 +656,6 @@ mod tests {
         let _ = v2.equal((!v1).equal(Literal::from(v2).equal(v3)));
         assert_eq!(
             ExprCreator {
-                var_count: 3,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -670,7 +682,6 @@ mod tests {
         let _ = v3.clone().equal(v1.imp(v2.equal(v3)));
         assert_eq!(
             ExprCreator {
-                var_count: 3,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -706,7 +717,6 @@ mod tests {
             ^ (Literal::from(v2) & v1.clone());
         assert_eq!(
             ExprCreator {
-                var_count: 2,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -753,7 +763,6 @@ mod tests {
             ^ (Literal::from(v2) | v1.clone());
         assert_eq!(
             ExprCreator {
-                var_count: 2,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -800,7 +809,6 @@ mod tests {
             ^ (Literal::from(v2) ^ v1.clone());
         assert_eq!(
             ExprCreator {
-                var_count: 2,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -848,7 +856,6 @@ mod tests {
             ^ (Literal::from(v2).equal(v1.clone()));
         assert_eq!(
             ExprCreator {
-                var_count: 2,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),
@@ -896,7 +903,6 @@ mod tests {
             ^ (Literal::from(v2).imp(v1.clone()));
         assert_eq!(
             ExprCreator {
-                var_count: 2,
                 nodes: vec![
                     Node::Single(Literal::Value(false)),
                     Node::Single(Literal::Value(true)),

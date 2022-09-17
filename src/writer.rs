@@ -54,7 +54,9 @@ pub enum Error {
 
 /// A variable literal. It holds variable number if it is not negated,
 /// or negated variable number if it is negated. Zero value is not allowed.
-pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> {
+pub trait VarLit:
+    Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> + TryFrom<usize>
+{
     /// Converts variable literal to isize.
     #[inline]
     fn to(self) -> isize
@@ -69,7 +71,14 @@ pub trait VarLit: Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<u
     where
         <Self as TryInto<usize>>::Error: Debug,
     {
-        self.try_into().expect("VarLit is too big")
+        self.try_into().expect("VarLit out of range")
+    }
+    #[inline]
+    fn from_usize(v: usize) -> Self
+    where
+        <Self as TryFrom<usize>>::Error: Debug,
+    {
+        v.try_into().expect("Usize out of range")
     }
     /// Returns true if literal is empty (zero value - not allowed).
     fn is_empty(self) -> bool;
