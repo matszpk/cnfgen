@@ -141,7 +141,8 @@ where
     new_xxx!(new_equal, Equal);
     new_xxx!(new_impl, Impl);
 
-    // TODO: try write, writer. first - determine real dependencies - and mark them.
+    // TODO: try write, writer. first - determine real dependencies and
+    // real usage (normal and negated) - and mark them.
 }
 
 pub trait BoolEqual<Rhs = Self> {
