@@ -22,10 +22,12 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
+use std::io::Write;
 use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
 use std::rc::Rc;
 
-use crate::{Literal, VarLit};
+use crate::writer;
+use crate::{CNFWriter, Literal, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Node<T: VarLit> {
@@ -39,8 +41,8 @@ enum Node<T: VarLit> {
 }
 
 // internals
-struct CalcSizeNode {
-    clauses_count: usize,
+#[derive(Default, Copy, Clone)]
+struct DepNode {
     normal_usage: bool,
     negated_usage: bool,
     use_linkvar: bool,
@@ -53,7 +55,7 @@ enum OpJoin {
     NotJoin,
 }
 
-struct GenSizeEntry {
+struct DepEntry {
     node_index: usize,
     join_index: usize,
     second_path: bool,
@@ -143,6 +145,17 @@ where
 
     // TODO: try write, writer. first - determine real dependencies and
     // real usage (normal and negated) - and mark them.
+    pub fn write<W: Write>(
+        &self,
+        start: usize,
+        cnf: &mut CNFWriter<W>,
+    ) -> Result<(), writer::Error> {
+        let dep_nodes = vec![DepNode::default(); self.nodes.len()];
+        {
+            //let stack = vec![DepEntry::default()];
+        }
+        Ok(())
+    }
 }
 
 pub trait BoolEqual<Rhs = Self> {
