@@ -618,4 +618,242 @@ mod tests {
             *ec.borrow()
         );
     }
+
+    #[test]
+    fn test_expr_nodes_lits_and() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let _ = (v1.clone() & false)
+            ^ (false & v1.clone())
+            ^ (v1.clone() & Literal::from(false))
+            ^ (Literal::from(false) & v1.clone())
+            ^ (v1.clone() & true)
+            ^ (true & v1.clone())
+            ^ (v1.clone() & Literal::from(true))
+            ^ (Literal::from(true) & v1.clone())
+            ^ (v1.clone() & v2)
+            ^ (v2 & v1.clone())
+            ^ (v1.clone() & Literal::from(v2))
+            ^ (Literal::from(v2) & v1.clone());
+        assert_eq!(
+            ExprCreator {
+                var_count: 2,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Xor(0, 0),
+                    Node::Xor(3, 0),
+                    Node::Xor(4, 0),
+                    Node::Xor(5, 2),
+                    Node::Xor(6, 2),
+                    Node::Xor(7, 2),
+                    Node::Xor(8, 2),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::And(2, 10),
+                    Node::Xor(9, 11),
+                    Node::And(2, 10),
+                    Node::Xor(12, 13),
+                    Node::And(2, 10),
+                    Node::Xor(14, 15),
+                    Node::And(2, 10),
+                    Node::Xor(16, 17),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 10)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_or() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let _ = (v1.clone() | false)
+            ^ (false | v1.clone())
+            ^ (v1.clone() | Literal::from(false))
+            ^ (Literal::from(false) | v1.clone())
+            ^ (v1.clone() | true)
+            ^ (true | v1.clone())
+            ^ (v1.clone() | Literal::from(true))
+            ^ (Literal::from(true) | v1.clone())
+            ^ (v1.clone() | v2)
+            ^ (v2 | v1.clone())
+            ^ (v1.clone() | Literal::from(v2))
+            ^ (Literal::from(v2) | v1.clone());
+        assert_eq!(
+            ExprCreator {
+                var_count: 2,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Xor(2, 2),
+                    Node::Xor(3, 2),
+                    Node::Xor(4, 2),
+                    Node::Xor(5, 1),
+                    Node::Xor(6, 1),
+                    Node::Xor(7, 1),
+                    Node::Xor(8, 1),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Or(2, 10),
+                    Node::Xor(9, 11),
+                    Node::Or(2, 10),
+                    Node::Xor(12, 13),
+                    Node::Or(2, 10),
+                    Node::Xor(14, 15),
+                    Node::Or(2, 10),
+                    Node::Xor(16, 17),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 10)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_xor() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let _ = (v1.clone() ^ false)
+            ^ (false ^ v1.clone())
+            ^ (v1.clone() ^ Literal::from(false))
+            ^ (Literal::from(false) ^ v1.clone())
+            ^ (v1.clone() ^ true)
+            ^ (true ^ v1.clone())
+            ^ (v1.clone() ^ Literal::from(true))
+            ^ (Literal::from(true) ^ v1.clone())
+            ^ (v1.clone() ^ v2)
+            ^ (v2 ^ v1.clone())
+            ^ (v1.clone() ^ Literal::from(v2))
+            ^ (Literal::from(v2) ^ v1.clone());
+        assert_eq!(
+            ExprCreator {
+                var_count: 2,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Xor(2, 2),
+                    Node::Xor(3, 2),
+                    Node::Xor(4, 2),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Xor(5, 6),
+                    Node::Xor(7, 6),
+                    Node::Xor(8, 6),
+                    Node::Xor(9, 6),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Xor(2, 11),
+                    Node::Xor(10, 12),
+                    Node::Xor(2, 11),
+                    Node::Xor(13, 14),
+                    Node::Xor(2, 11),
+                    Node::Xor(15, 16),
+                    Node::Xor(2, 11),
+                    Node::Xor(17, 18),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 6)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_equal() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let _ = (v1.clone().equal(false))
+            ^ (false.equal(v1.clone()))
+            ^ (v1.clone().equal(Literal::from(false)))
+            ^ (Literal::from(false).equal(v1.clone()))
+            ^ (v1.clone().equal(true))
+            ^ (true.equal(v1.clone()))
+            ^ (v1.clone().equal(Literal::from(true)))
+            ^ (Literal::from(true).equal(v1.clone()))
+            ^ (v1.clone().equal(v2))
+            ^ (v2.equal(v1.clone()))
+            ^ (v1.clone().equal(Literal::from(v2)))
+            ^ (Literal::from(v2).equal(v1.clone()));
+        assert_eq!(
+            ExprCreator {
+                var_count: 2,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Xor(3, 3),
+                    Node::Xor(4, 3),
+                    Node::Xor(5, 3),
+                    Node::Xor(6, 2),
+                    Node::Xor(7, 2),
+                    Node::Xor(8, 2),
+                    Node::Xor(9, 2),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Equal(2, 11),
+                    Node::Xor(10, 12),
+                    Node::Equal(2, 11),
+                    Node::Xor(13, 14),
+                    Node::Equal(2, 11),
+                    Node::Xor(15, 16),
+                    Node::Equal(2, 11),
+                    Node::Xor(17, 18),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 3)]),
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_nodes_lits_impl() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
+        let _ = (v1.clone().imp(false))
+            ^ (false.imp(v1.clone()))
+            ^ (v1.clone().imp(Literal::from(false)))
+            ^ (Literal::from(false).imp(v1.clone()))
+            ^ (v1.clone().imp(true))
+            ^ (true.imp(v1.clone()))
+            ^ (v1.clone().imp(Literal::from(true)))
+            ^ (Literal::from(true).imp(v1.clone()))
+            ^ (v1.clone().imp(v2))
+            ^ (v2.imp(v1.clone()))
+            ^ (v1.clone().imp(Literal::from(v2)))
+            ^ (Literal::from(v2).imp(v1.clone()));
+        assert_eq!(
+            ExprCreator {
+                var_count: 2,
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::Xor(3, 1),
+                    Node::Xor(4, 3),
+                    Node::Xor(5, 1),
+                    Node::Xor(6, 1),
+                    Node::Xor(7, 2),
+                    Node::Xor(8, 1),
+                    Node::Xor(9, 2),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Impl(2, 11),
+                    Node::Xor(10, 12),
+                    Node::Impl(11, 2),
+                    Node::Xor(13, 14),
+                    Node::Impl(2, 11),
+                    Node::Xor(15, 16),
+                    Node::Impl(11, 2),
+                    Node::Xor(17, 18),
+                ],
+                lit_to_index: HashMap::from([(1, 2), (2, 11), (-1, 3)]),
+            },
+            *ec.borrow()
+        );
+    }
 }
