@@ -254,20 +254,7 @@ macro_rules! new_op_impl {
                 };
                 if let Node::Single(lit1) = node1 {
                     if let Node::Single(lit2) = node2 {
-                        // lit1, lit2
-                        if let Literal::Value(val1) = lit1 {
-                            if let Literal::Value(val2) = lit2 {
-                                ExprNode::single(self.creator, val1.$v(val2))
-                            } else {
-                                val1.$v(rhs)
-                            }
-                        } else {
-                            if let Literal::Value(val2) = lit2 {
-                                self.$v(val2)
-                            } else {
-                                self.$v(lit2)
-                            }
-                        }
+                        self.$v(lit2)
                     } else {
                         // lit1 op node2
                         lit1.$v(rhs)
@@ -297,7 +284,7 @@ new_op_impl!(BoolImpl, new_impl, imp);
 
 impl<T, U> BitAnd<U> for ExprNode<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -305,6 +292,17 @@ where
     type Output = ExprNode<T>;
 
     fn bitand(self, rhs: U) -> Self::Output {
+        {
+            let node1 = self.creator.borrow().nodes[self.index];
+            if let Node::Single(Literal::Value(v1)) = node1 {
+                let lit2 = rhs.into();
+                if let Literal::Value(v2) = lit2 {
+                    return ExprNode::single(self.creator, v1 & v2);
+                } else {
+                    return v1 & ExprNode::single(self.creator, lit2);
+                }
+            }
+        }
         match rhs.into() {
             Literal::Value(false) => ExprNode {
                 creator: self.creator,
@@ -328,7 +326,7 @@ where
 
 impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
 {
@@ -377,7 +375,7 @@ new_all_op_l_xn_impls!(BitAnd, bitand);
 
 impl<T, U> BitOr<U> for ExprNode<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -385,6 +383,17 @@ where
     type Output = ExprNode<T>;
 
     fn bitor(self, rhs: U) -> Self::Output {
+        {
+            let node1 = self.creator.borrow().nodes[self.index];
+            if let Node::Single(Literal::Value(v1)) = node1 {
+                let lit2 = rhs.into();
+                if let Literal::Value(v2) = lit2 {
+                    return ExprNode::single(self.creator, v1 | v2);
+                } else {
+                    return v1 | ExprNode::single(self.creator, lit2);
+                }
+            }
+        }
         match rhs.into() {
             Literal::Value(false) => self,
             Literal::Value(true) => ExprNode {
@@ -408,7 +417,7 @@ where
 
 impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
 {
@@ -431,6 +440,17 @@ where
     type Output = ExprNode<T>;
 
     fn bitxor(self, rhs: U) -> Self::Output {
+        {
+            let node1 = self.creator.borrow().nodes[self.index];
+            if let Node::Single(Literal::Value(v1)) = node1 {
+                let lit2 = rhs.into();
+                if let Literal::Value(v2) = lit2 {
+                    return ExprNode::single(self.creator, v1 ^ v2);
+                } else {
+                    return v1 ^ ExprNode::single(self.creator, lit2);
+                }
+            }
+        }
         match rhs.into() {
             Literal::Value(false) => self,
             Literal::Value(true) => !self,
@@ -474,6 +494,17 @@ where
     type Output = ExprNode<T>;
 
     fn equal(self, rhs: U) -> Self::Output {
+        {
+            let node1 = self.creator.borrow().nodes[self.index];
+            if let Node::Single(Literal::Value(v1)) = node1 {
+                let lit2 = rhs.into();
+                if let Literal::Value(v2) = lit2 {
+                    return ExprNode::single(self.creator, v1.equal(v2));
+                } else {
+                    return v1.equal(ExprNode::single(self.creator, lit2));
+                }
+            }
+        }
         match rhs.into() {
             Literal::Value(false) => !self,
             Literal::Value(true) => self,
@@ -517,6 +548,17 @@ where
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: U) -> Self::Output {
+        {
+            let node1 = self.creator.borrow().nodes[self.index];
+            if let Node::Single(Literal::Value(v1)) = node1 {
+                let lit2 = rhs.into();
+                if let Literal::Value(v2) = lit2 {
+                    return ExprNode::single(self.creator, v1.imp(v2));
+                } else {
+                    return v1.imp(ExprNode::single(self.creator, lit2));
+                }
+            }
+        }
         match rhs.into() {
             Literal::Value(false) => !self,
             Literal::Value(true) => ExprNode {
