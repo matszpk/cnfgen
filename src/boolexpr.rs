@@ -190,7 +190,7 @@ pub struct ExprNode<T: VarLit> {
     index: usize,
 }
 
-// TODO: Optimize: (v1 op v1) and (-v1 op -v1).
+// TODO: Optimize: (v1 op v1) and (-v1 op v1).
 
 impl<T> ExprNode<T>
 where
@@ -222,16 +222,29 @@ where
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        let index = {
-            let mut creator = self.creator.borrow_mut();
-            match creator.nodes[self.index] {
-                Node::Single(l) => creator.single(!l),
-                _ => creator.new_not(self.index),
-            }
+        let node1 = {
+            let mut creator = self.creator.borrow();
+            creator.nodes[self.index]
         };
-        ExprNode {
-            creator: self.creator,
-            index,
+        match node1 {
+            Node::Single(l) => ExprNode::single(self.creator, !l),
+            Node::Negated(index1) => ExprNode {
+                creator: self.creator,
+                index: index1,
+            },
+            _ => {
+                let index = {
+                    let mut creator = self.creator.borrow_mut();
+                    match creator.nodes[self.index] {
+                        Node::Single(l) => creator.single(!l),
+                        _ => creator.new_not(self.index),
+                    }
+                };
+                ExprNode {
+                    creator: self.creator,
+                    index,
+                }
+            }
         }
     }
 }
@@ -899,20 +912,18 @@ mod tests {
                     Node::Xor(3, 2),
                     Node::Xor(4, 2),
                     Node::Negated(5),
-                    Node::Negated(6),
-                    Node::Negated(7),
-                    Node::Negated(8),
+                    Node::Negated(5),
                     Node::Single(Literal::VarLit(2)),
-                    Node::Or(2, 10),
-                    Node::Xor(9, 11),
-                    Node::Or(2, 10),
+                    Node::Or(2, 8),
+                    Node::Xor(5, 9),
+                    Node::Or(2, 8),
+                    Node::Xor(10, 11),
+                    Node::Or(2, 8),
                     Node::Xor(12, 13),
-                    Node::Or(2, 10),
+                    Node::Or(2, 8),
                     Node::Xor(14, 15),
-                    Node::Or(2, 10),
-                    Node::Xor(16, 17),
                 ],
-                lit_to_index: vec![2, 0, 10, 0],
+                lit_to_index: vec![2, 0, 8, 0],
             },
             *ec.borrow()
         );
@@ -1038,21 +1049,20 @@ mod tests {
                     Node::Single(Literal::VarLit(-1)),
                     Node::Xor(2, 3),
                     Node::Negated(4),
-                    Node::Negated(5),
-                    Node::Xor(6, 2),
-                    Node::Negated(7),
-                    Node::Xor(8, 2),
+                    Node::Xor(4, 2),
+                    Node::Negated(6),
+                    Node::Xor(7, 2),
                     Node::Single(Literal::VarLit(2)),
-                    Node::Impl(2, 10),
-                    Node::Xor(9, 11),
-                    Node::Impl(10, 2),
-                    Node::Xor(12, 13),
-                    Node::Impl(2, 10),
-                    Node::Xor(14, 15),
-                    Node::Impl(10, 2),
-                    Node::Xor(16, 17),
+                    Node::Impl(2, 9),
+                    Node::Xor(8, 10),
+                    Node::Impl(9, 2),
+                    Node::Xor(11, 12),
+                    Node::Impl(2, 9),
+                    Node::Xor(13, 14),
+                    Node::Impl(9, 2),
+                    Node::Xor(15, 16),
                 ],
-                lit_to_index: vec![2, 3, 10, 0],
+                lit_to_index: vec![2, 3, 9, 0],
             },
             *ec.borrow()
         );
