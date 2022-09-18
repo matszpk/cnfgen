@@ -25,11 +25,15 @@ pub mod prelude {
     pub use crate::Clause;
     pub use crate::InputClause;
     pub use crate::Literal;
+    pub use crate::QuantSet;
+    pub use crate::Quantifier;
     pub use crate::SimplifiableClause;
     pub use crate::VarLit;
 }
 
 pub mod writer;
-pub use writer::{CNFWriter, Clause, InputClause, Literal, SimplifiableClause, VarLit};
+pub use writer::{
+    CNFWriter, Clause, InputClause, Literal, QuantSet, Quantifier, SimplifiableClause, VarLit,
+};
 
 pub mod boolexpr;
