@@ -632,14 +632,25 @@ where
 
 impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: ExprNode<T>) -> Self::Output {
-        match self.into() {
+        let lit1 = self.into();
+        {
+            let node2 = rhs.creator.borrow().nodes[rhs.index];
+            if let Node::Single(lit2) = node2 {
+                if lit1 == lit2 {
+                    return ExprNode::single(rhs.creator, true);
+                } else if lit1 == !lit2 {
+                    return ExprNode::single(rhs.creator, lit2);
+                }
+            }
+        }
+        match lit1 {
             Literal::Value(false) => ExprNode {
                 creator: rhs.creator,
                 index: 1,
@@ -681,6 +692,17 @@ macro_rules! new_impl_imp_impls {
             type Output = ExprNode<$ty>;
 
             fn imp(self, rhs: ExprNode<$ty>) -> Self::Output {
+                let lit1 = Literal::from(self);
+                {
+                    let node2 = rhs.creator.borrow().nodes[rhs.index];
+                    if let Node::Single(lit2) = node2 {
+                        if lit1 == lit2 {
+                            return ExprNode::single(rhs.creator, true);
+                        } else if lit1 == !lit2 {
+                            return ExprNode::single(rhs.creator, lit2);
+                        }
+                    }
+                }
                 let index = {
                     let mut creator = rhs.creator.borrow_mut();
                     let index = creator.single(self);
@@ -881,195 +903,293 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_nodes_lits_and() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let _ = (v1.clone() & false)
-            ^ (false & v1.clone())
-            ^ (v1.clone() & Literal::from(false))
-            ^ (Literal::from(false) & v1.clone())
-            ^ (v1.clone() & true)
-            ^ (true & v1.clone())
-            ^ (v1.clone() & Literal::from(true))
-            ^ (Literal::from(true) & v1.clone())
-            ^ (v1.clone() & v2)
-            ^ (v2 & v1.clone())
-            ^ (v1.clone() & Literal::from(v2))
-            ^ (Literal::from(v2) & v1.clone());
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::And(2, 3),
-                    Node::And(2, 3),
-                    Node::Xor(4, 5),
-                    Node::And(2, 3),
-                    Node::Xor(6, 7),
-                    Node::And(2, 3),
-                    Node::Xor(8, 9),
-                ],
-                lit_to_index: vec![2, 0, 3, 0],
-            },
-            *ec.borrow()
-        );
+    fn test_expr_nodes_not_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let xp1 = v1.imp(v2.clone());
+            let xp2 = !xp1.clone();
+            let _ = xp2.clone() & v2 & !xp2.clone();
+            assert_eq!(!xp2.clone(), xp1.clone());
+            assert_eq!(
+                ExprCreator {
+                    nodes: vec![
+                        Node::Single(Literal::Value(false)),
+                        Node::Single(Literal::Value(true)),
+                        Node::Single(Literal::VarLit(1)),
+                        Node::Single(Literal::VarLit(2)),
+                        Node::Impl(2, 3),
+                        Node::Negated(4),
+                        Node::And(5, 3),
+                        Node::And(6, 4),
+                    ],
+                    lit_to_index: vec![2, 0, 3, 0],
+                },
+                *ec.borrow()
+            );
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let np1 = !v1.clone();
+            let _ = np1.clone() & v2 & !np1.clone();
+            assert_eq!(!np1.clone(), v1);
+            assert_eq!(!!np1.clone(), np1);
+            assert_eq!(
+                ExprCreator {
+                    nodes: vec![
+                        Node::Single(Literal::Value(false)),
+                        Node::Single(Literal::Value(true)),
+                        Node::Single(Literal::VarLit(1)),
+                        Node::Single(Literal::VarLit(2)),
+                        Node::Single(Literal::VarLit(-1)),
+                        Node::And(4, 3),
+                        Node::And(5, 2),
+                    ],
+                    lit_to_index: vec![2, 4, 3, 0],
+                },
+                *ec.borrow()
+            );
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let np1 = ExprNode::single(ec.clone(), true);
+            let np2 = !np1.clone();
+            let np3 = !np2.clone();
+            assert_eq!(np2, ExprNode::single(ec.clone(), false));
+            assert_eq!(np3, np1);
+            assert_eq!(
+                ExprCreator {
+                    nodes: vec![
+                        Node::Single(Literal::Value(false)),
+                        Node::Single(Literal::Value(true)),
+                    ],
+                    lit_to_index: vec![],
+                },
+                *ec.borrow()
+            );
+        }
     }
 
     #[test]
-    fn test_expr_nodes_lits_or() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let _ = (v1.clone() | false)
-            ^ (false | v1.clone())
-            ^ (v1.clone() | Literal::from(false))
-            ^ (Literal::from(false) | v1.clone())
-            ^ (v1.clone() | true)
-            ^ (true | v1.clone())
-            ^ (v1.clone() | Literal::from(true))
-            ^ (Literal::from(true) | v1.clone())
-            ^ (v1.clone() | v2)
-            ^ (v2 | v1.clone())
-            ^ (v1.clone() | Literal::from(v2))
-            ^ (Literal::from(v2) | v1.clone());
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::Or(2, 3),
-                    Node::Or(2, 3),
-                    Node::Xor(4, 5),
-                    Node::Or(2, 3),
-                    Node::Xor(6, 7),
-                    Node::Or(2, 3),
-                    Node::Xor(8, 9),
-                ],
-                lit_to_index: vec![2, 0, 3, 0],
-            },
-            *ec.borrow()
-        );
+    fn test_expr_nodes_and_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let xpfalse = ExprNode::single(ec.clone(), false);
+            let xptrue = ExprNode::single(ec.clone(), true);
+            let nv1 = !v1.clone();
+
+            assert_eq!(xptrue.clone() & true, xptrue);
+            assert_eq!(true & xptrue.clone(), xptrue);
+            assert_eq!(xptrue.clone() & Literal::from(true), xptrue);
+            assert_eq!(Literal::from(true) & xptrue.clone(), xptrue);
+            assert_eq!(xptrue.clone() & xptrue.clone(), xptrue);
+
+            assert_eq!(v1.clone() & false, xpfalse);
+            assert_eq!(false & v1.clone(), xpfalse);
+            assert_eq!(v1.clone() & Literal::from(false), xpfalse);
+            assert_eq!(Literal::from(false) & v1.clone(), xpfalse);
+            assert_eq!(v1.clone() & xpfalse.clone(), xpfalse);
+            assert_eq!(xpfalse.clone() & v1.clone(), xpfalse);
+
+            assert_eq!(v1.clone() & true, v1);
+            assert_eq!(true & v1.clone(), v1);
+            assert_eq!(v1.clone() & Literal::from(true), v1);
+            assert_eq!(Literal::from(true) & v1.clone(), v1);
+            assert_eq!(v1.clone() & xptrue.clone(), v1);
+            assert_eq!(xptrue.clone() & v1.clone(), v1);
+
+            assert_eq!(-1 & v1.clone(), xpfalse);
+            assert_eq!(v1.clone() & -1, xpfalse);
+            assert_eq!(Literal::from(-1) & v1.clone(), xpfalse);
+            assert_eq!(v1.clone() & Literal::from(-1), xpfalse);
+            assert_eq!(nv1.clone() & v1.clone(), xpfalse);
+            assert_eq!(v1.clone() & nv1.clone(), xpfalse);
+
+            assert_eq!(1 & v1.clone(), v1);
+            assert_eq!(v1.clone() & 1, v1);
+            assert_eq!(Literal::from(1) & v1.clone(), v1);
+            assert_eq!(v1.clone() & Literal::from(1), v1);
+            assert_eq!(v1.clone() & v1.clone(), v1);
+        }
     }
 
     #[test]
-    fn test_expr_nodes_lits_xor() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let _ = (v1.clone() ^ false)
-            ^ (false ^ v1.clone())
-            ^ (v1.clone() ^ Literal::from(false))
-            ^ (Literal::from(false) ^ v1.clone())
-            ^ (v1.clone() ^ true)
-            ^ (true ^ v1.clone())
-            ^ (v1.clone() ^ Literal::from(true))
-            ^ (Literal::from(true) ^ v1.clone())
-            ^ (v1.clone() ^ v2)
-            ^ (v2 ^ v1.clone())
-            ^ (v1.clone() ^ Literal::from(v2))
-            ^ (Literal::from(v2) ^ v1.clone());
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(-1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::Xor(2, 4),
-                    Node::Xor(2, 4),
-                    Node::Xor(5, 6),
-                    Node::Xor(2, 4),
-                    Node::Xor(7, 8),
-                    Node::Xor(2, 4),
-                    Node::Xor(9, 10),
-                ],
-                lit_to_index: vec![2, 3, 4, 0],
-            },
-            *ec.borrow()
-        );
+    fn test_expr_nodes_or_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let xpfalse = ExprNode::single(ec.clone(), false);
+            let xptrue = ExprNode::single(ec.clone(), true);
+            let nv1 = !v1.clone();
+
+            assert_eq!(xptrue.clone() | true, xptrue);
+            assert_eq!(true | xptrue.clone(), xptrue);
+            assert_eq!(xptrue.clone() | Literal::from(true), xptrue);
+            assert_eq!(Literal::from(true) | xptrue.clone(), xptrue);
+            assert_eq!(xptrue.clone() | xptrue.clone(), xptrue);
+
+            assert_eq!(v1.clone() | false, v1);
+            assert_eq!(false | v1.clone(), v1);
+            assert_eq!(v1.clone() | Literal::from(false), v1);
+            assert_eq!(Literal::from(false) | v1.clone(), v1);
+            assert_eq!(v1.clone() | xpfalse.clone(), v1);
+            assert_eq!(xpfalse.clone() | v1.clone(), v1);
+
+            assert_eq!(v1.clone() | true, xptrue);
+            assert_eq!(true | v1.clone(), xptrue);
+            assert_eq!(v1.clone() | Literal::from(true), xptrue);
+            assert_eq!(Literal::from(true) | v1.clone(), xptrue);
+            assert_eq!(v1.clone() | xptrue.clone(), xptrue);
+            assert_eq!(xptrue.clone() | v1.clone(), xptrue);
+
+            assert_eq!(-1 | v1.clone(), xptrue);
+            assert_eq!(v1.clone() | -1, xptrue);
+            assert_eq!(Literal::from(-1) | v1.clone(), xptrue);
+            assert_eq!(v1.clone() | Literal::from(-1), xptrue);
+            assert_eq!(nv1.clone() | v1.clone(), xptrue);
+            assert_eq!(v1.clone() | nv1.clone(), xptrue);
+
+            assert_eq!(1 | v1.clone(), v1);
+            assert_eq!(v1.clone() | 1, v1);
+            assert_eq!(Literal::from(1) | v1.clone(), v1);
+            assert_eq!(v1.clone() | Literal::from(1), v1);
+            assert_eq!(v1.clone() | v1.clone(), v1);
+        }
     }
 
     #[test]
-    fn test_expr_nodes_lits_equal() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let _ = (v1.clone().equal(false))
-            ^ (false.equal(v1.clone()))
-            ^ (v1.clone().equal(Literal::from(false)))
-            ^ (Literal::from(false).equal(v1.clone()))
-            ^ (v1.clone().equal(true))
-            ^ (true.equal(v1.clone()))
-            ^ (v1.clone().equal(Literal::from(true)))
-            ^ (Literal::from(true).equal(v1.clone()))
-            ^ (v1.clone().equal(v2))
-            ^ (v2.equal(v1.clone()))
-            ^ (v1.clone().equal(Literal::from(v2)))
-            ^ (Literal::from(v2).equal(v1.clone()));
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(-1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::Equal(2, 4),
-                    Node::Equal(2, 4),
-                    Node::Xor(5, 6),
-                    Node::Equal(2, 4),
-                    Node::Xor(7, 8),
-                    Node::Equal(2, 4),
-                    Node::Xor(9, 10),
-                ],
-                lit_to_index: vec![2, 3, 4, 0],
-            },
-            *ec.borrow()
-        );
+    fn test_expr_nodes_xor_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let nv1 = !v1.clone();
+            let xpfalse = ExprNode::single(ec.clone(), false);
+            let xptrue = ExprNode::single(ec.clone(), true);
+
+            assert_eq!(xptrue.clone() ^ true, xpfalse);
+            assert_eq!(true ^ xptrue.clone(), xpfalse);
+            assert_eq!(xptrue.clone() ^ Literal::from(true), xpfalse);
+            assert_eq!(Literal::from(true) ^ xptrue.clone(), xpfalse);
+            assert_eq!(xptrue.clone() ^ xptrue.clone(), xpfalse);
+
+            assert_eq!(v1.clone() ^ false, v1);
+            assert_eq!(false ^ v1.clone(), v1);
+            assert_eq!(v1.clone() ^ Literal::from(false), v1);
+            assert_eq!(Literal::from(false) ^ v1.clone(), v1);
+            assert_eq!(v1.clone() ^ xpfalse.clone(), v1);
+            assert_eq!(xpfalse.clone() ^ v1.clone(), v1);
+
+            assert_eq!(v1.clone() ^ true, nv1);
+            assert_eq!(true ^ v1.clone(), nv1);
+            assert_eq!(v1.clone() ^ Literal::from(true), nv1);
+            assert_eq!(Literal::from(true) ^ v1.clone(), nv1);
+            assert_eq!(v1.clone() ^ xptrue.clone(), nv1);
+            assert_eq!(xptrue.clone() ^ v1.clone(), nv1);
+
+            assert_eq!(-1 ^ v1.clone(), xptrue);
+            assert_eq!(v1.clone() ^ -1, xptrue);
+            assert_eq!(Literal::from(-1) ^ v1.clone(), xptrue);
+            assert_eq!(v1.clone() ^ Literal::from(-1), xptrue);
+            assert_eq!(nv1.clone() ^ v1.clone(), xptrue);
+            assert_eq!(v1.clone() ^ nv1.clone(), xptrue);
+
+            assert_eq!(1 ^ v1.clone(), xpfalse);
+            assert_eq!(v1.clone() ^ 1, xpfalse);
+            assert_eq!(Literal::from(1) ^ v1.clone(), xpfalse);
+            assert_eq!(v1.clone() ^ Literal::from(1), xpfalse);
+            assert_eq!(v1.clone() ^ v1.clone(), xpfalse);
+        }
     }
 
     #[test]
-    fn test_expr_nodes_lits_impl() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let _ = (v1.clone().imp(false))
-            ^ (false.imp(v1.clone()))
-            ^ (v1.clone().imp(Literal::from(false)))
-            ^ (Literal::from(false).imp(v1.clone()))
-            ^ (v1.clone().imp(true))
-            ^ (true.imp(v1.clone()))
-            ^ (v1.clone().imp(Literal::from(true)))
-            ^ (Literal::from(true).imp(v1.clone()))
-            ^ (v1.clone().imp(v2))
-            ^ (v2.imp(v1.clone()))
-            ^ (v1.clone().imp(Literal::from(v2)))
-            ^ (Literal::from(v2).imp(v1.clone()));
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(-1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::Impl(2, 4),
-                    Node::Impl(4, 2),
-                    Node::Xor(5, 6),
-                    Node::Impl(2, 4),
-                    Node::Xor(7, 8),
-                    Node::Impl(4, 2),
-                    Node::Xor(9, 10),
-                ],
-                lit_to_index: vec![2, 3, 4, 0],
-            },
-            *ec.borrow()
-        );
+    fn test_expr_nodes_equal_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let nv1 = !v1.clone();
+            let xpfalse = ExprNode::single(ec.clone(), false);
+            let xptrue = ExprNode::single(ec.clone(), true);
+
+            assert_eq!(xptrue.clone().equal(true), xptrue);
+            assert_eq!(true.equal(xptrue.clone()), xptrue);
+            assert_eq!(xptrue.clone().equal(Literal::from(true)), xptrue);
+            assert_eq!(Literal::from(true).equal(xptrue.clone()), xptrue);
+            assert_eq!(xptrue.clone().equal(xptrue.clone()), xptrue);
+
+            assert_eq!(v1.clone().equal(false), nv1);
+            assert_eq!(false.equal(v1.clone()), nv1);
+            assert_eq!(v1.clone().equal(Literal::from(false)), nv1);
+            assert_eq!(Literal::from(false).equal(v1.clone()), nv1);
+            assert_eq!(v1.clone().equal(xpfalse.clone()), nv1);
+            assert_eq!(xpfalse.clone().equal(v1.clone()), nv1);
+
+            assert_eq!(v1.clone().equal(true), v1);
+            assert_eq!(true.equal(v1.clone()), v1);
+            assert_eq!(v1.clone().equal(Literal::from(true)), v1);
+            assert_eq!(Literal::from(true).equal(v1.clone()), v1);
+            assert_eq!(v1.clone().equal(xptrue.clone()), v1);
+            assert_eq!(xptrue.clone().equal(v1.clone()), v1);
+
+            assert_eq!((-1).equal(v1.clone()), xpfalse);
+            assert_eq!(v1.clone().equal(-1), xpfalse);
+            assert_eq!(Literal::from(-1).equal(v1.clone()), xpfalse);
+            assert_eq!(v1.clone().equal(Literal::from(-1)), xpfalse);
+            assert_eq!(nv1.clone().equal(v1.clone()), xpfalse);
+            assert_eq!(v1.clone().equal(nv1.clone()), xpfalse);
+
+            assert_eq!(1.equal(v1.clone()), xptrue);
+            assert_eq!(v1.clone().equal(1), xptrue);
+            assert_eq!(Literal::from(1).equal(v1.clone()), xptrue);
+            assert_eq!(v1.clone().equal(Literal::from(1)), xptrue);
+            assert_eq!(v1.clone().equal(v1.clone()), xptrue);
+        }
+    }
+
+    #[test]
+    fn test_expr_nodes_impl_simpls() {
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let nv1 = !v1.clone();
+            let xpfalse = ExprNode::single(ec.clone(), false);
+            let xptrue = ExprNode::single(ec.clone(), true);
+
+            assert_eq!(xptrue.clone().imp(true), xptrue);
+            assert_eq!(true.imp(xptrue.clone()), xptrue);
+            assert_eq!(xptrue.clone().imp(Literal::from(true)), xptrue);
+            assert_eq!(Literal::from(true).imp(xptrue.clone()), xptrue);
+            assert_eq!(xptrue.clone().imp(xptrue.clone()), xptrue);
+
+            assert_eq!(v1.clone().imp(false), nv1);
+            assert_eq!(false.imp(v1.clone()), xptrue);
+            assert_eq!(v1.clone().imp(Literal::from(false)), nv1);
+            assert_eq!(Literal::from(false).imp(v1.clone()), xptrue);
+            assert_eq!(v1.clone().imp(xpfalse.clone()), nv1);
+            assert_eq!(xpfalse.clone().imp(v1.clone()), xptrue);
+
+            assert_eq!(v1.clone().imp(true), xptrue);
+            assert_eq!(true.imp(v1.clone()), v1);
+            assert_eq!(v1.clone().imp(Literal::from(true)), xptrue);
+            assert_eq!(Literal::from(true).imp(v1.clone()), v1);
+            assert_eq!(v1.clone().imp(xptrue.clone()), xptrue);
+            assert_eq!(xptrue.clone().imp(v1.clone()), v1);
+
+            assert_eq!((-1).imp(v1.clone()), v1);
+            assert_eq!(v1.clone().imp(-1), nv1);
+            assert_eq!(Literal::from(-1).imp(v1.clone()), v1);
+            assert_eq!(v1.clone().imp(Literal::from(-1)), nv1);
+            assert_eq!(nv1.clone().imp(v1.clone()), v1);
+            assert_eq!(v1.clone().imp(nv1.clone()), nv1);
+
+            assert_eq!(1.imp(v1.clone()), xptrue);
+            assert_eq!(v1.clone().imp(1), xptrue);
+            assert_eq!(Literal::from(1).imp(v1.clone()), xptrue);
+            assert_eq!(v1.clone().imp(Literal::from(1)), xptrue);
+            assert_eq!(v1.clone().imp(v1.clone()), xptrue);
+        }
     }
 }
