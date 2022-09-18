@@ -973,243 +973,108 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_expr_nodes_and_simpls() {
-        {
+    enum ExpOpResult {
+        XPTrue,
+        XPFalse,
+        XPVar1,
+        XPNotVar1,
+        XPExpr,
+    }
+
+    use ExpOpResult::*;
+
+    macro_rules! test_op_simpls {
+        ($op:ident, $tt:expr, $v1f:expr, $fv1:expr, $v1t:expr, $tv1:expr, $nv1v1:expr, $v1nv1:expr,
+         $v1v1: expr, $xpxp: expr) => {
             let ec = ExprCreator::<isize>::new();
             let v1 = ExprNode::variable(ec.clone());
+            let nv1 = !v1.clone();
             let xpfalse = ExprNode::single(ec.clone(), false);
             let xptrue = ExprNode::single(ec.clone(), true);
-            let nv1 = !v1.clone();
-
-            assert_eq!(xptrue.clone() & true, xptrue);
-            assert_eq!(true & xptrue.clone(), xptrue);
-            assert_eq!(xptrue.clone() & Literal::from(true), xptrue);
-            assert_eq!(Literal::from(true) & xptrue.clone(), xptrue);
-            assert_eq!(xptrue.clone() & xptrue.clone(), xptrue);
-
-            assert_eq!(v1.clone() & false, xpfalse);
-            assert_eq!(false & v1.clone(), xpfalse);
-            assert_eq!(v1.clone() & Literal::from(false), xpfalse);
-            assert_eq!(Literal::from(false) & v1.clone(), xpfalse);
-            assert_eq!(v1.clone() & xpfalse.clone(), xpfalse);
-            assert_eq!(xpfalse.clone() & v1.clone(), xpfalse);
-
-            assert_eq!(v1.clone() & true, v1);
-            assert_eq!(true & v1.clone(), v1);
-            assert_eq!(v1.clone() & Literal::from(true), v1);
-            assert_eq!(Literal::from(true) & v1.clone(), v1);
-            assert_eq!(v1.clone() & xptrue.clone(), v1);
-            assert_eq!(xptrue.clone() & v1.clone(), v1);
-
-            assert_eq!(-1 & v1.clone(), xpfalse);
-            assert_eq!(v1.clone() & -1, xpfalse);
-            assert_eq!(Literal::from(-1) & v1.clone(), xpfalse);
-            assert_eq!(v1.clone() & Literal::from(-1), xpfalse);
-            assert_eq!(nv1.clone() & v1.clone(), xpfalse);
-            assert_eq!(v1.clone() & nv1.clone(), xpfalse);
-
-            assert_eq!(1 & v1.clone(), v1);
-            assert_eq!(v1.clone() & 1, v1);
-            assert_eq!(Literal::from(1) & v1.clone(), v1);
-            assert_eq!(v1.clone() & Literal::from(1), v1);
-            assert_eq!(v1.clone() & v1.clone(), v1);
-
             let v2 = ExprNode::variable(ec.clone());
             let xp = v1.clone() & v2.clone();
-            assert_eq!(xp.clone() & xp.clone(), xp);
-        }
+
+            macro_rules! select {
+                ($r:tt) => {
+                    match $r {
+                        XPTrue => xptrue.clone(),
+                        XPFalse => xpfalse.clone(),
+                        XPVar1 => v1.clone(),
+                        XPNotVar1 => nv1.clone(),
+                        XPExpr => xp.clone(),
+                    }
+                };
+            }
+
+            assert_eq!(xptrue.clone().$op(true), select!($tt));
+            assert_eq!(true.$op(xptrue.clone()), select!($tt));
+            assert_eq!(xptrue.clone().$op(Literal::from(true)), select!($tt));
+            assert_eq!(Literal::from(true).$op(xptrue.clone()), select!($tt));
+            assert_eq!(xptrue.clone().$op(xptrue.clone()), select!($tt));
+
+            assert_eq!(v1.clone().$op(false), select!($v1f));
+            assert_eq!(false.$op(v1.clone()), select!($fv1));
+            assert_eq!(v1.clone().$op(Literal::from(false)), select!($v1f));
+            assert_eq!(Literal::from(false).$op(v1.clone()), select!($fv1));
+            assert_eq!(v1.clone().$op(xpfalse.clone()), select!($v1f));
+            assert_eq!(xpfalse.clone().$op(v1.clone()), select!($fv1));
+
+            assert_eq!(v1.clone().$op(true), select!($v1t));
+            assert_eq!(true.$op(v1.clone()), select!($tv1));
+            assert_eq!(v1.clone().$op(Literal::from(true)), select!($v1t));
+            assert_eq!(Literal::from(true).$op(v1.clone()), select!($tv1));
+            assert_eq!(v1.clone().$op(xptrue.clone()), select!($v1t));
+            assert_eq!(xptrue.clone().$op(v1.clone()), select!($tv1));
+
+            assert_eq!((-1).$op(v1.clone()), select!($nv1v1));
+            assert_eq!(v1.clone().$op(-1), select!($v1nv1));
+            assert_eq!(Literal::from(-1).$op(v1.clone()), select!($nv1v1));
+            assert_eq!(v1.clone().$op(Literal::from(-1)), select!($v1nv1));
+            assert_eq!(nv1.clone().$op(v1.clone()), select!($nv1v1));
+            assert_eq!(v1.clone().$op(nv1.clone()), select!($v1nv1));
+
+            assert_eq!((1).$op(v1.clone()), select!($v1v1));
+            assert_eq!(v1.clone().$op(1), select!($v1v1));
+            assert_eq!(Literal::from(1).$op(v1.clone()), select!($v1v1));
+            assert_eq!(v1.clone().$op(Literal::from(1)), select!($v1v1));
+            assert_eq!(v1.clone().$op(v1.clone()), select!($v1v1));
+
+            assert_eq!(xp.clone().$op(xp.clone()), select!($xpxp));
+        };
+    }
+
+    #[test]
+    fn test_expr_nodes_and_simpls() {
+        test_op_simpls!(
+            bitand, XPTrue, XPFalse, XPFalse, XPVar1, XPVar1, XPFalse, XPFalse, XPVar1, XPExpr
+        );
     }
 
     #[test]
     fn test_expr_nodes_or_simpls() {
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let xpfalse = ExprNode::single(ec.clone(), false);
-            let xptrue = ExprNode::single(ec.clone(), true);
-            let nv1 = !v1.clone();
-
-            assert_eq!(xptrue.clone() | true, xptrue);
-            assert_eq!(true | xptrue.clone(), xptrue);
-            assert_eq!(xptrue.clone() | Literal::from(true), xptrue);
-            assert_eq!(Literal::from(true) | xptrue.clone(), xptrue);
-            assert_eq!(xptrue.clone() | xptrue.clone(), xptrue);
-
-            assert_eq!(v1.clone() | false, v1);
-            assert_eq!(false | v1.clone(), v1);
-            assert_eq!(v1.clone() | Literal::from(false), v1);
-            assert_eq!(Literal::from(false) | v1.clone(), v1);
-            assert_eq!(v1.clone() | xpfalse.clone(), v1);
-            assert_eq!(xpfalse.clone() | v1.clone(), v1);
-
-            assert_eq!(v1.clone() | true, xptrue);
-            assert_eq!(true | v1.clone(), xptrue);
-            assert_eq!(v1.clone() | Literal::from(true), xptrue);
-            assert_eq!(Literal::from(true) | v1.clone(), xptrue);
-            assert_eq!(v1.clone() | xptrue.clone(), xptrue);
-            assert_eq!(xptrue.clone() | v1.clone(), xptrue);
-
-            assert_eq!(-1 | v1.clone(), xptrue);
-            assert_eq!(v1.clone() | -1, xptrue);
-            assert_eq!(Literal::from(-1) | v1.clone(), xptrue);
-            assert_eq!(v1.clone() | Literal::from(-1), xptrue);
-            assert_eq!(nv1.clone() | v1.clone(), xptrue);
-            assert_eq!(v1.clone() | nv1.clone(), xptrue);
-
-            assert_eq!(1 | v1.clone(), v1);
-            assert_eq!(v1.clone() | 1, v1);
-            assert_eq!(Literal::from(1) | v1.clone(), v1);
-            assert_eq!(v1.clone() | Literal::from(1), v1);
-            assert_eq!(v1.clone() | v1.clone(), v1);
-
-            let v2 = ExprNode::variable(ec.clone());
-            let xp = v1.clone() & v2.clone();
-            assert_eq!(xp.clone() | xp.clone(), xp);
-        }
+        test_op_simpls!(
+            bitor, XPTrue, XPVar1, XPVar1, XPTrue, XPTrue, XPTrue, XPTrue, XPVar1, XPExpr
+        );
     }
 
     #[test]
     fn test_expr_nodes_xor_simpls() {
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let nv1 = !v1.clone();
-            let xpfalse = ExprNode::single(ec.clone(), false);
-            let xptrue = ExprNode::single(ec.clone(), true);
-
-            assert_eq!(xptrue.clone() ^ true, xpfalse);
-            assert_eq!(true ^ xptrue.clone(), xpfalse);
-            assert_eq!(xptrue.clone() ^ Literal::from(true), xpfalse);
-            assert_eq!(Literal::from(true) ^ xptrue.clone(), xpfalse);
-            assert_eq!(xptrue.clone() ^ xptrue.clone(), xpfalse);
-
-            assert_eq!(v1.clone() ^ false, v1);
-            assert_eq!(false ^ v1.clone(), v1);
-            assert_eq!(v1.clone() ^ Literal::from(false), v1);
-            assert_eq!(Literal::from(false) ^ v1.clone(), v1);
-            assert_eq!(v1.clone() ^ xpfalse.clone(), v1);
-            assert_eq!(xpfalse.clone() ^ v1.clone(), v1);
-
-            assert_eq!(v1.clone() ^ true, nv1);
-            assert_eq!(true ^ v1.clone(), nv1);
-            assert_eq!(v1.clone() ^ Literal::from(true), nv1);
-            assert_eq!(Literal::from(true) ^ v1.clone(), nv1);
-            assert_eq!(v1.clone() ^ xptrue.clone(), nv1);
-            assert_eq!(xptrue.clone() ^ v1.clone(), nv1);
-
-            assert_eq!(-1 ^ v1.clone(), xptrue);
-            assert_eq!(v1.clone() ^ -1, xptrue);
-            assert_eq!(Literal::from(-1) ^ v1.clone(), xptrue);
-            assert_eq!(v1.clone() ^ Literal::from(-1), xptrue);
-            assert_eq!(nv1.clone() ^ v1.clone(), xptrue);
-            assert_eq!(v1.clone() ^ nv1.clone(), xptrue);
-
-            assert_eq!(1 ^ v1.clone(), xpfalse);
-            assert_eq!(v1.clone() ^ 1, xpfalse);
-            assert_eq!(Literal::from(1) ^ v1.clone(), xpfalse);
-            assert_eq!(v1.clone() ^ Literal::from(1), xpfalse);
-            assert_eq!(v1.clone() ^ v1.clone(), xpfalse);
-
-            let v2 = ExprNode::variable(ec.clone());
-            let xp = v1.clone() & v2.clone();
-            assert_eq!(xp.clone() ^ xp.clone(), xpfalse);
-        }
+        test_op_simpls!(
+            bitxor, XPFalse, XPVar1, XPVar1, XPNotVar1, XPNotVar1, XPTrue, XPTrue, XPFalse, XPFalse
+        );
     }
 
     #[test]
     fn test_expr_nodes_equal_simpls() {
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let nv1 = !v1.clone();
-            let xpfalse = ExprNode::single(ec.clone(), false);
-            let xptrue = ExprNode::single(ec.clone(), true);
-
-            assert_eq!(xptrue.clone().equal(true), xptrue);
-            assert_eq!(true.equal(xptrue.clone()), xptrue);
-            assert_eq!(xptrue.clone().equal(Literal::from(true)), xptrue);
-            assert_eq!(Literal::from(true).equal(xptrue.clone()), xptrue);
-            assert_eq!(xptrue.clone().equal(xptrue.clone()), xptrue);
-
-            assert_eq!(v1.clone().equal(false), nv1);
-            assert_eq!(false.equal(v1.clone()), nv1);
-            assert_eq!(v1.clone().equal(Literal::from(false)), nv1);
-            assert_eq!(Literal::from(false).equal(v1.clone()), nv1);
-            assert_eq!(v1.clone().equal(xpfalse.clone()), nv1);
-            assert_eq!(xpfalse.clone().equal(v1.clone()), nv1);
-
-            assert_eq!(v1.clone().equal(true), v1);
-            assert_eq!(true.equal(v1.clone()), v1);
-            assert_eq!(v1.clone().equal(Literal::from(true)), v1);
-            assert_eq!(Literal::from(true).equal(v1.clone()), v1);
-            assert_eq!(v1.clone().equal(xptrue.clone()), v1);
-            assert_eq!(xptrue.clone().equal(v1.clone()), v1);
-
-            assert_eq!((-1).equal(v1.clone()), xpfalse);
-            assert_eq!(v1.clone().equal(-1), xpfalse);
-            assert_eq!(Literal::from(-1).equal(v1.clone()), xpfalse);
-            assert_eq!(v1.clone().equal(Literal::from(-1)), xpfalse);
-            assert_eq!(nv1.clone().equal(v1.clone()), xpfalse);
-            assert_eq!(v1.clone().equal(nv1.clone()), xpfalse);
-
-            assert_eq!(1.equal(v1.clone()), xptrue);
-            assert_eq!(v1.clone().equal(1), xptrue);
-            assert_eq!(Literal::from(1).equal(v1.clone()), xptrue);
-            assert_eq!(v1.clone().equal(Literal::from(1)), xptrue);
-            assert_eq!(v1.clone().equal(v1.clone()), xptrue);
-
-            let v2 = ExprNode::variable(ec.clone());
-            let xp = v1.clone() & v2.clone();
-            assert_eq!(xp.clone().equal(xp.clone()), xptrue);
-        }
+        test_op_simpls!(
+            equal, XPTrue, XPNotVar1, XPNotVar1, XPVar1, XPVar1, XPFalse, XPFalse, XPTrue, XPTrue
+        );
     }
 
     #[test]
     fn test_expr_nodes_impl_simpls() {
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let nv1 = !v1.clone();
-            let xpfalse = ExprNode::single(ec.clone(), false);
-            let xptrue = ExprNode::single(ec.clone(), true);
-
-            assert_eq!(xptrue.clone().imp(true), xptrue);
-            assert_eq!(true.imp(xptrue.clone()), xptrue);
-            assert_eq!(xptrue.clone().imp(Literal::from(true)), xptrue);
-            assert_eq!(Literal::from(true).imp(xptrue.clone()), xptrue);
-            assert_eq!(xptrue.clone().imp(xptrue.clone()), xptrue);
-
-            assert_eq!(v1.clone().imp(false), nv1);
-            assert_eq!(false.imp(v1.clone()), xptrue);
-            assert_eq!(v1.clone().imp(Literal::from(false)), nv1);
-            assert_eq!(Literal::from(false).imp(v1.clone()), xptrue);
-            assert_eq!(v1.clone().imp(xpfalse.clone()), nv1);
-            assert_eq!(xpfalse.clone().imp(v1.clone()), xptrue);
-
-            assert_eq!(v1.clone().imp(true), xptrue);
-            assert_eq!(true.imp(v1.clone()), v1);
-            assert_eq!(v1.clone().imp(Literal::from(true)), xptrue);
-            assert_eq!(Literal::from(true).imp(v1.clone()), v1);
-            assert_eq!(v1.clone().imp(xptrue.clone()), xptrue);
-            assert_eq!(xptrue.clone().imp(v1.clone()), v1);
-
-            assert_eq!((-1).imp(v1.clone()), v1);
-            assert_eq!(v1.clone().imp(-1), nv1);
-            assert_eq!(Literal::from(-1).imp(v1.clone()), v1);
-            assert_eq!(v1.clone().imp(Literal::from(-1)), nv1);
-            assert_eq!(nv1.clone().imp(v1.clone()), v1);
-            assert_eq!(v1.clone().imp(nv1.clone()), nv1);
-
-            assert_eq!(1.imp(v1.clone()), xptrue);
-            assert_eq!(v1.clone().imp(1), xptrue);
-            assert_eq!(Literal::from(1).imp(v1.clone()), xptrue);
-            assert_eq!(v1.clone().imp(Literal::from(1)), xptrue);
-            assert_eq!(v1.clone().imp(v1.clone()), xptrue);
-
-            let v2 = ExprNode::variable(ec.clone());
-            let xp = v1.clone() & v2.clone();
-            assert_eq!(xp.clone().imp(xp.clone()), xptrue);
-        }
+        test_op_simpls!(
+            imp, XPTrue, XPNotVar1, XPTrue, XPTrue, XPVar1, XPVar1, XPNotVar1, XPTrue, XPTrue
+        );
     }
 }
