@@ -1014,6 +1014,10 @@ mod tests {
             assert_eq!(Literal::from(1) & v1.clone(), v1);
             assert_eq!(v1.clone() & Literal::from(1), v1);
             assert_eq!(v1.clone() & v1.clone(), v1);
+
+            let v2 = ExprNode::variable(ec.clone());
+            let xp = v1.clone() & v2.clone();
+            assert_eq!(xp.clone() & xp.clone(), xp);
         }
     }
 
@@ -1058,6 +1062,10 @@ mod tests {
             assert_eq!(Literal::from(1) | v1.clone(), v1);
             assert_eq!(v1.clone() | Literal::from(1), v1);
             assert_eq!(v1.clone() | v1.clone(), v1);
+
+            let v2 = ExprNode::variable(ec.clone());
+            let xp = v1.clone() & v2.clone();
+            assert_eq!(xp.clone() | xp.clone(), xp);
         }
     }
 
@@ -1102,6 +1110,10 @@ mod tests {
             assert_eq!(Literal::from(1) ^ v1.clone(), xpfalse);
             assert_eq!(v1.clone() ^ Literal::from(1), xpfalse);
             assert_eq!(v1.clone() ^ v1.clone(), xpfalse);
+
+            let v2 = ExprNode::variable(ec.clone());
+            let xp = v1.clone() & v2.clone();
+            assert_eq!(xp.clone() ^ xp.clone(), xpfalse);
         }
     }
 
@@ -1146,6 +1158,10 @@ mod tests {
             assert_eq!(Literal::from(1).equal(v1.clone()), xptrue);
             assert_eq!(v1.clone().equal(Literal::from(1)), xptrue);
             assert_eq!(v1.clone().equal(v1.clone()), xptrue);
+
+            let v2 = ExprNode::variable(ec.clone());
+            let xp = v1.clone() & v2.clone();
+            assert_eq!(xp.clone().equal(xp.clone()), xptrue);
         }
     }
 
@@ -1190,6 +1206,10 @@ mod tests {
             assert_eq!(Literal::from(1).imp(v1.clone()), xptrue);
             assert_eq!(v1.clone().imp(Literal::from(1)), xptrue);
             assert_eq!(v1.clone().imp(v1.clone()), xptrue);
+
+            let v2 = ExprNode::variable(ec.clone());
+            let xp = v1.clone() & v2.clone();
+            assert_eq!(xp.clone().imp(xp.clone()), xptrue);
         }
     }
 }
