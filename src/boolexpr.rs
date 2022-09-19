@@ -40,6 +40,32 @@ enum Node<T: VarLit> {
     Impl(usize, usize),
 }
 
+impl<T: VarLit> Node<T> {
+    pub fn first_path(&self) -> usize {
+        match *self {
+            Node::Single(_) => panic!("No first path for single node"),
+            Node::Negated(first) => first,
+            Node::And(first, _) => first,
+            Node::Or(first, _) => first,
+            Node::Xor(first, _) => first,
+            Node::Equal(first, _) => first,
+            Node::Impl(first, _) => first,
+        }
+    }
+
+    pub fn second_path(&self) -> usize {
+        match *self {
+            Node::Single(_) => panic!("No second path for single node"),
+            Node::Negated(_) => panic!("No second path for negated node"),
+            Node::And(_, second) => second,
+            Node::Or(_, second) => second,
+            Node::Xor(_, second) => second,
+            Node::Equal(_, second) => second,
+            Node::Impl(_, second) => second,
+        }
+    }
+}
+
 // internals
 #[derive(Default, Copy, Clone)]
 struct DepNode {
@@ -48,21 +74,47 @@ struct DepNode {
     use_linkvar: bool,
 }
 
+impl DepNode {
+    #[inline]
+    fn new_first() -> Self {
+        DepNode {
+            normal_usage: true,
+            negated_usage: false,
+            use_linkvar: false,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum OpJoin {
     NoJoin,
     AndJoin,
     OrJoin,
-    NotJoin,
 }
 
 struct DepEntry {
     node_index: usize,
-    join_index: usize,
-    second_path: bool,
-    op_join: OpJoin,
+    path: usize,
     normal_usage: bool,
     negated_usage: bool,
+    op_join: OpJoin,
+    not_join: bool,
     negated: bool,
+}
+
+impl DepEntry {
+    #[inline]
+    fn new_root(start: usize) -> Self {
+        DepEntry {
+            node_index: start,
+            path: 0,
+            normal_usage: true,
+            negated_usage: false,
+            op_join: OpJoin::NoJoin,
+            not_join: false,
+            negated: false,
+        }
+    }
 }
 
 //
@@ -150,9 +202,95 @@ where
         start: usize,
         cnf: &mut CNFWriter<W>,
     ) -> Result<(), writer::Error> {
-        let dep_nodes = vec![DepNode::default(); self.nodes.len()];
+        let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         {
-            //let stack = vec![DepEntry::default()];
+            let mut stack = vec![DepEntry::new_root(start)];
+            dep_nodes[start] = DepNode::new_first();
+
+            while !stack.is_empty() {
+                let mut top = stack.last_mut().unwrap();
+                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
+
+                if (top.normal_usage && !dep_node.normal_usage)
+                    || (top.negated_usage && !dep_node.negated_usage)
+                {
+                    // process at first visit
+                    let node = self.nodes[top.node_index];
+                    dep_node.normal_usage |= top.normal_usage;
+                    dep_node.negated_usage |= top.negated_usage;
+                    let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                    let second_path =
+                        top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+
+                    if first_path || second_path {
+                        dep_node.use_linkvar = match node {
+                            Node::Single(_) => false,
+                            Node::Negated(_) => false,
+                            Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
+                            Node::Or(_, _) | Node::Impl(_, _) => {
+                                top.op_join != OpJoin::OrJoin || top.negated
+                            }
+                            _ => true,
+                        };
+
+                        let (normal_usage, negated_usage, not_join, op_join) = match node {
+                            Node::Single(_) => (false, false, false, OpJoin::NoJoin),
+                            Node::Negated(_) => {
+                                (top.negated_usage, top.normal_usage, true, top.op_join)
+                            }
+                            Node::And(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::AndJoin)
+                            }
+                            Node::Or(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                            }
+                            Node::Xor(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Impl(_, _) => {
+                                if first_path {
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::OrJoin)
+                                } else {
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                }
+                            }
+                        };
+
+                        let negated = if top.not_join && not_join {
+                            !top.negated
+                        } else {
+                            not_join
+                        };
+
+                        if first_path {
+                            top.path = 1;
+                            stack.push(DepEntry {
+                                node_index: node.first_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        } else if second_path {
+                            top.path = 2;
+                            stack.push(DepEntry {
+                                node_index: node.second_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        }
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop(); // back if everything done
+                }
+            }
         }
         Ok(())
     }
@@ -221,7 +359,7 @@ where
 
     fn not(self) -> Self::Output {
         let node1 = {
-            let mut creator = self.creator.borrow();
+            let creator = self.creator.borrow();
             creator.nodes[self.index]
         };
         match node1 {
