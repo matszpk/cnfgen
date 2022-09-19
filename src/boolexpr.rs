@@ -255,11 +255,12 @@ where
                             }
                         };
 
-                        let negated = if top.not_join && not_join {
-                            !top.negated
-                        } else {
-                            not_join
-                        };
+                        let negated =
+                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                                !top.negated
+                            } else {
+                                not_join
+                            };
 
                         if first_path {
                             top.path = 1;
