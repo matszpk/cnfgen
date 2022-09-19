@@ -207,32 +207,42 @@ where
             let mut stack = vec![DepEntry::new_root(start)];
             dep_nodes[start] = DepNode::new_first();
 
+            let mut extra_var_count: usize = 0;
+
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
                 let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
+
+                let node = self.nodes[top.node_index];
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path =
+                    top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+
+                if first_path || second_path {
+                    let use_linkvar_old = dep_node.use_linkvar;
+                    dep_node.use_linkvar |= match node {
+                        Node::Single(_) => false,
+                        Node::Negated(_) => false,
+                        Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
+                        Node::Or(_, _) | Node::Impl(_, _) => {
+                            top.op_join != OpJoin::OrJoin || top.negated
+                        }
+                        _ => true,
+                    };
+
+                    if dep_node.use_linkvar == use_linkvar_old {
+                        extra_var_count += 1;
+                    }
+                }
 
                 if (top.normal_usage && !dep_node.normal_usage)
                     || (top.negated_usage && !dep_node.negated_usage)
                 {
                     // process at first visit
-                    let node = self.nodes[top.node_index];
                     dep_node.normal_usage |= top.normal_usage;
                     dep_node.negated_usage |= top.negated_usage;
-                    let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                    let second_path =
-                        top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
 
                     if first_path || second_path {
-                        dep_node.use_linkvar = match node {
-                            Node::Single(_) => false,
-                            Node::Negated(_) => false,
-                            Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
-                            Node::Or(_, _) | Node::Impl(_, _) => {
-                                top.op_join != OpJoin::OrJoin || top.negated
-                            }
-                            _ => true,
-                        };
-
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
                             Node::Single(_) => (false, false, false, OpJoin::NoJoin),
                             Node::Negated(_) => {
