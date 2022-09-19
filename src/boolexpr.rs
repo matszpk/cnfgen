@@ -167,7 +167,7 @@ pub trait BoolEqual<Rhs = Self> {
 impl BoolEqual for bool {
     type Output = bool;
     fn equal(self, rhs: bool) -> Self::Output {
-        !(self ^ rhs)
+        self == rhs
     }
 }
 
