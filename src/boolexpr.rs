@@ -230,7 +230,7 @@ where
                         _ => true,
                     };
 
-                    if dep_node.use_linkvar == use_linkvar_old {
+                    if dep_node.use_linkvar != use_linkvar_old {
                         extra_var_count += 1;
                     }
                 }
