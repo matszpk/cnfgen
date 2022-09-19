@@ -258,7 +258,7 @@ where
                             Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::OrJoin)
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::NoJoin)
                                 } else {
                                     (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
                                 }
