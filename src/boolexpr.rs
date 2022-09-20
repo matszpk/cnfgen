@@ -145,8 +145,10 @@ macro_rules! new_xxx {
 impl<T> ExprCreator<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
@@ -524,9 +526,9 @@ where
         {
             enum JoiningClause<T: VarLit> {
                 Nothing,
-                Clause(Vec<T>),
+                Clause(Vec<Literal<T>>),
                 Join(usize),
-                XorEqual(T, T),
+                XorEqual(Literal<T>, Literal<T>),
             }
 
             struct DepEntry<T: VarLit> {
@@ -566,17 +568,25 @@ where
                     let negated = stack.last().unwrap().negated;
                     if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
                         let join_entry = stack.get_mut(stackpos).unwrap();
-
-                        let linkvar = dep_nodes.get(join_entry.node_index).unwrap().linkvar;
+                        let linkvar = dep_nodes
+                            .get(join_entry.node_index)
+                            .unwrap()
+                            .linkvar
+                            .map(|x| Literal::VarLit(x))
+                            .or(if let Node::Single(l) = self.nodes[join_entry.node_index] {
+                                Some(l)
+                            } else {
+                                None
+                            });
                         if let Some(linkvar) = linkvar {
-                            let linkvar = if !negated { linkvar } else { -linkvar };
+                            let linkvar = if !negated { linkvar } else { !linkvar };
 
                             match &mut join_entry.joining_clause {
                                 JoiningClause::Clause(ref mut v) => {
                                     v.push(linkvar);
                                 }
                                 JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
-                                    if *s1 == T::empty() {
+                                    if *s1 == Literal::VarLit(T::empty()) {
                                         *s1 = linkvar;
                                     } else {
                                         *s2 = linkvar;
@@ -595,6 +605,8 @@ where
                 let node = self.nodes[top.node_index];
                 let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                 let second_path = top.path == 1 && !node.is_unary();
+
+                let mut do_pop = false;
 
                 if !visited[node_index] {
                     visited[node_index] = true;
@@ -700,10 +712,104 @@ where
                             });
                         }
                     } else {
-                        stack.pop();
+                        do_pop = true;
                     }
                 } else {
-                    stack.pop(); // back if everything done
+                    do_pop = true;
+                }
+
+                if do_pop {
+                    let top = stack.pop().unwrap();
+                    let dep_node = dep_nodes.get(top.node_index).unwrap();
+                    match top.joining_clause {
+                        JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
+                            Node::And(_, _) => {
+                                if dep_node.normal_usage {
+                                    for l in &literals {
+                                        if let Some(lvv) = dep_node.linkvar {
+                                            cnf.write_literals([!Literal::from(lvv), *l])?;
+                                        } else {
+                                            cnf.write_literals([*l])?;
+                                        }
+                                    }
+                                }
+                                if dep_node.negated_usage {
+                                    let mut out = vec![];
+                                    if let Some(lvv) = dep_node.linkvar {
+                                        out.push(Literal::from(lvv));
+                                    }
+                                    out.extend(literals.iter().map(|x| !*x));
+                                    cnf.write_literals(out)?;
+                                }
+                            }
+                            Node::Or(_, _) | Node::Impl(_, _) => {
+                                if dep_node.negated_usage {
+                                    for l in &literals {
+                                        if let Some(lvv) = dep_node.linkvar {
+                                            cnf.write_literals([Literal::from(lvv), !*l])?;
+                                        } else {
+                                            cnf.write_literals([!*l])?;
+                                        }
+                                    }
+                                }
+                                if dep_node.normal_usage {
+                                    let mut out = vec![];
+                                    if let Some(lvv) = dep_node.linkvar {
+                                        out.push(!Literal::from(lvv));
+                                    }
+                                    out.extend(literals);
+                                    cnf.write_literals(out)?;
+                                }
+                            }
+                            _ => (),
+                        },
+                        JoiningClause::XorEqual(l1, l2) => {
+                            if let Some(lvv) = dep_node.linkvar {
+                                let lv = Literal::from(lvv);
+                                let nlv = !Literal::from(lvv);
+                                if let Node::Xor(_, _) = self.nodes[top.node_index] {
+                                    if dep_node.normal_usage {
+                                        cnf.write_literals([nlv, l1, l2])?;
+                                        cnf.write_literals([nlv, !l1, !l2])?;
+                                    }
+                                    if dep_node.negated_usage {
+                                        cnf.write_literals([lv, l1, !l2])?;
+                                        cnf.write_literals([lv, !l1, l2])?;
+                                    }
+                                } else {
+                                    if dep_node.normal_usage {
+                                        cnf.write_literals([nlv, !l1, l2])?;
+                                        cnf.write_literals([nlv, l1, !l2])?;
+                                    }
+                                    if dep_node.negated_usage {
+                                        cnf.write_literals([lv, l1, l2])?;
+                                        cnf.write_literals([lv, !l1, !l2])?;
+                                    }
+                                }
+                            } else {
+                                if let Node::Xor(_, _) = self.nodes[top.node_index] {
+                                    if dep_node.normal_usage {
+                                        cnf.write_literals([l1, l2])?;
+                                        cnf.write_literals([!l1, !l2])?;
+                                    }
+                                    if dep_node.negated_usage {
+                                        cnf.write_literals([l1, !l2])?;
+                                        cnf.write_literals([!l1, l2])?;
+                                    }
+                                } else {
+                                    if dep_node.normal_usage {
+                                        cnf.write_literals([l1, !l2])?;
+                                        cnf.write_literals([!l1, l2])?;
+                                    }
+                                    if dep_node.negated_usage {
+                                        cnf.write_literals([l1, l2])?;
+                                        cnf.write_literals([!l1, !l2])?;
+                                    }
+                                }
+                            }
+                        }
+                        _ => (),
+                    }
                 }
             }
         }
@@ -746,8 +852,10 @@ pub struct ExprNode<T: VarLit> {
 impl<T> ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
@@ -767,8 +875,10 @@ where
 impl<T> Not for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = Self;
 
@@ -806,8 +916,10 @@ macro_rules! new_op_impl {
         impl<T> $t for ExprNode<T>
         where
             T: VarLit + Neg<Output = T>,
+            isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
         {
             type Output = Self;
 
@@ -858,9 +970,11 @@ new_op_impl!(BoolImpl, new_impl, imp, Some(true));
 impl<T, U> BitAnd<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -906,8 +1020,10 @@ where
 impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -933,8 +1049,10 @@ macro_rules! new_all_op_l_xn_impls {
         impl<T> $u<ExprNode<T>> for bool
         where
             T: VarLit + Neg<Output = T>,
+            isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
         {
             type Output = ExprNode<T>;
 
@@ -955,9 +1073,11 @@ new_all_op_l_xn_impls!(BitAnd, bitand);
 impl<T, U> BitOr<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1003,8 +1123,10 @@ where
 impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1018,9 +1140,11 @@ new_all_op_l_xn_impls!(BitOr, bitor);
 impl<T, U> BitXor<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1063,8 +1187,10 @@ where
 impl<T> BitXor<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1078,9 +1204,11 @@ new_all_op_l_xn_impls!(BitXor, bitxor);
 impl<T, U> BoolEqual<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1123,8 +1251,10 @@ where
 impl<T> BoolEqual<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1138,9 +1268,11 @@ new_all_op_l_xn_impls!(BoolEqual, equal);
 impl<T, U> BoolImpl<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
@@ -1186,8 +1318,10 @@ where
 impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T>,
+    isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
 {
     type Output = ExprNode<T>;
 
