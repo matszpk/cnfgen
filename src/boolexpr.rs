@@ -438,32 +438,18 @@ where
                         let disjunc = node.is_disjunc();
 
                         if dep_node.normal_usage {
-                            // normal usage: first 'and' at this tree or use new linkvar
-                            if conj
-                                && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some())
-                            {
-                                clause_count += 1;
-                            }
-                            // normal usage: andjoin and other node than conjunction
-                            if !conj
-                                && (top.op_join == OpJoin::AndJoin
-                                    || (disjunc && dep_node.linkvar.is_some()))
+                            if (top.op_join == OpJoin::AndJoin
+                                && (!conj || dep_node.linkvar.is_some()))
+                                || (disjunc && dep_node.linkvar.is_some())
                             {
                                 clause_count += 1;
                             }
                         }
 
                         if dep_node.negated_usage {
-                            // negated usage: first disjunction at this tree or use new linkvar
-                            if disjunc
-                                && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
-                            {
-                                clause_count += 1;
-                            }
-                            // negated usage: orjoin and other node than disjunction
-                            if !disjunc
-                                && (top.op_join == OpJoin::OrJoin
-                                    || (conj && dep_node.linkvar.is_some()))
+                            if (top.op_join == OpJoin::OrJoin
+                                && (!disjunc || dep_node.linkvar.is_some()))
+                                || (conj && dep_node.linkvar.is_some())
                             {
                                 clause_count += 1;
                             }
@@ -615,34 +601,20 @@ where
                     let conj = node.is_conj();
                     let disjunc = node.is_disjunc();
 
-                    let mut gen_conj_clause = false;
                     if dep_node.normal_usage {
-                        // normal usage: first 'and' at this tree or use new linkvar
-                        if conj && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some()) {
-                            gen_conj_clause = true;
-                        }
-                        // normal usage: andjoin and other node than conjunction
-                        if !conj
-                            && (top.op_join == OpJoin::AndJoin
-                                || (disjunc && dep_node.linkvar.is_some()))
+                        if (top.op_join == OpJoin::AndJoin && (!conj || dep_node.linkvar.is_some()))
+                            || (disjunc && dep_node.linkvar.is_some())
                         {
-                            gen_conj_clause = true;
+                            //clause_count += 1;
                         }
                     }
 
-                    let mut gen_conj_clause = false;
                     if dep_node.negated_usage {
-                        // negated usage: first disjunction at this tree or use new linkvar
-                        if disjunc && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
+                        if (top.op_join == OpJoin::OrJoin
+                            && (!disjunc || dep_node.linkvar.is_some()))
+                            || (conj && dep_node.linkvar.is_some())
                         {
-                            gen_conj_clause = true;
-                        }
-                        // negated usage: orjoin and other node than disjunction
-                        if !disjunc
-                            && (top.op_join == OpJoin::OrJoin
-                                || (conj && dep_node.linkvar.is_some()))
-                        {
-                            gen_conj_clause = true;
+                            //clause_count += 1;
                         }
                     }
 
@@ -763,48 +735,30 @@ where
                             }
                             _ => (),
                         },
-                        JoiningClause::XorEqual(l1, l2) => {
+                        JoiningClause::XorEqual(l1, ol2) => {
+                            let mut l2 = ol2;
+                            if let Node::Equal(_, _) = self.nodes[top.node_index] {
+                                l2 = !l2;
+                            }
                             if let Some(lvv) = dep_node.linkvar {
                                 let lv = Literal::from(lvv);
                                 let nlv = !Literal::from(lvv);
-                                if let Node::Xor(_, _) = self.nodes[top.node_index] {
-                                    if dep_node.normal_usage {
-                                        cnf.write_literals([nlv, l1, l2])?;
-                                        cnf.write_literals([nlv, !l1, !l2])?;
-                                    }
-                                    if dep_node.negated_usage {
-                                        cnf.write_literals([lv, l1, !l2])?;
-                                        cnf.write_literals([lv, !l1, l2])?;
-                                    }
-                                } else {
-                                    if dep_node.normal_usage {
-                                        cnf.write_literals([nlv, !l1, l2])?;
-                                        cnf.write_literals([nlv, l1, !l2])?;
-                                    }
-                                    if dep_node.negated_usage {
-                                        cnf.write_literals([lv, l1, l2])?;
-                                        cnf.write_literals([lv, !l1, !l2])?;
-                                    }
+                                if dep_node.normal_usage {
+                                    cnf.write_literals([nlv, l1, l2])?;
+                                    cnf.write_literals([nlv, !l1, !l2])?;
+                                }
+                                if dep_node.negated_usage {
+                                    cnf.write_literals([lv, l1, !l2])?;
+                                    cnf.write_literals([lv, !l1, l2])?;
                                 }
                             } else {
-                                if let Node::Xor(_, _) = self.nodes[top.node_index] {
-                                    if dep_node.normal_usage {
-                                        cnf.write_literals([l1, l2])?;
-                                        cnf.write_literals([!l1, !l2])?;
-                                    }
-                                    if dep_node.negated_usage {
-                                        cnf.write_literals([l1, !l2])?;
-                                        cnf.write_literals([!l1, l2])?;
-                                    }
-                                } else {
-                                    if dep_node.normal_usage {
-                                        cnf.write_literals([l1, !l2])?;
-                                        cnf.write_literals([!l1, l2])?;
-                                    }
-                                    if dep_node.negated_usage {
-                                        cnf.write_literals([l1, l2])?;
-                                        cnf.write_literals([!l1, !l2])?;
-                                    }
+                                if dep_node.normal_usage {
+                                    cnf.write_literals([l1, l2])?;
+                                    cnf.write_literals([!l1, !l2])?;
+                                }
+                                if dep_node.negated_usage {
+                                    cnf.write_literals([l1, !l2])?;
+                                    cnf.write_literals([!l1, l2])?;
                                 }
                             }
                         }
