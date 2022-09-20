@@ -520,6 +520,168 @@ where
         cnf.write_header(total_var_count.to_usize(), clause_count)?;
 
         // write clauses
+        // TODO: write code that generate clauses
+        {
+            enum JoiningClause<T: VarLit> {
+                Nothing,
+                Clause(Vec<T>),
+                Join(usize),
+            }
+        
+            struct DepEntry<T: VarLit> {
+                node_index: usize,
+                path: usize,
+                normal_usage: bool,
+                negated_usage: bool,
+                op_join: OpJoin,
+                not_join: bool,
+                negated: bool,
+                joining_clause: JoiningClause<T>,
+            }
+
+            impl<T: VarLit> DepEntry<T> {
+                #[inline]
+                fn new_root(start: usize) -> Self {
+                    DepEntry {
+                        node_index: start,
+                        path: 0,
+                        normal_usage: true,
+                        negated_usage: false,
+                        op_join: OpJoin::NoJoin,
+                        not_join: false,
+                        negated: false,
+                        joining_clause: JoiningClause::Nothing,
+                    }
+                }
+            }
+
+            let mut visited = vec![false; self.nodes.len()];
+            let mut stack = vec![DepEntry::<T>::new_root(start)];
+            dep_nodes[start] = DepNode::new_first();
+
+            while !stack.is_empty() {
+                let mut top = stack.last_mut().unwrap();
+                let dep_node = dep_nodes.get(top.node_index).unwrap();
+                
+                let node_index = top.node_index;
+                let node = self.nodes[top.node_index];
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path = top.path == 1 && !node.is_unary();
+
+                if !visited[node_index] {
+                    visited[node_index] = true;
+                    
+                    /////////////
+                    let conj = node.is_conj();
+                    let disjunc = node.is_disjunc();
+
+                    let mut gen_conj_clause = false;
+                    if dep_node.normal_usage {
+                        // normal usage: first 'and' at this tree or use new linkvar
+                        if conj
+                            && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some())
+                        {
+                            gen_conj_clause = true;
+                        }
+                        // normal usage: andjoin and other node than conjunction
+                        if !conj
+                            && (top.op_join == OpJoin::AndJoin
+                                || (disjunc && dep_node.linkvar.is_some()))
+                        {
+                            gen_conj_clause = true;
+                        }
+                    }
+
+                    let mut gen_conj_clause = false;
+                    if dep_node.negated_usage {
+                        // negated usage: first disjunction at this tree or use new linkvar
+                        if disjunc
+                            && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
+                        {
+                            gen_conj_clause = true;
+                        }
+                        // negated usage: orjoin and other node than disjunction
+                        if !disjunc
+                            && (top.op_join == OpJoin::OrJoin
+                                || (conj && dep_node.linkvar.is_some()))
+                        {
+                            gen_conj_clause = true;
+                        }
+                    }
+
+                    if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
+                        if dep_node.normal_usage {
+                            clause_count += 2;
+                        }
+                        if dep_node.negated_usage {
+                            clause_count += 2;
+                        }
+                    }
+                    //////////////
+                    
+                    if first_path || second_path {
+                        let (normal_usage, negated_usage, not_join, op_join) = match node {
+                            Node::Single(_) => (false, false, false, OpJoin::NoJoin),
+                            Node::Negated(_) => {
+                                (top.negated_usage, top.normal_usage, true, top.op_join)
+                            }
+                            Node::And(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::AndJoin)
+                            }
+                            Node::Or(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                            }
+                            Node::Xor(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Impl(_, _) => {
+                                if first_path {
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::NoJoin)
+                                } else {
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                }
+                            }
+                        };
+
+                        let negated =
+                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                                !top.negated
+                            } else {
+                                not_join
+                            };
+
+                        if first_path {
+                            top.path = 1;
+                            stack.push(DepEntry {
+                                node_index: node.first_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                                joining_clause: JoiningClause::Nothing,
+                            });
+                        } else if second_path {
+                            top.path = 2;
+                            stack.push(DepEntry {
+                                node_index: node.second_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                                joining_clause: JoiningClause::Nothing,
+                            });
+                        }
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop(); // back if everything done
+                }
+            }
+        }
         Ok(())
     }
 }
