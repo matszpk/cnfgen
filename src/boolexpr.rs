@@ -274,7 +274,7 @@ where
                     }
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path =
-                        top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+                        top.path == 1 && !node.is_unary();
                     
                     if first_path {
                         top.path = 1;
@@ -308,8 +308,7 @@ where
 
                 let node = self.nodes[top.node_index];
                 let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                let second_path =
-                    top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+                let second_path = top.path == 1 && !node.is_unary();
 
                 if first_path || second_path {
                     let new_var = match node {
@@ -410,8 +409,7 @@ where
 
                 let node = self.nodes.get(top.node_index).unwrap();
                 let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                let second_path =
-                    top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+                let second_path = top.path == 1 && !node.is_unary();
 
                 if !visited[node_index] {
                     visited[node_index] = true;
