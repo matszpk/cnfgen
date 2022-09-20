@@ -81,6 +81,11 @@ impl<T: VarLit> Node<T> {
     fn is_disjunc(&self) -> bool {
         matches!(self, Node::Or(_, _) | Node::Impl(_, _))
     }
+
+    #[inline]
+    fn is_xor_or_equal(&self) -> bool {
+        matches!(self, Node::Xor(_, _) | Node::Equal(_, _))
+    }
 }
 
 // internals
@@ -239,7 +244,6 @@ where
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
 
-                
                 if !visited[node_index] {
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path = top.path == 1 && !node.is_unary();
@@ -516,11 +520,24 @@ where
         // write clauses
         // TODO: write code that generate clauses
         {
+            #[derive(Clone)]
             enum JoiningClause<T: VarLit> {
                 Nothing,
                 Clause(Vec<Literal<T>>),
                 Join(usize),
                 XorEqual(Literal<T>, Literal<T>),
+            }
+
+            impl<T: VarLit> JoiningClause<T> {
+                fn new(node: &Node<T>) -> Self {
+                    if node.is_conj() || node.is_disjunc() {
+                        Self::Clause(vec![])
+                    } else if node.is_xor_or_equal() {
+                        Self::XorEqual(Literal::from(T::empty()), Literal::from(T::empty()))
+                    } else {
+                        Self::Nothing
+                    }
+                }
             }
 
             struct DepEntry<T: VarLit> {
@@ -553,6 +570,7 @@ where
             let mut visited = vec![false; self.nodes.len()];
             let mut stack = vec![DepEntry::<T>::new_root(start)];
             dep_nodes[start] = DepNode::new_first();
+            stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
 
             while !stack.is_empty() {
                 {
@@ -590,6 +608,7 @@ where
                     }
                 }
 
+                let stacklen = stack.len() - 1;
                 let mut top = stack.last_mut().unwrap();
                 let dep_node = dep_nodes.get(top.node_index).unwrap();
 
@@ -606,34 +625,20 @@ where
                     }
 
                     /////////////
-                    let conj = node.is_conj();
-                    let disjunc = node.is_disjunc();
-
-                    if dep_node.normal_usage {
-                        if (top.op_join == OpJoin::AndJoin && (!conj || dep_node.linkvar.is_some()))
-                            || (disjunc && dep_node.linkvar.is_some())
-                        {
-                            //clause_count += 1;
-                        }
+                    if top.path == 0 && dep_node.linkvar.is_some() {
+                        top.joining_clause = JoiningClause::new(&node);
                     }
-
-                    if dep_node.negated_usage {
-                        if (top.op_join == OpJoin::OrJoin
-                            && (!disjunc || dep_node.linkvar.is_some()))
-                            || (conj && dep_node.linkvar.is_some())
-                        {
-                            //clause_count += 1;
-                        }
-                    }
-
-                    if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
-                        if dep_node.normal_usage {
-                            clause_count += 2;
-                        }
-                        if dep_node.negated_usage {
-                            clause_count += 2;
-                        }
-                    }
+                    // generate joining clause for next
+                    let next_clause =
+                        if top.op_join == OpJoin::AndJoin && top.op_join == OpJoin::OrJoin {
+                            if let JoiningClause::Join(_) = top.joining_clause {
+                                top.joining_clause.clone()
+                            } else {
+                                JoiningClause::Join(stacklen - 1)
+                            }
+                        } else {
+                            JoiningClause::Nothing
+                        };
                     //////////////
 
                     if first_path || second_path {
@@ -676,7 +681,7 @@ where
                                 op_join,
                                 not_join,
                                 negated,
-                                joining_clause: JoiningClause::Nothing,
+                                joining_clause: next_clause,
                             });
                         } else if second_path {
                             top.path = 2;
@@ -688,7 +693,7 @@ where
                                 op_join,
                                 not_join,
                                 negated,
-                                joining_clause: JoiningClause::Nothing,
+                                joining_clause: next_clause,
                             });
                         }
                     } else {
