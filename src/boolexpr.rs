@@ -402,8 +402,6 @@ where
             struct DepEntry {
                 node_index: usize,
                 path: usize,
-                normal_usage: bool,
-                negated_usage: bool,
                 op_join: OpJoin,
             }
 
@@ -413,8 +411,6 @@ where
                     DepEntry {
                         node_index: start,
                         path: 0,
-                        normal_usage: true,
-                        negated_usage: false,
                         op_join: OpJoin::NoJoin,
                     }
                 }
@@ -480,20 +476,18 @@ where
                             }
                         }
 
-                        let (normal_usage, negated_usage, op_join) = match node {
-                            Node::Single(_) => (false, false, OpJoin::NoJoin),
-                            Node::Negated(_) => (top.negated_usage, top.normal_usage, top.op_join),
-                            Node::And(_, _) => {
-                                (top.normal_usage, top.negated_usage, OpJoin::AndJoin)
-                            }
-                            Node::Or(_, _) => (top.normal_usage, top.negated_usage, OpJoin::OrJoin),
-                            Node::Xor(_, _) => (true, true, OpJoin::NoJoin),
-                            Node::Equal(_, _) => (true, true, OpJoin::NoJoin),
+                        let op_join = match node {
+                            Node::Single(_) => OpJoin::NoJoin,
+                            Node::Negated(_) => top.op_join,
+                            Node::And(_, _) => OpJoin::AndJoin,
+                            Node::Or(_, _) => OpJoin::OrJoin,
+                            Node::Xor(_, _) => OpJoin::NoJoin,
+                            Node::Equal(_, _) => OpJoin::NoJoin,
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (top.negated_usage, top.normal_usage, OpJoin::NoJoin)
+                                    OpJoin::NoJoin
                                 } else {
-                                    (top.normal_usage, top.negated_usage, OpJoin::OrJoin)
+                                    OpJoin::OrJoin
                                 }
                             }
                         };
@@ -503,8 +497,6 @@ where
                             stack.push(DepEntry {
                                 node_index: node.first_path(),
                                 path: 0,
-                                normal_usage,
-                                negated_usage,
                                 op_join,
                             });
                         } else if second_path {
@@ -512,8 +504,6 @@ where
                             stack.push(DepEntry {
                                 node_index: node.second_path(),
                                 path: 0,
-                                normal_usage,
-                                negated_usage,
                                 op_join,
                             });
                         }
