@@ -343,7 +343,10 @@ where
                                 clause_count += 1;
                             }
                             // normal usage: andjoin and other node than conjunction
-                            if top.op_join == OpJoin::AndJoin && !conj {
+                            if !conj
+                                && (top.op_join == OpJoin::AndJoin
+                                    || (disjunc && dep_node.use_linkvar))
+                            {
                                 clause_count += 1;
                             }
                         }
@@ -354,7 +357,9 @@ where
                                 clause_count += 1;
                             }
                             // negated usage: orjoin and other node than disjunction
-                            if top.op_join == OpJoin::OrJoin && !disjunc {
+                            if !disjunc
+                                && (top.op_join == OpJoin::OrJoin || (conj && dep_node.use_linkvar))
+                            {
                                 clause_count += 1;
                             }
                         }
@@ -429,6 +434,11 @@ where
                 }
             }
         }
+
+        // write header
+        cnf.write_header(self.var_count().to_usize() + extra_var_count, clause_count)?;
+
+        // write clauses
         Ok(())
     }
 }
