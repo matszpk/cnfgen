@@ -246,11 +246,14 @@ where
                 }
 
                 if !visited[node_index] {
-                    if touched {
-                        visited[node_index] = true;
-                    }
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path = top.path == 1 && !node.is_unary();
+
+                    if touched {
+                        if (node.is_unary() && first_path) || second_path {
+                            visited[node_index] = true;
+                        }
+                    }
 
                     if first_path {
                         top.path = 1;
@@ -334,8 +337,10 @@ where
                     || (top.negated_usage && !dep_node.negated_usage)
                 {
                     // process at first visit
-                    dep_node.normal_usage |= top.normal_usage;
-                    dep_node.negated_usage |= top.negated_usage;
+                    if (node.is_unary() && first_path) || second_path {
+                        dep_node.normal_usage |= top.normal_usage;
+                        dep_node.negated_usage |= top.negated_usage;
+                    }
 
                     if first_path || second_path {
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
@@ -431,7 +436,9 @@ where
                 let second_path = top.path == 1 && !node.is_unary();
 
                 if !visited[node_index] {
-                    visited[node_index] = true;
+                    if (node.is_unary() && first_path) || second_path {
+                        visited[node_index] = true;
+                    }
                     // process at first visit
                     if first_path || second_path {
                         let conj = node.is_conj();
