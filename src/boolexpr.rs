@@ -602,7 +602,9 @@ where
                 let mut do_pop = false;
 
                 if !visited[node_index] {
-                    visited[node_index] = true;
+                    if (node.is_unary() && first_path) || second_path {
+                        visited[node_index] = true;
+                    }
 
                     /////////////
                     let conj = node.is_conj();
