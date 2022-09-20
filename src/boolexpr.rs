@@ -41,7 +41,7 @@ enum Node<T: VarLit> {
 }
 
 impl<T: VarLit> Node<T> {
-    pub fn first_path(&self) -> usize {
+    fn first_path(&self) -> usize {
         match *self {
             Node::Single(_) => panic!("No first path for single node"),
             Node::Negated(first) => first,
@@ -53,7 +53,7 @@ impl<T: VarLit> Node<T> {
         }
     }
 
-    pub fn second_path(&self) -> usize {
+    fn second_path(&self) -> usize {
         match *self {
             Node::Single(_) => panic!("No second path for single node"),
             Node::Negated(_) => panic!("No second path for negated node"),
@@ -63,6 +63,16 @@ impl<T: VarLit> Node<T> {
             Node::Equal(_, second) => second,
             Node::Impl(_, second) => second,
         }
+    }
+
+    /// Returns true if node represents And operation.
+    fn is_conj(&self) -> bool {
+        matches!(self, Node::And(_, _))
+    }
+
+    /// Returns true if node represents Or or Implication operation.
+    fn is_disjunc(&self) -> bool {
+        matches!(self, Node::Or(_, _) | Node::Impl(_, _))
     }
 }
 
@@ -324,19 +334,31 @@ where
                 if !visited[node_index] {
                     // process at first visit
                     if first_path || second_path {
-                        // join with and
-                        if top.op_join == OpJoin::AndJoin
-                            && (!matches!(node, Node::And(_, _)) || dep_node.use_linkvar)
-                            && dep_node.normal_usage
-                        {
-                            clause_count += 1;
+                        let conj = node.is_conj();
+                        let disjunc = node.is_disjunc();
+
+                        if dep_node.normal_usage {
+                            // normal usage: first 'and' at this tree or use new linkvar
+                            if conj && (top.op_join != OpJoin::AndJoin || dep_node.use_linkvar) {
+                                clause_count += 1;
+                            }
+                            // normal usage: andjoin and other node than conjunction
+                            if top.op_join == OpJoin::AndJoin && !conj {
+                                clause_count += 1;
+                            }
                         }
-                        if top.op_join == OpJoin::OrJoin
-                            && (!matches!(node, Node::Or(_, _)) || dep_node.use_linkvar)
-                            && dep_node.negated_usage
-                        {
-                            clause_count += 1;
+
+                        if dep_node.negated_usage {
+                            // negated usage: first disjunction at this tree or use new linkvar
+                            if disjunc && (top.op_join != OpJoin::OrJoin || dep_node.use_linkvar) {
+                                clause_count += 1;
+                            }
+                            // negated usage: orjoin and other node than disjunction
+                            if top.op_join == OpJoin::OrJoin && !disjunc {
+                                clause_count += 1;
+                            }
                         }
+
                         if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
                             if dep_node.normal_usage {
                                 clause_count += 2;
