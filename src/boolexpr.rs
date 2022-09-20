@@ -77,20 +77,34 @@ impl<T: VarLit> Node<T> {
 }
 
 // internals
-#[derive(Default, Copy, Clone)]
-struct DepNode {
+#[derive(Copy, Clone)]
+struct DepNode<T: VarLit> {
     normal_usage: bool,
     negated_usage: bool,
-    use_linkvar: bool,
+    linkvar: Option<T>,
+    parent_count: usize,
 }
 
-impl DepNode {
+impl<T: VarLit> Default for DepNode<T> {
+    #[inline]
+    fn default() -> Self {
+        DepNode {
+            normal_usage: false,
+            negated_usage: false,
+            linkvar: None,
+            parent_count: 0,
+        }
+    }
+}
+
+impl<T: VarLit> DepNode<T> {
     #[inline]
     fn new_first() -> Self {
         DepNode {
             normal_usage: true,
             negated_usage: false,
-            use_linkvar: false,
+            linkvar: None,
+            parent_count: 0,
         }
     }
 }
@@ -213,9 +227,62 @@ where
         cnf: &mut CNFWriter<W>,
     ) -> Result<(), writer::Error> {
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
-        let mut extra_var_count: usize = 0;
+        let mut total_var_count = self.var_count();
         let mut clause_count: usize = 0;
 
+        // parent count
+        {
+            let mut visited = vec![false; self.nodes.len()];
+            let mut stack = vec![DepEntry::new_root(start)];
+            
+            while !stack.is_empty() {
+                let mut top = stack.last_mut().unwrap();
+                let node_index = top.node_index;
+                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
+                let node = self.nodes[top.node_index];
+                
+                dep_node.parent_count += 1;
+                
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path =
+                    top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+                
+                if !visited[node_index] {
+                    visited[node_index] = true;
+                    
+                    if first_path || second_path {
+                        if first_path {
+                            top.path = 1;
+                            stack.push(DepEntry {
+                                node_index: node.first_path(),
+                                path: 0,
+                                normal_usage: false,
+                                negated_usage: false,
+                                op_join: OpJoin::NoJoin,
+                                not_join: false,
+                                negated: false,
+                            });
+                        } else if second_path {
+                            top.path = 2;
+                            stack.push(DepEntry {
+                                node_index: node.second_path(),
+                                path: 0,
+                                normal_usage: false,
+                                negated_usage: false,
+                                op_join: OpJoin::NoJoin,
+                                not_join: false,
+                                negated: false,
+                            });
+                        }
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop();
+                }
+            }
+        }
+        
         // count extra variables and determine clause usage
         {
             let mut stack = vec![DepEntry::new_root(start)];
@@ -231,8 +298,7 @@ where
                     top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
 
                 if first_path || second_path {
-                    let use_linkvar_old = dep_node.use_linkvar;
-                    dep_node.use_linkvar |= match node {
+                    let new_var = match node {
                         Node::Single(_) => false,
                         Node::Negated(_) => false,
                         Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
@@ -241,9 +307,12 @@ where
                         }
                         _ => true,
                     };
+                    
+                    let new_var = new_var || dep_node.parent_count > 1;
 
-                    if dep_node.use_linkvar != use_linkvar_old {
-                        extra_var_count += 1;
+                    if dep_node.linkvar.is_none() && new_var {
+                        total_var_count = total_var_count.next_value().unwrap();
+                        dep_node.linkvar = Some(total_var_count);
                     }
                 }
 
@@ -332,6 +401,7 @@ where
                     top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
 
                 if !visited[node_index] {
+                    visited[node_index] = true;
                     // process at first visit
                     if first_path || second_path {
                         let conj = node.is_conj();
@@ -339,13 +409,15 @@ where
 
                         if dep_node.normal_usage {
                             // normal usage: first 'and' at this tree or use new linkvar
-                            if conj && (top.op_join != OpJoin::AndJoin || dep_node.use_linkvar) {
+                            if conj
+                                && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some())
+                            {
                                 clause_count += 1;
                             }
                             // normal usage: andjoin and other node than conjunction
                             if !conj
                                 && (top.op_join == OpJoin::AndJoin
-                                    || (disjunc && dep_node.use_linkvar))
+                                    || (disjunc && dep_node.linkvar.is_some()))
                             {
                                 clause_count += 1;
                             }
@@ -353,12 +425,15 @@ where
 
                         if dep_node.negated_usage {
                             // negated usage: first disjunction at this tree or use new linkvar
-                            if disjunc && (top.op_join != OpJoin::OrJoin || dep_node.use_linkvar) {
+                            if disjunc
+                                && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
+                            {
                                 clause_count += 1;
                             }
                             // negated usage: orjoin and other node than disjunction
                             if !disjunc
-                                && (top.op_join == OpJoin::OrJoin || (conj && dep_node.use_linkvar))
+                                && (top.op_join == OpJoin::OrJoin
+                                    || (conj && dep_node.linkvar.is_some()))
                             {
                                 clause_count += 1;
                             }
@@ -425,7 +500,6 @@ where
                                 negated,
                             });
                         }
-                        visited[node_index] = true;
                     } else {
                         stack.pop();
                     }
@@ -436,7 +510,7 @@ where
         }
 
         // write header
-        cnf.write_header(self.var_count().to_usize() + extra_var_count, clause_count)?;
+        cnf.write_header(total_var_count.to_usize(), clause_count)?;
 
         // write clauses
         Ok(())
