@@ -248,12 +248,9 @@ where
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path = top.path == 1 && !node.is_unary();
 
-                    let ignored = node.is_unary();
-                    if !ignored {
-                        if (node.is_unary() && first_path) || second_path {
-                            dep_nodes[node_index].parent_count += 1;
-                            visited[node_index] = true;
-                        }
+                    if !node.is_unary() && second_path {
+                        dep_nodes[node_index].parent_count += 1;
+                        visited[node_index] = true;
                     }
 
                     if first_path {
@@ -518,7 +515,6 @@ where
         cnf.write_header(total_var_count.to_usize(), clause_count)?;
 
         // write clauses
-        // TODO: write code that generate clauses
         {
             #[derive(Clone)]
             enum JoiningClause<T: VarLit> {
