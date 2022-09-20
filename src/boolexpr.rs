@@ -237,20 +237,17 @@ where
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
                 let node_index = top.node_index;
-                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
                 let node = self.nodes[top.node_index];
 
-                let touched = node.is_unary();
-                if touched {
-                    dep_node.parent_count += 1;
-                }
-
+                
                 if !visited[node_index] {
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path = top.path == 1 && !node.is_unary();
 
-                    if touched {
+                    let ignored = node.is_unary();
+                    if !ignored {
                         if (node.is_unary() && first_path) || second_path {
+                            dep_nodes[node_index].parent_count += 1;
                             visited[node_index] = true;
                         }
                     }
@@ -444,30 +441,32 @@ where
                         let conj = node.is_conj();
                         let disjunc = node.is_disjunc();
 
-                        if dep_node.normal_usage {
-                            if (top.op_join == OpJoin::AndJoin
-                                && (!conj || dep_node.linkvar.is_some()))
-                                || (disjunc && dep_node.linkvar.is_some())
-                            {
-                                clause_count += 1;
-                            }
-                        }
-
-                        if dep_node.negated_usage {
-                            if (top.op_join == OpJoin::OrJoin
-                                && (!disjunc || dep_node.linkvar.is_some()))
-                                || (conj && dep_node.linkvar.is_some())
-                            {
-                                clause_count += 1;
-                            }
-                        }
-
-                        if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
+                        if (node.is_unary() && first_path) || second_path {
                             if dep_node.normal_usage {
-                                clause_count += 2;
+                                if (top.op_join == OpJoin::AndJoin
+                                    && (!conj || dep_node.linkvar.is_some()))
+                                    || (disjunc && dep_node.linkvar.is_some())
+                                {
+                                    clause_count += 1;
+                                }
                             }
+
                             if dep_node.negated_usage {
-                                clause_count += 2;
+                                if (top.op_join == OpJoin::OrJoin
+                                    && (!disjunc || dep_node.linkvar.is_some()))
+                                    || (conj && dep_node.linkvar.is_some())
+                                {
+                                    clause_count += 1;
+                                }
+                            }
+
+                            if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
+                                if dep_node.normal_usage {
+                                    clause_count += 2;
+                                }
+                                if dep_node.negated_usage {
+                                    clause_count += 2;
+                                }
                             }
                         }
 
@@ -696,7 +695,7 @@ where
                         do_pop = true;
                     }
                 } else {
-                    do_pop = true;
+                    stack.pop().unwrap();
                 }
 
                 if do_pop {
