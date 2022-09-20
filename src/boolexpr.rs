@@ -203,11 +203,13 @@ where
         cnf: &mut CNFWriter<W>,
     ) -> Result<(), writer::Error> {
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
+        let mut extra_var_count: usize = 0;
+        let mut clause_count: usize = 0;
+
+        // count extra variables and determine clause usage
         {
             let mut stack = vec![DepEntry::new_root(start)];
             dep_nodes[start] = DepNode::new_first();
-
-            let mut extra_var_count: usize = 0;
 
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
@@ -295,6 +297,108 @@ where
                                 negated,
                             });
                         }
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop(); // back if everything done
+                }
+            }
+        }
+
+        // count clauses
+        {
+            let mut visited = vec![false; self.nodes.len()];
+            let mut stack = vec![DepEntry::new_root(start)];
+
+            while !stack.is_empty() {
+                let mut top = stack.last_mut().unwrap();
+                let node_index = top.node_index;
+                let dep_node = dep_nodes.get(top.node_index).unwrap();
+
+                let node = self.nodes.get(top.node_index).unwrap();
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path =
+                    top.path == 1 && !matches!(node, Node::Single(_) | Node::Negated(_));
+
+                if !visited[node_index] {
+                    // process at first visit
+                    if first_path || second_path {
+                        // join with and
+                        if top.op_join == OpJoin::AndJoin
+                            && (!matches!(node, Node::And(_, _)) || dep_node.use_linkvar)
+                            && dep_node.normal_usage
+                        {
+                            clause_count += 1;
+                        }
+                        if top.op_join == OpJoin::OrJoin
+                            && (!matches!(node, Node::Or(_, _)) || dep_node.use_linkvar)
+                            && dep_node.negated_usage
+                        {
+                            clause_count += 1;
+                        }
+                        if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
+                            if dep_node.normal_usage {
+                                clause_count += 2;
+                            }
+                            if dep_node.negated_usage {
+                                clause_count += 2;
+                            }
+                        }
+
+                        let (normal_usage, negated_usage, not_join, op_join) = match node {
+                            Node::Single(_) => (false, false, false, OpJoin::NoJoin),
+                            Node::Negated(_) => {
+                                (top.negated_usage, top.normal_usage, true, top.op_join)
+                            }
+                            Node::And(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::AndJoin)
+                            }
+                            Node::Or(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                            }
+                            Node::Xor(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Impl(_, _) => {
+                                if first_path {
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::NoJoin)
+                                } else {
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                }
+                            }
+                        };
+
+                        let negated =
+                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                                !top.negated
+                            } else {
+                                not_join
+                            };
+
+                        if first_path {
+                            top.path = 1;
+                            stack.push(DepEntry {
+                                node_index: node.first_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        } else if second_path {
+                            top.path = 2;
+                            stack.push(DepEntry {
+                                node_index: node.second_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        }
+                        visited[node_index] = true;
                     } else {
                         stack.pop();
                     }
