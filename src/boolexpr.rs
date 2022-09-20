@@ -144,7 +144,7 @@ macro_rules! new_xxx {
 
 impl<T> ExprCreator<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
 {
@@ -526,8 +526,9 @@ where
                 Nothing,
                 Clause(Vec<T>),
                 Join(usize),
+                XorEqual(T, T),
             }
-        
+
             struct DepEntry<T: VarLit> {
                 node_index: usize,
                 path: usize,
@@ -560,9 +561,36 @@ where
             dep_nodes[start] = DepNode::new_first();
 
             while !stack.is_empty() {
+                {
+                    // push child parent node linkvar to joining clause
+                    let negated = stack.last().unwrap().negated;
+                    if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
+                        let join_entry = stack.get_mut(stackpos).unwrap();
+
+                        let linkvar = dep_nodes.get(join_entry.node_index).unwrap().linkvar;
+                        if let Some(linkvar) = linkvar {
+                            let linkvar = if !negated { linkvar } else { -linkvar };
+
+                            match &mut join_entry.joining_clause {
+                                JoiningClause::Clause(ref mut v) => {
+                                    v.push(linkvar);
+                                }
+                                JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
+                                    if *s1 == T::empty() {
+                                        *s1 = linkvar;
+                                    } else {
+                                        *s2 = linkvar;
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+                }
+
                 let mut top = stack.last_mut().unwrap();
                 let dep_node = dep_nodes.get(top.node_index).unwrap();
-                
+
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
                 let first_path = top.path == 0 && !matches!(node, Node::Single(_));
@@ -570,7 +598,7 @@ where
 
                 if !visited[node_index] {
                     visited[node_index] = true;
-                    
+
                     /////////////
                     let conj = node.is_conj();
                     let disjunc = node.is_disjunc();
@@ -578,9 +606,7 @@ where
                     let mut gen_conj_clause = false;
                     if dep_node.normal_usage {
                         // normal usage: first 'and' at this tree or use new linkvar
-                        if conj
-                            && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some())
-                        {
+                        if conj && (top.op_join != OpJoin::AndJoin || dep_node.linkvar.is_some()) {
                             gen_conj_clause = true;
                         }
                         // normal usage: andjoin and other node than conjunction
@@ -595,8 +621,7 @@ where
                     let mut gen_conj_clause = false;
                     if dep_node.negated_usage {
                         // negated usage: first disjunction at this tree or use new linkvar
-                        if disjunc
-                            && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
+                        if disjunc && (top.op_join != OpJoin::OrJoin || dep_node.linkvar.is_some())
                         {
                             gen_conj_clause = true;
                         }
@@ -618,7 +643,7 @@ where
                         }
                     }
                     //////////////
-                    
+
                     if first_path || second_path {
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
                             Node::Single(_) => (false, false, false, OpJoin::NoJoin),
@@ -720,7 +745,7 @@ pub struct ExprNode<T: VarLit> {
 
 impl<T> ExprNode<T>
 where
-    T: VarLit,
+    T: VarLit + Neg<Output = T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
 {
