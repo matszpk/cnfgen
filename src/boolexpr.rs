@@ -69,7 +69,7 @@ impl<T: VarLit> Node<T> {
     fn is_unary(&self) -> bool {
         matches!(self, Node::Single(_) | Node::Negated(_))
     }
-    
+
     /// Returns true if node represents And operation.
     #[inline]
     fn is_conj(&self) -> bool {
@@ -112,21 +112,6 @@ impl<T: VarLit> DepNode<T> {
             negated_usage: false,
             linkvar: None,
             parent_count: 0,
-        }
-    }
-}
-
-struct SimpleDepEntry {
-    node_index: usize,
-    path: usize,
-}
-
-impl SimpleDepEntry {
-    #[inline]
-    fn new_root(start: usize) -> Self {
-        Self {
-            node_index: start,
-            path: 0,
         }
     }
 }
@@ -254,37 +239,51 @@ where
 
         // parent count
         {
+            struct SimpleEntry {
+                node_index: usize,
+                path: usize,
+            }
+
+            impl SimpleEntry {
+                #[inline]
+                fn new_root(start: usize) -> Self {
+                    Self {
+                        node_index: start,
+                        path: 0,
+                    }
+                }
+            }
+
             let mut visited = vec![false; self.nodes.len()];
-            let mut stack = vec![SimpleDepEntry::new_root(start)];
-            
+            let mut stack = vec![SimpleEntry::new_root(start)];
+
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
                 let node_index = top.node_index;
                 let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
                 let node = self.nodes[top.node_index];
-                
+
                 let touched = node.is_unary();
                 if touched {
                     dep_node.parent_count += 1;
                 }
-                
+
                 if !visited[node_index] {
                     if touched {
                         visited[node_index] = true;
                     }
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                    let second_path =
-                        top.path == 1 && !node.is_unary();
-                    
+                    let second_path = top.path == 1 && !node.is_unary();
+
                     if first_path {
                         top.path = 1;
-                        stack.push(SimpleDepEntry {
+                        stack.push(SimpleEntry {
                             node_index: node.first_path(),
                             path: 0,
                         });
                     } else if second_path {
                         top.path = 2;
-                        stack.push(SimpleDepEntry {
+                        stack.push(SimpleEntry {
                             node_index: node.second_path(),
                             path: 0,
                         });
@@ -296,7 +295,7 @@ where
                 }
             }
         }
-        
+
         // count extra variables and determine clause usage
         {
             let mut stack = vec![DepEntry::new_root(start)];
@@ -315,11 +314,12 @@ where
                         Node::Single(_) => false,
                         Node::Negated(_) => false,
                         Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
-                        Node::Or(_, _) | Node::Impl(_, _) =>
-                            top.op_join != OpJoin::OrJoin || top.negated,
+                        Node::Or(_, _) | Node::Impl(_, _) => {
+                            top.op_join != OpJoin::OrJoin || top.negated
+                        }
                         _ => true,
                     };
-                    
+
                     let new_var = new_var || dep_node.parent_count > 1;
 
                     if dep_node.linkvar.is_none() && new_var {
