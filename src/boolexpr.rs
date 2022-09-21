@@ -312,14 +312,22 @@ where
                 let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                 let second_path = top.path == 1 && !node.is_unary();
 
+                if first_path {
+                    // fix OpJoin
+                    if top.negated
+                        && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
+                            || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                    {
+                        top.op_join = OpJoin::NoJoin;
+                    }
+                }
+
                 if first_path || second_path {
                     let new_var = match node {
                         Node::Single(_) => false,
                         Node::Negated(_) => false,
-                        Node::And(_, _) => top.op_join != OpJoin::AndJoin || top.negated,
-                        Node::Or(_, _) | Node::Impl(_, _) => {
-                            top.op_join != OpJoin::OrJoin || top.negated
-                        }
+                        Node::And(_, _) => top.op_join != OpJoin::AndJoin,
+                        Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::OrJoin,
                         _ => true,
                     };
 
@@ -334,7 +342,6 @@ where
                 if (top.normal_usage && !dep_node.normal_usage)
                     || (top.negated_usage && !dep_node.negated_usage)
                 {
-                    // process at first visit
                     if (node.is_unary() && first_path) || second_path {
                         dep_node.normal_usage |= top.normal_usage;
                         dep_node.negated_usage |= top.negated_usage;
@@ -356,7 +363,7 @@ where
                             Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::NoJoin)
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::OrJoin)
                                 } else {
                                     (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
                                 }
@@ -408,6 +415,8 @@ where
                 node_index: usize,
                 path: usize,
                 op_join: OpJoin,
+                not_join: bool,
+                negated: bool,
             }
 
             impl DepEntry {
@@ -417,6 +426,8 @@ where
                         node_index: start,
                         path: 0,
                         op_join: OpJoin::NoJoin,
+                        not_join: false,
+                        negated: false,
                     }
                 }
             }
@@ -437,7 +448,16 @@ where
                     if (node.is_unary() && first_path) || second_path {
                         visited[node_index] = true;
                     }
-                    // process at first visit
+                    if first_path {
+                        // fix OpJoin
+                        if top.negated
+                            && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
+                                || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                        {
+                            top.op_join = OpJoin::NoJoin;
+                        }
+                    }
+
                     if first_path || second_path {
                         let conj = node.is_conj();
                         let disjunc = node.is_disjunc();
@@ -471,21 +491,28 @@ where
                             }
                         }
 
-                        let op_join = match node {
-                            Node::Single(_) => OpJoin::NoJoin,
-                            Node::Negated(_) => top.op_join,
-                            Node::And(_, _) => OpJoin::AndJoin,
-                            Node::Or(_, _) => OpJoin::OrJoin,
-                            Node::Xor(_, _) => OpJoin::NoJoin,
-                            Node::Equal(_, _) => OpJoin::NoJoin,
+                        let (not_join, op_join) = match node {
+                            Node::Single(_) => (false, OpJoin::NoJoin),
+                            Node::Negated(_) => (true, top.op_join),
+                            Node::And(_, _) => (false, OpJoin::AndJoin),
+                            Node::Or(_, _) => (false, OpJoin::OrJoin),
+                            Node::Xor(_, _) => (false, OpJoin::NoJoin),
+                            Node::Equal(_, _) => (false, OpJoin::NoJoin),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    OpJoin::NoJoin
+                                    (true, OpJoin::OrJoin)
                                 } else {
-                                    OpJoin::OrJoin
+                                    (false, OpJoin::OrJoin)
                                 }
                             }
                         };
+
+                        let negated =
+                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                                !top.negated
+                            } else {
+                                not_join
+                            };
 
                         if first_path {
                             top.path = 1;
@@ -493,6 +520,8 @@ where
                                 node_index: node.first_path(),
                                 path: 0,
                                 op_join,
+                                not_join,
+                                negated,
                             });
                         } else if second_path {
                             top.path = 2;
@@ -500,6 +529,8 @@ where
                                 node_index: node.second_path(),
                                 path: 0,
                                 op_join,
+                                not_join,
+                                negated,
                             });
                         }
                     } else {
@@ -618,6 +649,16 @@ where
                 if !visited[node_index] {
                     if (node.is_unary() && first_path) || second_path {
                         visited[node_index] = true;
+                    }
+                    
+                    if first_path {
+                        // fix OpJoin
+                        if top.negated
+                            && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
+                                || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                        {
+                            top.op_join = OpJoin::NoJoin;
+                        }
                     }
 
                     /////////////
