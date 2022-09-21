@@ -1,4 +1,4 @@
-// boolexpr.rs - main library
+// boolexpr_creator.rs - main library
 //
 // cnfgen - Generate the DIMACS CNF formulae from operations
 // Copyright (C) 2022  Mateusz Szpakowski
