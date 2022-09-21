@@ -463,16 +463,16 @@ where
                         let disjunc = node.is_disjunc();
 
                         if (node.is_unary() && first_path) || second_path {
-                            if dep_node.normal_usage &&
-                                ((top.op_join == OpJoin::Conj
+                            if dep_node.normal_usage
+                                && ((top.op_join == OpJoin::Conj
                                     && (!conj || dep_node.linkvar.is_some()))
                                     || (disjunc && dep_node.linkvar.is_some()))
                             {
                                 clause_count += 1;
                             }
 
-                            if dep_node.negated_usage &&
-                                ((top.op_join == OpJoin::Disjunc
+                            if dep_node.negated_usage
+                                && ((top.op_join == OpJoin::Disjunc
                                     && (!disjunc || dep_node.linkvar.is_some()))
                                     || (conj && dep_node.linkvar.is_some()))
                             {
