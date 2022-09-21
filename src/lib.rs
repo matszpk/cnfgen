@@ -37,3 +37,4 @@ pub use writer::{
 };
 
 pub mod boolexpr;
+pub mod boolexpr_creator;
