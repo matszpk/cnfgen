@@ -123,9 +123,9 @@ impl<T: VarLit> DepNode<T> {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum OpJoin {
-    NoJoin,
-    AndJoin,
-    OrJoin,
+    Nothing,
+    Conj,
+    Disjunc,
 }
 
 //
@@ -294,7 +294,7 @@ where
                         path: 0,
                         normal_usage: true,
                         negated_usage: false,
-                        op_join: OpJoin::NoJoin,
+                        op_join: OpJoin::Nothing,
                         not_join: false,
                         negated: false,
                     }
@@ -315,10 +315,10 @@ where
                 if first_path {
                     // fix OpJoin
                     if top.negated
-                        && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
-                            || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                        && ((node.is_conj() && top.op_join == OpJoin::Conj)
+                            || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
                     {
-                        top.op_join = OpJoin::NoJoin;
+                        top.op_join = OpJoin::Nothing;
                     }
                 }
 
@@ -326,8 +326,8 @@ where
                     let new_var = match node {
                         Node::Single(_) => false,
                         Node::Negated(_) => false,
-                        Node::And(_, _) => top.op_join != OpJoin::AndJoin,
-                        Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::OrJoin,
+                        Node::And(_, _) => top.op_join != OpJoin::Conj,
+                        Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::Disjunc,
                         _ => true,
                     };
 
@@ -349,23 +349,23 @@ where
 
                     if first_path || second_path {
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
-                            Node::Single(_) => (false, false, false, OpJoin::NoJoin),
+                            Node::Single(_) => (false, false, false, OpJoin::Nothing),
                             Node::Negated(_) => {
                                 (top.negated_usage, top.normal_usage, true, top.op_join)
                             }
                             Node::And(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::AndJoin)
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
                             }
                             Node::Or(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
                             }
-                            Node::Xor(_, _) => (true, true, false, OpJoin::NoJoin),
-                            Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::OrJoin)
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::Disjunc)
                                 } else {
-                                    (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
                                 }
                             }
                         };
@@ -425,7 +425,7 @@ where
                     DepEntry {
                         node_index: start,
                         path: 0,
-                        op_join: OpJoin::NoJoin,
+                        op_join: OpJoin::Nothing,
                         not_join: false,
                         negated: false,
                     }
@@ -451,10 +451,10 @@ where
                     if first_path {
                         // fix OpJoin
                         if top.negated
-                            && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
-                                || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                            && ((node.is_conj() && top.op_join == OpJoin::Conj)
+                                || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
                         {
-                            top.op_join = OpJoin::NoJoin;
+                            top.op_join = OpJoin::Nothing;
                         }
                     }
 
@@ -463,22 +463,20 @@ where
                         let disjunc = node.is_disjunc();
 
                         if (node.is_unary() && first_path) || second_path {
-                            if dep_node.normal_usage {
-                                if (top.op_join == OpJoin::AndJoin
+                            if dep_node.normal_usage &&
+                                ((top.op_join == OpJoin::Conj
                                     && (!conj || dep_node.linkvar.is_some()))
-                                    || (disjunc && dep_node.linkvar.is_some())
-                                {
-                                    clause_count += 1;
-                                }
+                                    || (disjunc && dep_node.linkvar.is_some()))
+                            {
+                                clause_count += 1;
                             }
 
-                            if dep_node.negated_usage {
-                                if (top.op_join == OpJoin::OrJoin
+                            if dep_node.negated_usage &&
+                                ((top.op_join == OpJoin::Disjunc
                                     && (!disjunc || dep_node.linkvar.is_some()))
-                                    || (conj && dep_node.linkvar.is_some())
-                                {
-                                    clause_count += 1;
-                                }
+                                    || (conj && dep_node.linkvar.is_some()))
+                            {
+                                clause_count += 1;
                             }
 
                             if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
@@ -492,17 +490,17 @@ where
                         }
 
                         let (not_join, op_join) = match node {
-                            Node::Single(_) => (false, OpJoin::NoJoin),
+                            Node::Single(_) => (false, OpJoin::Nothing),
                             Node::Negated(_) => (true, top.op_join),
-                            Node::And(_, _) => (false, OpJoin::AndJoin),
-                            Node::Or(_, _) => (false, OpJoin::OrJoin),
-                            Node::Xor(_, _) => (false, OpJoin::NoJoin),
-                            Node::Equal(_, _) => (false, OpJoin::NoJoin),
+                            Node::And(_, _) => (false, OpJoin::Conj),
+                            Node::Or(_, _) => (false, OpJoin::Disjunc),
+                            Node::Xor(_, _) => (false, OpJoin::Nothing),
+                            Node::Equal(_, _) => (false, OpJoin::Nothing),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (true, OpJoin::OrJoin)
+                                    (true, OpJoin::Disjunc)
                                 } else {
-                                    (false, OpJoin::OrJoin)
+                                    (false, OpJoin::Disjunc)
                                 }
                             }
                         };
@@ -586,7 +584,7 @@ where
                         path: 0,
                         normal_usage: true,
                         negated_usage: false,
-                        op_join: OpJoin::NoJoin,
+                        op_join: OpJoin::Nothing,
                         not_join: false,
                         negated: false,
                         joining_clause: JoiningClause::Nothing,
@@ -654,10 +652,10 @@ where
                     if first_path {
                         // fix OpJoin
                         if top.negated
-                            && ((node.is_conj() && top.op_join == OpJoin::AndJoin)
-                                || (node.is_disjunc() && top.op_join == OpJoin::OrJoin))
+                            && ((node.is_conj() && top.op_join == OpJoin::Conj)
+                                || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
                         {
-                            top.op_join = OpJoin::NoJoin;
+                            top.op_join = OpJoin::Nothing;
                         }
                     }
 
@@ -667,7 +665,7 @@ where
                     }
                     // generate joining clause for next
                     let next_clause =
-                        if top.op_join == OpJoin::AndJoin && top.op_join == OpJoin::OrJoin {
+                        if top.op_join == OpJoin::Conj && top.op_join == OpJoin::Disjunc {
                             if let JoiningClause::Join(_) = top.joining_clause {
                                 top.joining_clause.clone()
                             } else {
@@ -680,23 +678,23 @@ where
 
                     if first_path || second_path {
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
-                            Node::Single(_) => (false, false, false, OpJoin::NoJoin),
+                            Node::Single(_) => (false, false, false, OpJoin::Nothing),
                             Node::Negated(_) => {
                                 (top.negated_usage, top.normal_usage, true, top.op_join)
                             }
                             Node::And(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::AndJoin)
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
                             }
                             Node::Or(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
                             }
-                            Node::Xor(_, _) => (true, true, false, OpJoin::NoJoin),
-                            Node::Equal(_, _) => (true, true, false, OpJoin::NoJoin),
+                            Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
                             Node::Impl(_, _) => {
                                 if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::NoJoin)
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::Nothing)
                                 } else {
-                                    (top.normal_usage, top.negated_usage, false, OpJoin::OrJoin)
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
                                 }
                             }
                         };

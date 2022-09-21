@@ -327,7 +327,7 @@ where
         self.sort_abs();
         // and remove zeroes and duplicates
         for i in 0..self.clause_len() {
-            if i <= 0 || self[i - 1] != self[i] {
+            if i == 0 || self[i - 1] != self[i] {
                 // if no this same literal
                 self[j] = self[i];
                 j += 1;
@@ -379,6 +379,7 @@ where
 
 /// A input clause that can be used to construct clauses. It can be easily constructed
 /// by using `push` or `extend` methods. The push method accepts Literal.
+#[derive(Default)]
 pub struct InputClause<T> {
     clause: Vec<T>,
     tautology: bool,
@@ -768,7 +769,7 @@ impl<W: Write> CNFWriter<W> {
                 self.buf.push(b' ');
             });
             self.buf.extend(b"0\n");
-            self.writer.write_all(&mut self.buf)?;
+            self.writer.write_all(&self.buf)?;
             self.clause_count += 1;
             Ok(())
         } else {

@@ -538,7 +538,7 @@ where
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: ExprNode<T>) -> Self::Output {
-        let lit1 = self.into();
+        let lit1 = self;
         {
             let node2 = rhs.creator.borrow().nodes[rhs.index];
             if let Node::Single(lit2) = node2 {
