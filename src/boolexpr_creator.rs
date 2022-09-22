@@ -275,7 +275,15 @@ where
             }
         }
 
-        println!("DepNodes: {:?}", dep_nodes);
+        println!(
+            "DepNodes: {}",
+            dep_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("{}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
 
         // count extra variables and determine clause usage
         {
@@ -412,7 +420,15 @@ where
             }
         }
 
-        println!("DepNodes2: {:?}", dep_nodes);
+        println!(
+            "DepNodes2: {}",
+            dep_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("{}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
 
         // count clauses
         {
@@ -840,7 +856,7 @@ mod tests {
 
         let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
         let mut cnf_writer = CNFWriter::new(vec![]);
-        ec.borrow().write(expr.index(), cnf_writer);
+        ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
         assert_eq!(
             r##"p cnf 5 4
 a 3 1 0"##,
