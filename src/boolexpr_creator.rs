@@ -584,7 +584,7 @@ where
 
         // write clauses
         {
-            #[derive(Clone)]
+            #[derive(Clone, Debug)]
             enum JoiningClause<T: VarLit + Debug> {
                 Nothing,
                 Clause(Vec<Literal<T>>),
@@ -637,16 +637,20 @@ where
 
             while !stack.is_empty() {
                 {
+                    println!("WcB: {}", stack.last().unwrap().node_index);
                     // push child parent node linkvar to joining clause
-                    let negated = stack.last().unwrap().negated;
+                    let (negated, node_index) = {
+                        let top = stack.last().unwrap();
+                        (top.negated, top.node_index)
+                    };
                     if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
                         let join_entry = stack.get_mut(stackpos).unwrap();
                         let linkvar = dep_nodes
-                            .get(join_entry.node_index)
+                            .get(node_index)
                             .unwrap()
                             .linkvar
                             .map(|x| Literal::VarLit(x))
-                            .or(if let Node::Single(l) = self.nodes[join_entry.node_index] {
+                            .or(if let Node::Single(l) = self.nodes[node_index] {
                                 Some(l)
                             } else {
                                 None
@@ -656,6 +660,7 @@ where
 
                             match &mut join_entry.joining_clause {
                                 JoiningClause::Clause(ref mut v) => {
+                                    println!("WcPAO: {:?} sp:{}", linkvar, stackpos);
                                     v.push(linkvar);
                                 }
                                 JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
@@ -664,6 +669,7 @@ where
                                     } else {
                                         *s2 = linkvar;
                                     }
+                                    println!("WcPXE: {:?} sp:{}", linkvar, stackpos);
                                 }
                                 _ => (),
                             }
@@ -698,20 +704,31 @@ where
                     }
 
                     /////////////
-                    if top.path == 0 && dep_node.linkvar.is_some() {
+                    if top.path == 0 && (node_index == start || dep_node.linkvar.is_some()) {
                         top.joining_clause = JoiningClause::new(&node);
+                        println!(
+                            "Wc: {} {}: {:?} {:?}",
+                            node_index, top.path, dep_node.linkvar, top.joining_clause
+                        );
                     }
                     // generate joining clause for next
-                    let next_clause =
-                        if top.op_join == OpJoin::Conj && top.op_join == OpJoin::Disjunc {
-                            if let JoiningClause::Join(_) = top.joining_clause {
-                                top.joining_clause.clone()
-                            } else {
-                                JoiningClause::Join(stacklen - 1)
-                            }
+                    let next_clause = if (node.is_conj() && top.op_join == OpJoin::Conj)
+                        || (node.is_disjunc() && top.op_join == OpJoin::Disjunc)
+                    {
+                        if let JoiningClause::Join(_) = top.joining_clause {
+                            top.joining_clause.clone()
                         } else {
-                            JoiningClause::Nothing
-                        };
+                            JoiningClause::Join(stacklen)
+                        }
+                    } else if node.is_xor_or_equal() {
+                        JoiningClause::Join(stacklen)
+                    } else {
+                        JoiningClause::Nothing
+                    };
+                    println!(
+                        "WcN: {} {} {}: {:?} {:?}",
+                        node_index, top.path, stacklen, next_clause, top.op_join
+                    );
                     //////////////
 
                     if first_path || second_path {
@@ -770,15 +787,21 @@ where
                             });
                         }
                     } else {
+                        println!("WPP: {} {}", node_index, top.path);
                         do_pop = true;
                     }
                 } else {
+                    println!("WPPx: {} {}", node_index, top.path);
                     stack.pop().unwrap();
                 }
 
                 if do_pop {
                     let top = stack.pop().unwrap();
                     let dep_node = dep_nodes.get(top.node_index).unwrap();
+                    println!(
+                        "WW {} {}: {:?}",
+                        top.node_index, top.path, top.joining_clause
+                    );
                     match top.joining_clause {
                         JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
                             Node::And(_, _) => {
