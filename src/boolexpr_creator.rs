@@ -825,3 +825,26 @@ where
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::boolexpr::*;
+
+    #[test]
+    fn test_expr_creator_simple() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+
+        let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        ec.borrow().write(expr.index(), cnf_writer);
+        assert_eq!(
+            r##"p cnf 5 4
+a 3 1 0"##,
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+    }
+}

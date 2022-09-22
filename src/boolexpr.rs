@@ -82,6 +82,11 @@ where
         };
         ExprNode { creator, index }
     }
+
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.index
+    }
 }
 
 impl<T> Not for ExprNode<T>
