@@ -109,7 +109,7 @@ impl<T: VarLit + Debug> Default for DepNode<T> {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpJoin {
     Nothing,
     Conj,
@@ -249,6 +249,9 @@ where
                         dep_nodes[node_index].parent_count += 1;
                         visited[node_index] = true;
                     }
+                    
+                    //println!("Count: {}: {} {} {}", node_index, first_path, second_path,
+                    //        dep_nodes[node_index].parent_count);
 
                     if first_path {
                         top.path = 1;
@@ -309,9 +312,10 @@ where
             }
 
             let mut stack = vec![DepEntry::new_root(start)];
-            dep_nodes[start].normal_usage = true;
+            //dep_nodes[start].normal_usage = true;
 
             while !stack.is_empty() {
+                let stacklen = stack.len();
                 let mut top = stack.last_mut().unwrap();
                 let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
 
@@ -338,7 +342,7 @@ where
                         _ => true,
                     };
 
-                    let new_var = new_var || dep_node.parent_count > 1;
+                    let new_var = stacklen != 1 && (new_var || dep_node.parent_count > 1);
 
                     if dep_node.linkvar.is_none() && new_var {
                         total_var_count = total_var_count.next_value().unwrap();
@@ -383,6 +387,10 @@ where
                             } else {
                                 not_join
                             };
+                        
+                        println!("Dp: {}: normu:{} negu:{} j:{:?} n:{}", top.node_index,
+                                normal_usage,
+                                    negated_usage, op_join, negated);
 
                         if first_path {
                             top.path = 1;
