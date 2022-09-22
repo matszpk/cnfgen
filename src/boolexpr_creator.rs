@@ -89,15 +89,15 @@ impl<T: VarLit + Debug> Node<T> {
 }
 
 // internals
-#[derive(Copy, Clone)]
-struct DepNode<T: VarLit> {
+#[derive(Copy, Clone, Debug)]
+struct DepNode<T: VarLit + Debug> {
     normal_usage: bool,
     negated_usage: bool,
     linkvar: Option<T>,
     parent_count: usize,
 }
 
-impl<T: VarLit> Default for DepNode<T> {
+impl<T: VarLit + Debug> Default for DepNode<T> {
     #[inline]
     fn default() -> Self {
         DepNode {
@@ -109,7 +109,7 @@ impl<T: VarLit> Default for DepNode<T> {
     }
 }
 
-impl<T: VarLit> DepNode<T> {
+impl<T: VarLit + Debug> DepNode<T> {
     #[inline]
     fn new_first() -> Self {
         DepNode {
@@ -218,8 +218,8 @@ where
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         let mut total_var_count = self.var_count();
         let mut clause_count: usize = 0;
-        
-        //println!("Debug nodes: {:?}", self.nodes);
+
+        println!("Debug nodes: {:?}", self.nodes);
         // parent count
         {
             struct SimpleEntry {
@@ -274,6 +274,8 @@ where
                 }
             }
         }
+
+        println!("DepNodes: {:?}", dep_nodes);
 
         // count extra variables and determine clause usage
         {
@@ -409,6 +411,8 @@ where
                 }
             }
         }
+
+        println!("DepNodes2: {:?}", dep_nodes);
 
         // count clauses
         {
@@ -816,6 +820,8 @@ where
                 }
             }
         }
+
+        assert_eq!(clause_count, cnf.written_clauses());
         Ok(())
     }
 }

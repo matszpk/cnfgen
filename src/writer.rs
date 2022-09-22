@@ -669,6 +669,11 @@ impl<W: Write> CNFWriter<W> {
         &self.writer
     }
 
+    // Returns number of written clauses.
+    pub fn written_clauses(&self) -> usize {
+        self.clause_count
+    }
+
     /// Writes a CNF header. It returns Ok if no error encountered.
     pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
         if self.header.is_none() {
