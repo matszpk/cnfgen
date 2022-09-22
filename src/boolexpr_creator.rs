@@ -219,7 +219,14 @@ where
         let mut total_var_count = self.var_count();
         let mut clause_count: usize = 0;
 
-        println!("Debug nodes: {:?}", self.nodes);
+        println!("Debug nodes:\n{}",
+            self.nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
         // parent count
         {
             struct SimpleEntry {
@@ -276,11 +283,11 @@ where
         }
 
         println!(
-            "DepNodes: {}",
+            "DepNodes:\n{}",
             dep_nodes
                 .iter()
                 .enumerate()
-                .map(|(i, x)| format!("{}: {:?}", i, x))
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
                 .collect::<Vec<_>>()
                 .join("\n")
         );
@@ -421,11 +428,11 @@ where
         }
 
         println!(
-            "DepNodes2: {}",
+            "DepNodes2:\n{}",
             dep_nodes
                 .iter()
                 .enumerate()
-                .map(|(i, x)| format!("{}: {:?}", i, x))
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
                 .collect::<Vec<_>>()
                 .join("\n")
         );
@@ -856,6 +863,7 @@ mod tests {
 
         let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
         let mut cnf_writer = CNFWriter::new(vec![]);
+        println!("expr: {}", expr.index());
         ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
         assert_eq!(
             r##"p cnf 5 4
