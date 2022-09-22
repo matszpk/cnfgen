@@ -55,7 +55,7 @@ pub enum Error {
 /// A variable literal. It holds variable number if it is not negated,
 /// or negated variable number if it is negated. Zero value is not allowed.
 pub trait VarLit:
-    Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> + TryFrom<usize>
+    Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> + TryFrom<usize> + Debug
 {
     /// Converts variable literal to isize.
     #[inline]
