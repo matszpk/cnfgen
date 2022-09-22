@@ -249,7 +249,7 @@ where
                         dep_nodes[node_index].parent_count += 1;
                         visited[node_index] = true;
                     }
-                    
+
                     //println!("Count: {}: {} {} {}", node_index, first_path, second_path,
                     //        dep_nodes[node_index].parent_count);
 
@@ -387,10 +387,18 @@ where
                             } else {
                                 not_join
                             };
-                        
-                        println!("Dp: {}: normu:{} negu:{} j:{:?} n:{}", top.node_index,
-                                normal_usage,
-                                    negated_usage, op_join, negated);
+
+                        println!(
+                            "Dp: {}:{} {} {}: normu:{} negu:{} j:{:?} n:{}",
+                            top.node_index,
+                            top.path,
+                            top.normal_usage,
+                            top.negated_usage,
+                            normal_usage,
+                            negated_usage,
+                            op_join,
+                            negated
+                        );
 
                         if first_path {
                             top.path = 1;
@@ -488,10 +496,15 @@ where
                         let disjunc = node.is_disjunc();
 
                         if (node.is_unary() && first_path) || second_path {
+                            println!(
+                                "Cc: {}:{}: {:?} {:?} {:?}",
+                                top.node_index, top.path, top.op_join, dep_node, node
+                            );
                             if dep_node.normal_usage
                                 && ((top.op_join == OpJoin::Conj
                                     && (!conj || dep_node.linkvar.is_some()))
-                                    || (disjunc && dep_node.linkvar.is_some()))
+                                    || (disjunc
+                                        && (node_index == start || dep_node.linkvar.is_some())))
                             {
                                 clause_count += 1;
                             }
@@ -499,7 +512,8 @@ where
                             if dep_node.negated_usage
                                 && ((top.op_join == OpJoin::Disjunc
                                     && (!disjunc || dep_node.linkvar.is_some()))
-                                    || (conj && dep_node.linkvar.is_some()))
+                                    || (conj
+                                        && (node_index == start || dep_node.linkvar.is_some())))
                             {
                                 clause_count += 1;
                             }
