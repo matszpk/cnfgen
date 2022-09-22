@@ -637,7 +637,6 @@ where
 
             while !stack.is_empty() {
                 {
-                    println!("WcB: {}", stack.last().unwrap().node_index);
                     // push child parent node linkvar to joining clause
                     let (negated, node_index) = {
                         let top = stack.last().unwrap();
@@ -655,12 +654,12 @@ where
                             } else {
                                 None
                             });
+                        println!("WcPZ {}: {:?} sp:{}", node_index, linkvar, stackpos);
                         if let Some(linkvar) = linkvar {
                             let linkvar = if !negated { linkvar } else { !linkvar };
 
                             match &mut join_entry.joining_clause {
                                 JoiningClause::Clause(ref mut v) => {
-                                    println!("WcPAO: {:?} sp:{}", linkvar, stackpos);
                                     v.push(linkvar);
                                 }
                                 JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
@@ -669,7 +668,6 @@ where
                                     } else {
                                         *s2 = linkvar;
                                     }
-                                    println!("WcPXE: {:?} sp:{}", linkvar, stackpos);
                                 }
                                 _ => (),
                             }
@@ -689,11 +687,14 @@ where
                 let mut do_pop = false;
 
                 if !visited[node_index] {
+                    let conj = node.is_conj();
+                    let disjunc = node.is_disjunc();
+                    
                     if first_path {
                         // fix OpJoin
                         if top.negated
-                            && ((node.is_conj() && top.op_join == OpJoin::Conj)
-                                || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
+                            && ((conj && top.op_join == OpJoin::Conj)
+                                || (disjunc && top.op_join == OpJoin::Disjunc))
                         {
                             top.op_join = OpJoin::Nothing;
                         }
@@ -708,8 +709,9 @@ where
                         );
                     }
                     // generate joining clause for next
-                    let next_clause = if (node.is_conj() && top.op_join == OpJoin::Conj)
-                        || (node.is_disjunc() && top.op_join == OpJoin::Disjunc)
+                    let next_clause = if ((conj || disjunc) && node_index == start)
+                        || (conj && top.op_join == OpJoin::Conj)
+                        || (disjunc && top.op_join == OpJoin::Disjunc)
                     {
                         if let JoiningClause::Join(_) = top.joining_clause {
                             top.joining_clause.clone()
@@ -895,8 +897,13 @@ mod tests {
         println!("expr: {}", expr.index());
         ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
         assert_eq!(
-            r##"p cnf 5 4
-a 3 1 0"##,
+            r##"p cnf 5 5
+1 2 -4 0
+-1 -2 -4 0
+2 -3 -5 0
+-2 3 -5 0
+4 5 0
+"##,
             String::from_utf8_lossy(cnf_writer.inner())
         );
     }
