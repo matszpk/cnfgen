@@ -689,10 +689,6 @@ where
                 let mut do_pop = false;
 
                 if !visited[node_index] {
-                    if (node.is_unary() && first_path) || second_path {
-                        visited[node_index] = true;
-                    }
-
                     if first_path {
                         // fix OpJoin
                         if top.negated
@@ -789,9 +785,9 @@ where
                     } else {
                         println!("WPP: {} {}", node_index, top.path);
                         do_pop = true;
+                        visited[node_index] = true;
                     }
                 } else {
-                    println!("WPPx: {} {}", node_index, top.path);
                     stack.pop().unwrap();
                 }
 
