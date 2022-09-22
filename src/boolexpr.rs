@@ -56,14 +56,14 @@ impl BoolImpl for bool {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit> {
+pub struct ExprNode<T: VarLit + Debug> {
     creator: Rc<RefCell<ExprCreator<T>>>,
     index: usize,
 }
 
 impl<T> ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -86,7 +86,7 @@ where
 
 impl<T> Not for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -127,7 +127,7 @@ macro_rules! new_op_impl {
     ($t:ident, $u:ident, $v:ident, $argeqres:expr) => {
         impl<T> $t for ExprNode<T>
         where
-            T: VarLit + Neg<Output = T>,
+            T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
@@ -181,7 +181,7 @@ new_op_impl!(BoolImpl, new_impl, imp, Some(true));
 
 impl<T, U> BitAnd<U> for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
@@ -231,7 +231,7 @@ where
 
 impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -260,7 +260,7 @@ macro_rules! new_all_op_l_xn_impls {
     ($u: ident, $v: ident) => {
         impl<T> $u<ExprNode<T>> for bool
         where
-            T: VarLit + Neg<Output = T>,
+            T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
@@ -284,7 +284,7 @@ new_all_op_l_xn_impls!(BitAnd, bitand);
 
 impl<T, U> BitOr<U> for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
@@ -334,7 +334,7 @@ where
 
 impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -351,7 +351,7 @@ new_all_op_l_xn_impls!(BitOr, bitor);
 
 impl<T, U> BitXor<U> for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
@@ -398,7 +398,7 @@ where
 
 impl<T> BitXor<ExprNode<T>> for Literal<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -415,7 +415,7 @@ new_all_op_l_xn_impls!(BitXor, bitxor);
 
 impl<T, U> BoolEqual<U> for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
@@ -462,7 +462,7 @@ where
 
 impl<T> BoolEqual<ExprNode<T>> for Literal<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -479,7 +479,7 @@ new_all_op_l_xn_impls!(BoolEqual, equal);
 
 impl<T, U> BoolImpl<U> for ExprNode<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     U: Into<Literal<T>>,
     <T as TryInto<usize>>::Error: Debug,
@@ -529,7 +529,7 @@ where
 
 impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -570,7 +570,7 @@ where
     }
 }
 
-impl<T: VarLit> BoolImpl<ExprNode<T>> for bool {
+impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
     type Output = ExprNode<T>;
 
     fn imp(self, rhs: ExprNode<T>) -> Self::Output {

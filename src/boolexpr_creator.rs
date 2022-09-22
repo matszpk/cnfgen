@@ -30,7 +30,7 @@ use crate::writer;
 use crate::{CNFWriter, Literal, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Node<T: VarLit> {
+pub(super) enum Node<T: VarLit + Debug> {
     Single(Literal<T>),
     Negated(usize),
     And(usize, usize),
@@ -40,7 +40,7 @@ pub(super) enum Node<T: VarLit> {
     Impl(usize, usize),
 }
 
-impl<T: VarLit> Node<T> {
+impl<T: VarLit + Debug> Node<T> {
     fn first_path(&self) -> usize {
         match *self {
             Node::Single(_) => panic!("No first path for single node"),
@@ -131,7 +131,7 @@ enum OpJoin {
 //
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ExprCreator<T: VarLit> {
+pub struct ExprCreator<T: VarLit + Debug> {
     pub(super) nodes: Vec<Node<T>>,
     pub(super) lit_to_index: Vec<usize>,
 }
@@ -149,7 +149,7 @@ macro_rules! new_xxx {
 
 impl<T> ExprCreator<T>
 where
-    T: VarLit + Neg<Output = T>,
+    T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
@@ -218,7 +218,8 @@ where
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         let mut total_var_count = self.var_count();
         let mut clause_count: usize = 0;
-
+        
+        //println!("Debug nodes: {:?}", self.nodes);
         // parent count
         {
             struct SimpleEntry {
@@ -546,14 +547,14 @@ where
         // write clauses
         {
             #[derive(Clone)]
-            enum JoiningClause<T: VarLit> {
+            enum JoiningClause<T: VarLit + Debug> {
                 Nothing,
                 Clause(Vec<Literal<T>>),
                 Join(usize),
                 XorEqual(Literal<T>, Literal<T>),
             }
 
-            impl<T: VarLit> JoiningClause<T> {
+            impl<T: VarLit + Debug> JoiningClause<T> {
                 fn new(node: &Node<T>) -> Self {
                     if node.is_conj() || node.is_disjunc() {
                         Self::Clause(vec![])
@@ -565,7 +566,7 @@ where
                 }
             }
 
-            struct DepEntry<T: VarLit> {
+            struct DepEntry<T: VarLit + Debug> {
                 node_index: usize,
                 path: usize,
                 normal_usage: bool,
@@ -576,7 +577,7 @@ where
                 joining_clause: JoiningClause<T>,
             }
 
-            impl<T: VarLit> DepEntry<T> {
+            impl<T: VarLit + Debug> DepEntry<T> {
                 #[inline]
                 fn new_root(start: usize) -> Self {
                     DepEntry {
