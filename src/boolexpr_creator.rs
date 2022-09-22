@@ -109,18 +109,6 @@ impl<T: VarLit + Debug> Default for DepNode<T> {
     }
 }
 
-impl<T: VarLit + Debug> DepNode<T> {
-    #[inline]
-    fn new_first() -> Self {
-        DepNode {
-            normal_usage: true,
-            negated_usage: false,
-            linkvar: None,
-            parent_count: 0,
-        }
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum OpJoin {
     Nothing,
@@ -219,7 +207,8 @@ where
         let mut total_var_count = self.var_count();
         let mut clause_count: usize = 0;
 
-        println!("Debug nodes:\n{}",
+        println!(
+            "Debug nodes:\n{}",
             self.nodes
                 .iter()
                 .enumerate()
@@ -320,7 +309,7 @@ where
             }
 
             let mut stack = vec![DepEntry::new_root(start)];
-            dep_nodes[start] = DepNode::new_first();
+            dep_nodes[start].normal_usage = true;
 
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
@@ -622,7 +611,6 @@ where
 
             let mut visited = vec![false; self.nodes.len()];
             let mut stack = vec![DepEntry::<T>::new_root(start)];
-            dep_nodes[start] = DepNode::new_first();
             stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
 
             while !stack.is_empty() {
