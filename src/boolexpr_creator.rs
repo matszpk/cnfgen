@@ -500,8 +500,10 @@ where
                                 "Cc: {}:{}: {:?} {:?} {:?}",
                                 top.node_index, top.path, top.op_join, dep_node, node
                             );
+
                             if dep_node.normal_usage
                                 && ((top.op_join == OpJoin::Conj
+                                    && !top.negated
                                     && (!conj || dep_node.linkvar.is_some()))
                                     || (disjunc
                                         && (node_index == start || dep_node.linkvar.is_some())))
@@ -511,14 +513,16 @@ where
 
                             if dep_node.negated_usage
                                 && ((top.op_join == OpJoin::Disjunc
+                                    && !top.negated
                                     && (!disjunc || dep_node.linkvar.is_some()))
                                     || (conj
                                         && (node_index == start || dep_node.linkvar.is_some())))
                             {
+                                println!("Cc: {}:{}: Neg disjuc +", top.node_index, top.path);
                                 clause_count += 1;
                             }
 
-                            if matches!(node, Node::Xor(_, _) | Node::Equal(_, _)) {
+                            if node.is_xor_or_equal() {
                                 if dep_node.normal_usage {
                                     clause_count += 2;
                                 }
@@ -689,7 +693,7 @@ where
                 if !visited[node_index] {
                     let conj = node.is_conj();
                     let disjunc = node.is_disjunc();
-                    
+
                     if first_path {
                         // fix OpJoin
                         if top.negated
@@ -887,24 +891,72 @@ mod tests {
 
     #[test]
     fn test_expr_creator_simple() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let v3 = ExprNode::variable(ec.clone());
 
-        let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
-        let mut cnf_writer = CNFWriter::new(vec![]);
-        println!("expr: {}", expr.index());
-        ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-        assert_eq!(
-            r##"p cnf 5 5
+            let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr.index());
+            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
+            assert_eq!(
+                r##"p cnf 5 5
 1 2 -4 0
 -1 -2 -4 0
 2 -3 -5 0
 -2 3 -5 0
 4 5 0
 "##,
-            String::from_utf8_lossy(cnf_writer.inner())
-        );
+                String::from_utf8_lossy(cnf_writer.inner())
+            );
+        }
+
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let v3 = ExprNode::variable(ec.clone());
+
+            let expr = (v1.clone() ^ v2.clone()) & (v2.clone().equal(v3.clone()));
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr.index());
+            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
+            assert_eq!(
+                r##"p cnf 5 6
+1 2 -4 0
+-1 -2 -4 0
+2 -3 -5 0
+-2 3 -5 0
+4 0
+5 0
+"##,
+                String::from_utf8_lossy(cnf_writer.inner())
+            );
+        }
+
+        {
+            println!("-- last sample");
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let v3 = ExprNode::variable(ec.clone());
+
+            let expr = (v1.clone() ^ v2.clone()).imp(v2.clone().equal(v3.clone()));
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr.index());
+            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
+            assert_eq!(
+                r##"p cnf 5 5
+1 -2 4 0
+-1 2 4 0
+2 -3 -5 0
+-2 3 -5 0
+-4 5 0
+"##,
+                String::from_utf8_lossy(cnf_writer.inner())
+            );
+        }
     }
 }
