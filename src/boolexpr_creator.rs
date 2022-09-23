@@ -980,5 +980,33 @@ mod tests {
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
             )
         );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[2].clone().equal(v[3].clone());
+                let mut ec = ec.borrow_mut();
+                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1);
+                ec.new_impl(xp1, xp2.index())
+            },
+            concat!(
+                "p cnf 5 5\n",
+                "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() ^ v[2].clone()) ^ (v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 10\n",
+                "1 2 -4 0\n-1 -2 -4 0\n1 -2 4 0\n-1 2 4 0\n",
+                "2 -3 -5 0\n-2 3 -5 0\n2 3 5 0\n-2 -3 5 0\n4 5 0\n-4 -5 0\n"
+            )
+        );
     }
 }
