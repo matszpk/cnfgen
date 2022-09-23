@@ -982,5 +982,34 @@ mod tests {
                 String::from_utf8_lossy(cnf_writer.inner())
             );
         }
+
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let v3 = ExprNode::variable(ec.clone());
+
+            let expr_index = {
+                let xp1 = v1.clone() ^ v2.clone();
+                let xp2 = v2.clone().equal(v3.clone());
+                let mut ec = ec.borrow_mut();
+                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1);
+                ec.new_or(xp1, xp2.index())
+            };
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr_index);
+            ec.borrow().write(expr_index, &mut cnf_writer).unwrap();
+            assert_eq!(
+                r##"p cnf 5 5
+1 2 -4 0
+-1 -2 -4 0
+2 -3 -5 0
+-2 3 -5 0
+4 5 0
+"##,
+                String::from_utf8_lossy(cnf_writer.inner())
+            );
+        }
     }
 }
