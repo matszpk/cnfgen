@@ -724,6 +724,8 @@ where
                         }
                     } else if node.is_xor_or_equal() {
                         JoiningClause::Join(stacklen)
+                    } else if matches!(node, Node::Negated(_)) {
+                        top.joining_clause.clone()
                     } else {
                         JoiningClause::Nothing
                     };
@@ -937,13 +939,35 @@ mod tests {
         }
 
         {
-            println!("-- last sample");
             let ec = ExprCreator::<isize>::new();
             let v1 = ExprNode::variable(ec.clone());
             let v2 = ExprNode::variable(ec.clone());
             let v3 = ExprNode::variable(ec.clone());
 
             let expr = (v1.clone() ^ v2.clone()).imp(v2.clone().equal(v3.clone()));
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr.index());
+            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
+            assert_eq!(
+                r##"p cnf 5 5
+1 -2 4 0
+-1 2 4 0
+2 -3 -5 0
+-2 3 -5 0
+-4 5 0
+"##,
+                String::from_utf8_lossy(cnf_writer.inner())
+            );
+        }
+
+        {
+            println!("-- last sample");
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let v3 = ExprNode::variable(ec.clone());
+
+            let expr = (!(v1.clone() ^ v2.clone())) | (v2.clone().equal(v3.clone()));
             let mut cnf_writer = CNFWriter::new(vec![]);
             println!("expr: {}", expr.index());
             ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
