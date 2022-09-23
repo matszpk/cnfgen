@@ -891,147 +891,94 @@ mod tests {
     use super::*;
     use crate::boolexpr::*;
 
+    macro_rules! expr_creator_testcase {
+        ($ec: ident, $v: ident, $vars:expr, $expr: tt, $res: expr) => {{
+            $ec = ExprCreator::<isize>::new();
+            $v.clear();
+            $v.push(ExprNode::single($ec.clone(), false));
+            for _ in 0..$vars {
+                $v.push(ExprNode::variable($ec.clone()));
+            }
+            let expr_index = $expr;
+            let mut cnf_writer = CNFWriter::new(vec![]);
+            println!("expr: {}", expr_index);
+            $ec.borrow().write(expr_index, &mut cnf_writer).unwrap();
+            assert_eq!($res, String::from_utf8_lossy(cnf_writer.inner()));
+        }};
+    }
+
     #[test]
     fn test_expr_creator_simple() {
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr = (v1.clone() ^ v2.clone()) | (v2.clone().equal(v3.clone()));
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr.index());
-            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 5
-1 2 -4 0
--1 -2 -4 0
-2 -3 -5 0
--2 3 -5 0
-4 5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
-
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr = (v1.clone() ^ v2.clone()) & (v2.clone().equal(v3.clone()));
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr.index());
-            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 6
-1 2 -4 0
--1 -2 -4 0
-2 -3 -5 0
--2 3 -5 0
-4 0
-5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
-
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr = (v1.clone() ^ v2.clone()).imp(v2.clone().equal(v3.clone()));
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr.index());
-            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 5
-1 -2 4 0
--1 2 4 0
-2 -3 -5 0
--2 3 -5 0
--4 5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
-
-        {
-            println!("-- last sample");
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr = (!(v1.clone() ^ v2.clone())) | (v2.clone().equal(v3.clone()));
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr.index());
-            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 5
-1 -2 4 0
--1 2 4 0
-2 -3 -5 0
--2 3 -5 0
--4 5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
-
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr_index = {
-                let xp1 = v1.clone() ^ v2.clone();
-                let xp2 = v2.clone().equal(v3.clone());
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
+        //ec = ExprCreator::<isize>::new();
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() ^ v[2].clone()) | (v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 5\n",
+                "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() ^ v[2].clone()) & (v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 6\n",
+                "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 0\n5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() ^ v[2].clone()).imp(v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 5\n",
+                "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((!(v[1].clone() ^ v[2].clone())) | (v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 5\n",
+                "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[2].clone().equal(v[3].clone());
                 let mut ec = ec.borrow_mut();
                 let xp1 = ec.new_not(xp1.index());
                 let xp1 = ec.new_not(xp1);
                 ec.new_or(xp1, xp2.index())
-            };
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr_index);
-            ec.borrow().write(expr_index, &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 5
-1 2 -4 0
--1 -2 -4 0
-2 -3 -5 0
--2 3 -5 0
-4 5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
-        
-        {
-            let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let v3 = ExprNode::variable(ec.clone());
-
-            let expr = (!(v1.clone() ^ v2.clone())).imp(v2.clone().equal(v3.clone()));
-            let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr.index());
-            ec.borrow().write(expr.index(), &mut cnf_writer).unwrap();
-            assert_eq!(
-                r##"p cnf 5 5
-1 2 -4 0
--1 -2 -4 0
-2 -3 -5 0
--2 3 -5 0
-4 5 0
-"##,
-                String::from_utf8_lossy(cnf_writer.inner())
-            );
-        }
+            },
+            concat!(
+                "p cnf 5 5\n",
+                "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((!(v[1].clone() ^ v[2].clone())).imp(v[2].clone().equal(v[3].clone()))).index() },
+            concat!(
+                "p cnf 5 5\n",
+                "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
+            )
+        );
     }
 }
