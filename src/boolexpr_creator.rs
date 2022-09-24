@@ -504,7 +504,7 @@ where
                             if dep_node.normal_usage
                                 && ((top.op_join == OpJoin::Conj
                                     && !top.negated
-                                    && (!conj || dep_node.linkvar.is_some()))
+                                    && dep_node.linkvar.is_some())
                                     || (disjunc
                                         && (node_index == start || dep_node.linkvar.is_some())))
                             {
@@ -514,7 +514,7 @@ where
                             if dep_node.negated_usage
                                 && ((top.op_join == OpJoin::Disjunc
                                     && !top.negated
-                                    && (!disjunc || dep_node.linkvar.is_some()))
+                                    && dep_node.linkvar.is_some())
                                     || (conj
                                         && (node_index == start || dep_node.linkvar.is_some())))
                             {
