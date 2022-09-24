@@ -135,6 +135,45 @@ macro_rules! new_xxx {
     };
 }
 
+trait LiteralsWriter<> {
+    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
+    where
+        T: VarLit + Neg<Output = T>,
+        I: IntoIterator<Item = Literal<T>>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
+        <T as TryInto<usize>>::Error: Debug,;
+}
+
+struct ClauseCounter(usize);
+
+impl LiteralsWriter for ClauseCounter {
+    fn write_literals<T, I>(&mut self, _: I) -> Result<(), writer::Error>
+    where
+        T: VarLit + Neg<Output = T>,
+        I: IntoIterator<Item = Literal<T>>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        self.0 += 1;
+        Ok(())
+    }
+}
+
+impl<W: Write> LiteralsWriter for CNFWriter<W> { 
+    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
+    where
+        T: VarLit + Neg<Output = T>,
+        I: IntoIterator<Item = Literal<T>>,
+        isize: TryFrom<T>,
+        <isize as TryFrom<T>>::Error: Debug,
+        <T as TryInto<usize>>::Error: Debug,
+    {
+        self.write_literals(iter)
+    }
+}
+
 impl<T> ExprCreator<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -195,389 +234,11 @@ where
     new_xxx!(new_xor, Xor);
     new_xxx!(new_equal, Equal);
     new_xxx!(new_impl, Impl);
-
-    // TODO: try write, writer. first - determine real dependencies and
-    // real usage (normal and negated) - and mark them.
-    pub fn write<W: Write>(
-        &self,
-        start: usize,
-        cnf: &mut CNFWriter<W>,
-    ) -> Result<(), writer::Error> {
-        let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
-        let mut total_var_count = self.var_count();
-        let mut clause_count: usize = 0;
-
-        println!(
-            "Debug nodes:\n{}",
-            self.nodes
-                .iter()
-                .enumerate()
-                .map(|(i, x)| format!("  {}: {:?}", i, x))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-        // parent count
-        {
-            struct SimpleEntry {
-                node_index: usize,
-                path: usize,
-            }
-
-            impl SimpleEntry {
-                #[inline]
-                fn new_root(start: usize) -> Self {
-                    Self {
-                        node_index: start,
-                        path: 0,
-                    }
-                }
-            }
-
-            let mut visited = vec![false; self.nodes.len()];
-            let mut stack = vec![SimpleEntry::new_root(start)];
-
-            while !stack.is_empty() {
-                let mut top = stack.last_mut().unwrap();
-                let node_index = top.node_index;
-                let node = self.nodes[top.node_index];
-
-                if !visited[node_index] {
-                    let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                    let second_path = top.path == 1 && !node.is_unary();
-
-                    if !node.is_unary() && second_path {
-                        dep_nodes[node_index].parent_count += 1;
-                        visited[node_index] = true;
-                    }
-
-                    //println!("Count: {}: {} {} {}", node_index, first_path, second_path,
-                    //        dep_nodes[node_index].parent_count);
-
-                    if first_path {
-                        top.path = 1;
-                        stack.push(SimpleEntry {
-                            node_index: node.first_path(),
-                            path: 0,
-                        });
-                    } else if second_path {
-                        top.path = 2;
-                        stack.push(SimpleEntry {
-                            node_index: node.second_path(),
-                            path: 0,
-                        });
-                    } else {
-                        stack.pop();
-                    }
-                } else {
-                    stack.pop();
-                }
-            }
-        }
-
-        println!(
-            "DepNodes:\n{}",
-            dep_nodes
-                .iter()
-                .enumerate()
-                .map(|(i, x)| format!("  {}: {:?}", i, x))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-
-        // count extra variables and determine clause usage
-        {
-            struct DepEntry {
-                node_index: usize,
-                path: usize,
-                normal_usage: bool,
-                negated_usage: bool,
-                op_join: OpJoin,
-                not_join: bool,
-                negated: bool,
-            }
-
-            impl DepEntry {
-                #[inline]
-                fn new_root(start: usize) -> Self {
-                    DepEntry {
-                        node_index: start,
-                        path: 0,
-                        normal_usage: true,
-                        negated_usage: false,
-                        op_join: OpJoin::Nothing,
-                        not_join: false,
-                        negated: false,
-                    }
-                }
-            }
-
-            let mut stack = vec![DepEntry::new_root(start)];
-            //dep_nodes[start].normal_usage = true;
-
-            while !stack.is_empty() {
-                let stacklen = stack.len();
-                let mut top = stack.last_mut().unwrap();
-                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
-
-                let node = self.nodes[top.node_index];
-                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                let second_path = top.path == 1 && !node.is_unary();
-
-                if first_path {
-                    // fix OpJoin
-                    if top.negated
-                        && ((node.is_conj() && top.op_join == OpJoin::Conj)
-                            || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
-                    {
-                        top.op_join = OpJoin::Nothing;
-                    }
-                }
-
-                if first_path || second_path {
-                    let new_var = match node {
-                        Node::Single(_) => false,
-                        Node::Negated(_) => false,
-                        Node::And(_, _) => top.op_join != OpJoin::Conj,
-                        Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::Disjunc,
-                        _ => true,
-                    };
-
-                    let new_var = stacklen != 1 && (new_var || dep_node.parent_count > 1);
-
-                    if dep_node.linkvar.is_none() && new_var {
-                        total_var_count = total_var_count.next_value().unwrap();
-                        dep_node.linkvar = Some(total_var_count);
-                    }
-                }
-
-                if (top.normal_usage && !dep_node.normal_usage)
-                    || (top.negated_usage && !dep_node.negated_usage)
-                {
-                    if (node.is_unary() && first_path) || second_path {
-                        dep_node.normal_usage |= top.normal_usage;
-                        dep_node.negated_usage |= top.negated_usage;
-                    }
-
-                    if first_path || second_path {
-                        let (normal_usage, negated_usage, not_join, op_join) = match node {
-                            Node::Single(_) => (false, false, false, OpJoin::Nothing),
-                            Node::Negated(_) => {
-                                (top.negated_usage, top.normal_usage, true, top.op_join)
-                            }
-                            Node::And(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
-                            }
-                            Node::Or(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
-                            }
-                            Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
-                            Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
-                            Node::Impl(_, _) => {
-                                if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::Disjunc)
-                                } else {
-                                    (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
-                                }
-                            }
-                        };
-
-                        let negated =
-                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
-                                !top.negated
-                            } else {
-                                not_join
-                            };
-
-                        println!(
-                            "Dp: {}:{} {} {}: normu:{} negu:{} j:{:?} n:{}",
-                            top.node_index,
-                            top.path,
-                            top.normal_usage,
-                            top.negated_usage,
-                            normal_usage,
-                            negated_usage,
-                            op_join,
-                            negated
-                        );
-
-                        if first_path {
-                            top.path = 1;
-                            stack.push(DepEntry {
-                                node_index: node.first_path(),
-                                path: 0,
-                                normal_usage,
-                                negated_usage,
-                                op_join,
-                                not_join,
-                                negated,
-                            });
-                        } else if second_path {
-                            top.path = 2;
-                            stack.push(DepEntry {
-                                node_index: node.second_path(),
-                                path: 0,
-                                normal_usage,
-                                negated_usage,
-                                op_join,
-                                not_join,
-                                negated,
-                            });
-                        }
-                    } else {
-                        stack.pop();
-                    }
-                } else {
-                    stack.pop(); // back if everything done
-                }
-            }
-        }
-
-        println!(
-            "DepNodes2:\n{}",
-            dep_nodes
-                .iter()
-                .enumerate()
-                .map(|(i, x)| format!("  {}: {:?}", i, x))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-
-        // count clauses
-        {
-            struct DepEntry {
-                node_index: usize,
-                path: usize,
-                op_join: OpJoin,
-                not_join: bool,
-                negated: bool,
-            }
-
-            impl DepEntry {
-                #[inline]
-                fn new_root(start: usize) -> Self {
-                    DepEntry {
-                        node_index: start,
-                        path: 0,
-                        op_join: OpJoin::Nothing,
-                        not_join: false,
-                        negated: false,
-                    }
-                }
-            }
-
-            let mut visited = vec![false; self.nodes.len()];
-            let mut stack = vec![DepEntry::new_root(start)];
-
-            while !stack.is_empty() {
-                let mut top = stack.last_mut().unwrap();
-                let node_index = top.node_index;
-                let dep_node = dep_nodes.get(top.node_index).unwrap();
-
-                let node = self.nodes.get(top.node_index).unwrap();
-                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                let second_path = top.path == 1 && !node.is_unary();
-
-                if !visited[node_index] {
-                    if (node.is_unary() && first_path) || second_path {
-                        visited[node_index] = true;
-                    }
-
-                    if first_path || second_path {
-                        let conj = node.is_conj();
-                        let disjunc = node.is_disjunc();
-
-                        if (node.is_unary() && first_path) || second_path {
-                            println!(
-                                "Cc: {}:{}: {:?} {:?} {:?}",
-                                top.node_index, top.path, top.op_join, dep_node, node
-                            );
-
-                            if dep_node.normal_usage
-                                && ((top.op_join == OpJoin::Conj
-                                    && !top.negated
-                                    && dep_node.linkvar.is_some())
-                                    || (disjunc
-                                        && (node_index == start || dep_node.linkvar.is_some())))
-                            {
-                                clause_count += 1;
-                            }
-
-                            if dep_node.negated_usage
-                                && ((top.op_join == OpJoin::Disjunc
-                                    && !top.negated
-                                    && dep_node.linkvar.is_some())
-                                    || (conj
-                                        && (node_index == start || dep_node.linkvar.is_some())))
-                            {
-                                println!("Cc: {}:{}: Neg disjuc +", top.node_index, top.path);
-                                clause_count += 1;
-                            }
-
-                            if node.is_xor_or_equal() {
-                                if dep_node.normal_usage {
-                                    clause_count += 2;
-                                }
-                                if dep_node.negated_usage {
-                                    clause_count += 2;
-                                }
-                            }
-                        }
-
-                        let (not_join, op_join) = match node {
-                            Node::Single(_) => (false, OpJoin::Nothing),
-                            Node::Negated(_) => (true, top.op_join),
-                            Node::And(_, _) => (false, OpJoin::Conj),
-                            Node::Or(_, _) => (false, OpJoin::Disjunc),
-                            Node::Xor(_, _) => (false, OpJoin::Nothing),
-                            Node::Equal(_, _) => (false, OpJoin::Nothing),
-                            Node::Impl(_, _) => {
-                                if first_path {
-                                    (true, OpJoin::Disjunc)
-                                } else {
-                                    (false, OpJoin::Disjunc)
-                                }
-                            }
-                        };
-
-                        let negated =
-                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
-                                !top.negated
-                            } else {
-                                not_join
-                            };
-
-                        if first_path {
-                            top.path = 1;
-                            stack.push(DepEntry {
-                                node_index: node.first_path(),
-                                path: 0,
-                                op_join,
-                                not_join,
-                                negated,
-                            });
-                        } else if second_path {
-                            top.path = 2;
-                            stack.push(DepEntry {
-                                node_index: node.second_path(),
-                                path: 0,
-                                op_join,
-                                not_join,
-                                negated,
-                            });
-                        }
-                    } else {
-                        stack.pop();
-                    }
-                } else {
-                    stack.pop(); // back if everything done
-                }
-            }
-        }
-
-        // write header
-        cnf.write_header(total_var_count.to_usize(), clause_count)?;
-
-        // write clauses
+    
+    fn write_clauses<LW: LiteralsWriter>(&self, start: usize,
+        dep_nodes: &Vec<DepNode<T>>, cnf: &mut LW)
+        -> Result<(), writer::Error>
+    {
         {
             #[derive(Clone, Debug)]
             enum JoiningClause<T: VarLit + Debug> {
@@ -858,7 +519,265 @@ where
                 }
             }
         }
+        Ok(())
+    }
+    
+    // TODO: try write, writer. first - determine real dependencies and
+    // real usage (normal and negated) - and mark them.
+    pub fn write<W: Write>(
+        &self,
+        start: usize,
+        cnf: &mut CNFWriter<W>,
+    ) -> Result<(), writer::Error> {
+        let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
+        let mut total_var_count = self.var_count();
 
+        println!(
+            "Debug nodes:\n{}",
+            self.nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        // parent count
+        {
+            struct SimpleEntry {
+                node_index: usize,
+                path: usize,
+            }
+
+            impl SimpleEntry {
+                #[inline]
+                fn new_root(start: usize) -> Self {
+                    Self {
+                        node_index: start,
+                        path: 0,
+                    }
+                }
+            }
+
+            let mut visited = vec![false; self.nodes.len()];
+            let mut stack = vec![SimpleEntry::new_root(start)];
+
+            while !stack.is_empty() {
+                let mut top = stack.last_mut().unwrap();
+                let node_index = top.node_index;
+                let node = self.nodes[top.node_index];
+
+                if !visited[node_index] {
+                    let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                    let second_path = top.path == 1 && !node.is_unary();
+
+                    if !node.is_unary() && second_path {
+                        dep_nodes[node_index].parent_count += 1;
+                        visited[node_index] = true;
+                    }
+
+                    //println!("Count: {}: {} {} {}", node_index, first_path, second_path,
+                    //        dep_nodes[node_index].parent_count);
+
+                    if first_path {
+                        top.path = 1;
+                        stack.push(SimpleEntry {
+                            node_index: node.first_path(),
+                            path: 0,
+                        });
+                    } else if second_path {
+                        top.path = 2;
+                        stack.push(SimpleEntry {
+                            node_index: node.second_path(),
+                            path: 0,
+                        });
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop();
+                }
+            }
+        }
+
+        println!(
+            "DepNodes:\n{}",
+            dep_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+
+        // count extra variables and determine clause usage
+        {
+            struct DepEntry {
+                node_index: usize,
+                path: usize,
+                normal_usage: bool,
+                negated_usage: bool,
+                op_join: OpJoin,
+                not_join: bool,
+                negated: bool,
+            }
+
+            impl DepEntry {
+                #[inline]
+                fn new_root(start: usize) -> Self {
+                    DepEntry {
+                        node_index: start,
+                        path: 0,
+                        normal_usage: true,
+                        negated_usage: false,
+                        op_join: OpJoin::Nothing,
+                        not_join: false,
+                        negated: false,
+                    }
+                }
+            }
+
+            let mut stack = vec![DepEntry::new_root(start)];
+            //dep_nodes[start].normal_usage = true;
+
+            while !stack.is_empty() {
+                let stacklen = stack.len();
+                let mut top = stack.last_mut().unwrap();
+                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
+
+                let node = self.nodes[top.node_index];
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path = top.path == 1 && !node.is_unary();
+
+                if first_path {
+                    // fix OpJoin
+                    if top.negated
+                        && ((node.is_conj() && top.op_join == OpJoin::Conj)
+                            || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
+                    {
+                        top.op_join = OpJoin::Nothing;
+                    }
+                }
+
+                if first_path || second_path {
+                    let new_var = match node {
+                        Node::Single(_) => false,
+                        Node::Negated(_) => false,
+                        Node::And(_, _) => top.op_join != OpJoin::Conj,
+                        Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::Disjunc,
+                        _ => true,
+                    };
+
+                    let new_var = stacklen != 1 && (new_var || dep_node.parent_count > 1);
+
+                    if dep_node.linkvar.is_none() && new_var {
+                        total_var_count = total_var_count.next_value().unwrap();
+                        dep_node.linkvar = Some(total_var_count);
+                    }
+                }
+
+                if (top.normal_usage && !dep_node.normal_usage)
+                    || (top.negated_usage && !dep_node.negated_usage)
+                {
+                    if (node.is_unary() && first_path) || second_path {
+                        dep_node.normal_usage |= top.normal_usage;
+                        dep_node.negated_usage |= top.negated_usage;
+                    }
+
+                    if first_path || second_path {
+                        let (normal_usage, negated_usage, not_join, op_join) = match node {
+                            Node::Single(_) => (false, false, false, OpJoin::Nothing),
+                            Node::Negated(_) => {
+                                (top.negated_usage, top.normal_usage, true, top.op_join)
+                            }
+                            Node::And(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
+                            }
+                            Node::Or(_, _) => {
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
+                            }
+                            Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
+                            Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
+                            Node::Impl(_, _) => {
+                                if first_path {
+                                    (top.negated_usage, top.normal_usage, true, OpJoin::Disjunc)
+                                } else {
+                                    (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
+                                }
+                            }
+                        };
+
+                        let negated =
+                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                                !top.negated
+                            } else {
+                                not_join
+                            };
+
+                        println!(
+                            "Dp: {}:{} {} {}: normu:{} negu:{} j:{:?} n:{}",
+                            top.node_index,
+                            top.path,
+                            top.normal_usage,
+                            top.negated_usage,
+                            normal_usage,
+                            negated_usage,
+                            op_join,
+                            negated
+                        );
+
+                        if first_path {
+                            top.path = 1;
+                            stack.push(DepEntry {
+                                node_index: node.first_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        } else if second_path {
+                            top.path = 2;
+                            stack.push(DepEntry {
+                                node_index: node.second_path(),
+                                path: 0,
+                                normal_usage,
+                                negated_usage,
+                                op_join,
+                                not_join,
+                                negated,
+                            });
+                        }
+                    } else {
+                        stack.pop();
+                    }
+                } else {
+                    stack.pop(); // back if everything done
+                }
+            }
+        }
+
+        println!(
+            "DepNodes2:\n{}",
+            dep_nodes
+                .iter()
+                .enumerate()
+                .map(|(i, x)| format!("  {}: {:?}", i, x))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+
+        // count clauses
+        let mut clause_counter = ClauseCounter(0);
+        self.write_clauses(start, &dep_nodes, &mut clause_counter)?;
+        let clause_count = clause_counter.0;
+
+        // write header
+        cnf.write_header(total_var_count.to_usize(), clause_count)?;
+
+        // write clauses
+        self.write_clauses(start, &dep_nodes, cnf)?;
+        
         assert_eq!(clause_count, cnf.written_clauses());
         Ok(())
     }
