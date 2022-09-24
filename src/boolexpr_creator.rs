@@ -269,6 +269,7 @@ where
             op_join: OpJoin,
             not_join: bool,
             negated: bool,
+            start: bool,
             joining_clause: JoiningClause<T>,
         }
 
@@ -283,6 +284,7 @@ where
                     op_join: OpJoin::Nothing,
                     not_join: false,
                     negated: false,
+                    start: true,
                     joining_clause: JoiningClause::Nothing,
                 }
             }
@@ -348,7 +350,7 @@ where
                 let disjunc = node.is_disjunc();
 
                 /////////////
-                if top.path == 0 && (node_index == start || dep_node.linkvar.is_some()) {
+                if top.path == 0 && (top.start || dep_node.linkvar.is_some()) {
                     top.joining_clause = JoiningClause::new(&node);
                     println!(
                         "Wc: {} {}: {:?} {:?}",
@@ -397,6 +399,7 @@ where
                             }
                         }
                     };
+                    let start = matches!(node, Node::Negated(_)) && top.start;
 
                     let negated = if top.not_join && not_join && matches!(node, Node::Negated(_)) {
                         !top.negated
@@ -414,6 +417,7 @@ where
                             op_join,
                             not_join,
                             negated,
+                            start,
                             joining_clause: next_clause,
                         });
                     } else if second_path {
@@ -426,6 +430,7 @@ where
                             op_join,
                             not_join,
                             negated,
+                            start,
                             joining_clause: next_clause,
                         });
                     }
@@ -618,6 +623,7 @@ where
                 op_join: OpJoin,
                 not_join: bool,
                 negated: bool,
+                start: bool,
             }
 
             impl DepEntry {
@@ -631,6 +637,7 @@ where
                         op_join: OpJoin::Nothing,
                         not_join: false,
                         negated: false,
+                        start: true,
                     }
                 }
             }
@@ -639,7 +646,6 @@ where
             //dep_nodes[start].normal_usage = true;
 
             while !stack.is_empty() {
-                let stacklen = stack.len();
                 let mut top = stack.last_mut().unwrap();
                 let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
 
@@ -666,7 +672,7 @@ where
                         _ => true,
                     };
 
-                    let new_var = stacklen != 1 && (new_var || dep_node.parent_count > 1);
+                    let new_var = !top.start && (new_var || dep_node.parent_count > 1);
 
                     if dep_node.linkvar.is_none() && new_var {
                         total_var_count = total_var_count.next_value().unwrap();
@@ -704,6 +710,7 @@ where
                                 }
                             }
                         };
+                        let start = matches!(node, Node::Negated(_)) && top.start;
 
                         let negated =
                             if top.not_join && not_join && matches!(node, Node::Negated(_)) {
@@ -734,6 +741,7 @@ where
                                 op_join,
                                 not_join,
                                 negated,
+                                start,
                             });
                         } else if second_path {
                             top.path = 2;
@@ -745,6 +753,7 @@ where
                                 op_join,
                                 not_join,
                                 negated,
+                                start,
                             });
                         }
                     } else {
@@ -858,6 +867,18 @@ mod tests {
                 "1 -2 0\n-1 2 0\n"
             )
         );
+        
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (!(v[1].clone() & v[2].clone())).index() },
+            concat!(
+                "p cnf 2 1\n",
+                "-1 -2 0\n"
+            )
+        );
+        
         expr_creator_testcase!(
             ec,
             v,
