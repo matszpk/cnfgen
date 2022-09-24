@@ -135,14 +135,14 @@ macro_rules! new_xxx {
     };
 }
 
-trait LiteralsWriter<> {
+trait LiteralsWriter {
     fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = Literal<T>>,
         isize: TryFrom<T>,
         <isize as TryFrom<T>>::Error: Debug,
-        <T as TryInto<usize>>::Error: Debug,;
+        <T as TryInto<usize>>::Error: Debug;
 }
 
 struct ClauseCounter(usize);
@@ -161,7 +161,7 @@ impl LiteralsWriter for ClauseCounter {
     }
 }
 
-impl<W: Write> LiteralsWriter for CNFWriter<W> { 
+impl<W: Write> LiteralsWriter for CNFWriter<W> {
     fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
     where
         T: VarLit + Neg<Output = T>,
@@ -234,294 +234,293 @@ where
     new_xxx!(new_xor, Xor);
     new_xxx!(new_equal, Equal);
     new_xxx!(new_impl, Impl);
-    
-    fn write_clauses<LW: LiteralsWriter>(&self, start: usize,
-        dep_nodes: &Vec<DepNode<T>>, cnf: &mut LW)
-        -> Result<(), writer::Error>
-    {
-        {
-            #[derive(Clone, Debug)]
-            enum JoiningClause<T: VarLit + Debug> {
-                Nothing,
-                Clause(Vec<Literal<T>>),
-                Join(usize),
-                XorEqual(Literal<T>, Literal<T>),
-            }
 
-            impl<T: VarLit + Debug> JoiningClause<T> {
-                fn new(node: &Node<T>) -> Self {
-                    if node.is_conj() || node.is_disjunc() {
-                        Self::Clause(vec![])
-                    } else if node.is_xor_or_equal() {
-                        Self::XorEqual(Literal::from(T::empty()), Literal::from(T::empty()))
-                    } else {
-                        Self::Nothing
-                    }
-                }
-            }
+    fn write_clauses<LW: LiteralsWriter>(
+        &self,
+        start: usize,
+        dep_nodes: &Vec<DepNode<T>>,
+        cnf: &mut LW,
+    ) -> Result<(), writer::Error> {
+        #[derive(Clone, Debug)]
+        enum JoiningClause<T: VarLit + Debug> {
+            Nothing,
+            Clause(Vec<Literal<T>>),
+            Join(usize),
+            XorEqual(Literal<T>, Literal<T>),
+        }
 
-            struct DepEntry<T: VarLit + Debug> {
-                node_index: usize,
-                path: usize,
-                normal_usage: bool,
-                negated_usage: bool,
-                op_join: OpJoin,
-                not_join: bool,
-                negated: bool,
-                joining_clause: JoiningClause<T>,
-            }
-
-            impl<T: VarLit + Debug> DepEntry<T> {
-                #[inline]
-                fn new_root(start: usize) -> Self {
-                    DepEntry {
-                        node_index: start,
-                        path: 0,
-                        normal_usage: true,
-                        negated_usage: false,
-                        op_join: OpJoin::Nothing,
-                        not_join: false,
-                        negated: false,
-                        joining_clause: JoiningClause::Nothing,
-                    }
-                }
-            }
-
-            let mut visited = vec![false; self.nodes.len()];
-            let mut stack = vec![DepEntry::<T>::new_root(start)];
-            stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
-
-            while !stack.is_empty() {
-                {
-                    // push child parent node linkvar to joining clause
-                    let (negated, node_index) = {
-                        let top = stack.last().unwrap();
-                        (top.negated, top.node_index)
-                    };
-                    if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
-                        let join_entry = stack.get_mut(stackpos).unwrap();
-                        let linkvar = dep_nodes
-                            .get(node_index)
-                            .unwrap()
-                            .linkvar
-                            .map(|x| Literal::VarLit(x))
-                            .or(if let Node::Single(l) = self.nodes[node_index] {
-                                Some(l)
-                            } else {
-                                None
-                            });
-                        println!("WcPZ {}: {:?} sp:{}", node_index, linkvar, stackpos);
-                        if let Some(linkvar) = linkvar {
-                            let linkvar = if !negated { linkvar } else { !linkvar };
-
-                            match &mut join_entry.joining_clause {
-                                JoiningClause::Clause(ref mut v) => {
-                                    v.push(linkvar);
-                                }
-                                JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
-                                    if *s1 == Literal::VarLit(T::empty()) {
-                                        *s1 = linkvar;
-                                    } else {
-                                        *s2 = linkvar;
-                                    }
-                                }
-                                _ => (),
-                            }
-                        }
-                    }
-                }
-
-                let stacklen = stack.len() - 1;
-                let mut top = stack.last_mut().unwrap();
-                let dep_node = dep_nodes.get(top.node_index).unwrap();
-
-                let node_index = top.node_index;
-                let node = self.nodes[top.node_index];
-                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                let second_path = top.path == 1 && !node.is_unary();
-
-                let mut do_pop = false;
-
-                if !visited[node_index] {
-                    let conj = node.is_conj();
-                    let disjunc = node.is_disjunc();
-
-                    /////////////
-                    if top.path == 0 && (node_index == start || dep_node.linkvar.is_some()) {
-                        top.joining_clause = JoiningClause::new(&node);
-                        println!(
-                            "Wc: {} {}: {:?} {:?}",
-                            node_index, top.path, dep_node.linkvar, top.joining_clause
-                        );
-                    }
-                    // generate joining clause for next
-                    let next_clause = if conj || disjunc {
-                        if let JoiningClause::Join(_) = top.joining_clause {
-                            top.joining_clause.clone()
-                        } else {
-                            JoiningClause::Join(stacklen)
-                        }
-                    } else if node.is_xor_or_equal() {
-                        JoiningClause::Join(stacklen)
-                    } else if matches!(node, Node::Negated(_)) {
-                        top.joining_clause.clone()
-                    } else {
-                        JoiningClause::Nothing
-                    };
-                    println!(
-                        "WcN: {} {} {}: {:?} {:?}",
-                        node_index, top.path, stacklen, next_clause, top.op_join
-                    );
-                    //////////////
-
-                    if first_path || second_path {
-                        let (normal_usage, negated_usage, not_join, op_join) = match node {
-                            Node::Single(_) => (false, false, false, OpJoin::Nothing),
-                            Node::Negated(_) => {
-                                (top.negated_usage, top.normal_usage, true, top.op_join)
-                            }
-                            Node::And(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
-                            }
-                            Node::Or(_, _) => {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
-                            }
-                            Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
-                            Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
-                            Node::Impl(_, _) => {
-                                if first_path {
-                                    (top.negated_usage, top.normal_usage, true, OpJoin::Nothing)
-                                } else {
-                                    (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
-                                }
-                            }
-                        };
-
-                        let negated =
-                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
-                                !top.negated
-                            } else {
-                                not_join
-                            };
-
-                        if first_path {
-                            top.path = 1;
-                            stack.push(DepEntry {
-                                node_index: node.first_path(),
-                                path: 0,
-                                normal_usage,
-                                negated_usage,
-                                op_join,
-                                not_join,
-                                negated,
-                                joining_clause: next_clause,
-                            });
-                        } else if second_path {
-                            top.path = 2;
-                            stack.push(DepEntry {
-                                node_index: node.second_path(),
-                                path: 0,
-                                normal_usage,
-                                negated_usage,
-                                op_join,
-                                not_join,
-                                negated,
-                                joining_clause: next_clause,
-                            });
-                        }
-                    } else {
-                        println!("WPP: {} {}", node_index, top.path);
-                        do_pop = true;
-                        visited[node_index] = true;
-                    }
+        impl<T: VarLit + Debug> JoiningClause<T> {
+            fn new(node: &Node<T>) -> Self {
+                if node.is_conj() || node.is_disjunc() {
+                    Self::Clause(vec![])
+                } else if node.is_xor_or_equal() {
+                    Self::XorEqual(Literal::from(T::empty()), Literal::from(T::empty()))
                 } else {
-                    stack.pop().unwrap();
+                    Self::Nothing
                 }
+            }
+        }
 
-                if do_pop {
-                    let top = stack.pop().unwrap();
-                    let dep_node = dep_nodes.get(top.node_index).unwrap();
-                    println!(
-                        "WW {} {}: {:?}",
-                        top.node_index, top.path, top.joining_clause
-                    );
-                    match top.joining_clause {
-                        JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
-                            Node::And(_, _) => {
-                                if dep_node.normal_usage {
-                                    for l in &literals {
-                                        if let Some(lvv) = dep_node.linkvar {
-                                            cnf.write_literals([!Literal::from(lvv), *l])?;
-                                        } else {
-                                            cnf.write_literals([*l])?;
-                                        }
-                                    }
-                                }
-                                if dep_node.negated_usage {
-                                    let mut out = vec![];
-                                    if let Some(lvv) = dep_node.linkvar {
-                                        out.push(Literal::from(lvv));
-                                    }
-                                    out.extend(literals.iter().map(|x| !*x));
-                                    cnf.write_literals(out)?;
-                                }
+        struct DepEntry<T: VarLit + Debug> {
+            node_index: usize,
+            path: usize,
+            normal_usage: bool,
+            negated_usage: bool,
+            op_join: OpJoin,
+            not_join: bool,
+            negated: bool,
+            joining_clause: JoiningClause<T>,
+        }
+
+        impl<T: VarLit + Debug> DepEntry<T> {
+            #[inline]
+            fn new_root(start: usize) -> Self {
+                DepEntry {
+                    node_index: start,
+                    path: 0,
+                    normal_usage: true,
+                    negated_usage: false,
+                    op_join: OpJoin::Nothing,
+                    not_join: false,
+                    negated: false,
+                    joining_clause: JoiningClause::Nothing,
+                }
+            }
+        }
+
+        let mut visited = vec![false; self.nodes.len()];
+        let mut stack = vec![DepEntry::<T>::new_root(start)];
+        stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
+
+        while !stack.is_empty() {
+            {
+                // push child parent node linkvar to joining clause
+                let (negated, node_index) = {
+                    let top = stack.last().unwrap();
+                    (top.negated, top.node_index)
+                };
+                if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
+                    let join_entry = stack.get_mut(stackpos).unwrap();
+                    let linkvar = dep_nodes
+                        .get(node_index)
+                        .unwrap()
+                        .linkvar
+                        .map(|x| Literal::VarLit(x))
+                        .or(if let Node::Single(l) = self.nodes[node_index] {
+                            Some(l)
+                        } else {
+                            None
+                        });
+                    println!("WcPZ {}: {:?} sp:{}", node_index, linkvar, stackpos);
+                    if let Some(linkvar) = linkvar {
+                        let linkvar = if !negated { linkvar } else { !linkvar };
+
+                        match &mut join_entry.joining_clause {
+                            JoiningClause::Clause(ref mut v) => {
+                                v.push(linkvar);
                             }
-                            Node::Or(_, _) | Node::Impl(_, _) => {
-                                if dep_node.negated_usage {
-                                    for l in &literals {
-                                        if let Some(lvv) = dep_node.linkvar {
-                                            cnf.write_literals([Literal::from(lvv), !*l])?;
-                                        } else {
-                                            cnf.write_literals([!*l])?;
-                                        }
-                                    }
-                                }
-                                if dep_node.normal_usage {
-                                    let mut out = vec![];
-                                    if let Some(lvv) = dep_node.linkvar {
-                                        out.push(!Literal::from(lvv));
-                                    }
-                                    out.extend(literals);
-                                    cnf.write_literals(out)?;
+                            JoiningClause::XorEqual(ref mut s1, ref mut s2) => {
+                                if *s1 == Literal::VarLit(T::empty()) {
+                                    *s1 = linkvar;
+                                } else {
+                                    *s2 = linkvar;
                                 }
                             }
                             _ => (),
-                        },
-                        JoiningClause::XorEqual(l1, ol2) => {
-                            let mut l2 = ol2;
-                            if let Node::Equal(_, _) = self.nodes[top.node_index] {
-                                l2 = !l2;
-                            }
-                            if let Some(lvv) = dep_node.linkvar {
-                                let lv = Literal::from(lvv);
-                                let nlv = !Literal::from(lvv);
-                                if dep_node.normal_usage {
-                                    cnf.write_literals([nlv, l1, l2])?;
-                                    cnf.write_literals([nlv, !l1, !l2])?;
-                                }
-                                if dep_node.negated_usage {
-                                    cnf.write_literals([lv, l1, !l2])?;
-                                    cnf.write_literals([lv, !l1, l2])?;
-                                }
+                        }
+                    }
+                }
+            }
+
+            let stacklen = stack.len() - 1;
+            let mut top = stack.last_mut().unwrap();
+            let dep_node = dep_nodes.get(top.node_index).unwrap();
+
+            let node_index = top.node_index;
+            let node = self.nodes[top.node_index];
+            let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+            let second_path = top.path == 1 && !node.is_unary();
+
+            let mut do_pop = false;
+
+            if !visited[node_index] {
+                let conj = node.is_conj();
+                let disjunc = node.is_disjunc();
+
+                /////////////
+                if top.path == 0 && (node_index == start || dep_node.linkvar.is_some()) {
+                    top.joining_clause = JoiningClause::new(&node);
+                    println!(
+                        "Wc: {} {}: {:?} {:?}",
+                        node_index, top.path, dep_node.linkvar, top.joining_clause
+                    );
+                }
+                // generate joining clause for next
+                let next_clause = if conj || disjunc {
+                    if let JoiningClause::Join(_) = top.joining_clause {
+                        top.joining_clause.clone()
+                    } else {
+                        JoiningClause::Join(stacklen)
+                    }
+                } else if node.is_xor_or_equal() {
+                    JoiningClause::Join(stacklen)
+                } else if matches!(node, Node::Negated(_)) {
+                    top.joining_clause.clone()
+                } else {
+                    JoiningClause::Nothing
+                };
+                println!(
+                    "WcN: {} {} {}: {:?} {:?}",
+                    node_index, top.path, stacklen, next_clause, top.op_join
+                );
+                //////////////
+
+                if first_path || second_path {
+                    let (normal_usage, negated_usage, not_join, op_join) = match node {
+                        Node::Single(_) => (false, false, false, OpJoin::Nothing),
+                        Node::Negated(_) => {
+                            (top.negated_usage, top.normal_usage, true, top.op_join)
+                        }
+                        Node::And(_, _) => {
+                            (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
+                        }
+                        Node::Or(_, _) => {
+                            (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
+                        }
+                        Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
+                        Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
+                        Node::Impl(_, _) => {
+                            if first_path {
+                                (top.negated_usage, top.normal_usage, true, OpJoin::Nothing)
                             } else {
-                                if dep_node.normal_usage {
-                                    cnf.write_literals([l1, l2])?;
-                                    cnf.write_literals([!l1, !l2])?;
+                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
+                            }
+                        }
+                    };
+
+                    let negated = if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                        !top.negated
+                    } else {
+                        not_join
+                    };
+
+                    if first_path {
+                        top.path = 1;
+                        stack.push(DepEntry {
+                            node_index: node.first_path(),
+                            path: 0,
+                            normal_usage,
+                            negated_usage,
+                            op_join,
+                            not_join,
+                            negated,
+                            joining_clause: next_clause,
+                        });
+                    } else if second_path {
+                        top.path = 2;
+                        stack.push(DepEntry {
+                            node_index: node.second_path(),
+                            path: 0,
+                            normal_usage,
+                            negated_usage,
+                            op_join,
+                            not_join,
+                            negated,
+                            joining_clause: next_clause,
+                        });
+                    }
+                } else {
+                    println!("WPP: {} {}", node_index, top.path);
+                    do_pop = true;
+                    visited[node_index] = true;
+                }
+            } else {
+                stack.pop().unwrap();
+            }
+
+            if do_pop {
+                let top = stack.pop().unwrap();
+                let dep_node = dep_nodes.get(top.node_index).unwrap();
+                println!(
+                    "WW {} {}: {:?}",
+                    top.node_index, top.path, top.joining_clause
+                );
+                match top.joining_clause {
+                    JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
+                        Node::And(_, _) => {
+                            if dep_node.normal_usage {
+                                for l in &literals {
+                                    if let Some(lvv) = dep_node.linkvar {
+                                        cnf.write_literals([!Literal::from(lvv), *l])?;
+                                    } else {
+                                        cnf.write_literals([*l])?;
+                                    }
                                 }
-                                if dep_node.negated_usage {
-                                    cnf.write_literals([l1, !l2])?;
-                                    cnf.write_literals([!l1, l2])?;
+                            }
+                            if dep_node.negated_usage {
+                                let mut out = vec![];
+                                if let Some(lvv) = dep_node.linkvar {
+                                    out.push(Literal::from(lvv));
                                 }
+                                out.extend(literals.iter().map(|x| !*x));
+                                cnf.write_literals(out)?;
+                            }
+                        }
+                        Node::Or(_, _) | Node::Impl(_, _) => {
+                            if dep_node.negated_usage {
+                                for l in &literals {
+                                    if let Some(lvv) = dep_node.linkvar {
+                                        cnf.write_literals([Literal::from(lvv), !*l])?;
+                                    } else {
+                                        cnf.write_literals([!*l])?;
+                                    }
+                                }
+                            }
+                            if dep_node.normal_usage {
+                                let mut out = vec![];
+                                if let Some(lvv) = dep_node.linkvar {
+                                    out.push(!Literal::from(lvv));
+                                }
+                                out.extend(literals);
+                                cnf.write_literals(out)?;
                             }
                         }
                         _ => (),
+                    },
+                    JoiningClause::XorEqual(l1, ol2) => {
+                        let mut l2 = ol2;
+                        if let Node::Equal(_, _) = self.nodes[top.node_index] {
+                            l2 = !l2;
+                        }
+                        if let Some(lvv) = dep_node.linkvar {
+                            let lv = Literal::from(lvv);
+                            let nlv = !Literal::from(lvv);
+                            if dep_node.normal_usage {
+                                cnf.write_literals([nlv, l1, l2])?;
+                                cnf.write_literals([nlv, !l1, !l2])?;
+                            }
+                            if dep_node.negated_usage {
+                                cnf.write_literals([lv, l1, !l2])?;
+                                cnf.write_literals([lv, !l1, l2])?;
+                            }
+                        } else {
+                            if dep_node.normal_usage {
+                                cnf.write_literals([l1, l2])?;
+                                cnf.write_literals([!l1, !l2])?;
+                            }
+                            if dep_node.negated_usage {
+                                cnf.write_literals([l1, !l2])?;
+                                cnf.write_literals([!l1, l2])?;
+                            }
+                        }
                     }
+                    _ => (),
                 }
             }
         }
         Ok(())
     }
-    
+
     // TODO: try write, writer. first - determine real dependencies and
     // real usage (normal and negated) - and mark them.
     pub fn write<W: Write>(
@@ -777,7 +776,7 @@ where
 
         // write clauses
         self.write_clauses(start, &dep_nodes, cnf)?;
-        
+
         assert_eq!(clause_count, cnf.written_clauses());
         Ok(())
     }
