@@ -904,5 +904,45 @@ mod tests {
                 "2 -3 -5 0\n-2 3 -5 0\n2 3 5 0\n-2 -3 5 0\n4 5 0\n-4 -5 0\n"
             )
         );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() & v[2].clone()) ^ (v[2].clone() & v[3].clone())).index() },
+            concat!(
+                "p cnf 5 8\n",
+                "1 -4 0\n2 -4 0\n-1 -2 4 0\n2 -5 0\n3 -5 0\n-2 -3 5 0\n4 5 0\n-4 -5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() | v[2].clone()) ^ (v[2].clone() | v[3].clone())).index() },
+            concat!(
+                "p cnf 5 8\n",
+                "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 5 0\n-4 -5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() & v[2].clone()).equal(v[2].clone() & v[3].clone())).index() },
+            concat!(
+                "p cnf 5 8\n",
+                "1 -4 0\n2 -4 0\n-1 -2 4 0\n2 -5 0\n3 -5 0\n-2 -3 5 0\n4 -5 0\n-4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            { ((v[1].clone() | v[2].clone()).equal(v[2].clone() | v[3].clone())).index() },
+            concat!(
+                "p cnf 5 8\n",
+                "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 -5 0\n-4 5 0\n"
+            )
+        );
     }
 }
