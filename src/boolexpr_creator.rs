@@ -481,15 +481,6 @@ where
                     if (node.is_unary() && first_path) || second_path {
                         visited[node_index] = true;
                     }
-                    if first_path {
-                        // fix OpJoin
-                        if top.negated
-                            && ((node.is_conj() && top.op_join == OpJoin::Conj)
-                                || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
-                        {
-                            top.op_join = OpJoin::Nothing;
-                        }
-                    }
 
                     if first_path || second_path {
                         let conj = node.is_conj();
@@ -694,16 +685,6 @@ where
                     let conj = node.is_conj();
                     let disjunc = node.is_disjunc();
 
-                    if first_path {
-                        // fix OpJoin
-                        if top.negated
-                            && ((conj && top.op_join == OpJoin::Conj)
-                                || (disjunc && top.op_join == OpJoin::Disjunc))
-                        {
-                            top.op_join = OpJoin::Nothing;
-                        }
-                    }
-
                     /////////////
                     if top.path == 0 && (node_index == start || dep_node.linkvar.is_some()) {
                         top.joining_clause = JoiningClause::new(&node);
@@ -713,10 +694,7 @@ where
                         );
                     }
                     // generate joining clause for next
-                    let next_clause = if ((conj || disjunc) && node_index == start)
-                        || (conj && top.op_join == OpJoin::Conj)
-                        || (disjunc && top.op_join == OpJoin::Disjunc)
-                    {
+                    let next_clause = if conj || disjunc {
                         if let JoiningClause::Join(_) = top.joining_clause {
                             top.joining_clause.clone()
                         } else {
