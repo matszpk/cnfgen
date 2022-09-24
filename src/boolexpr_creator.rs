@@ -808,7 +808,56 @@ mod tests {
         let mut v = vec![];
         #[allow(unused_assignments)]
         let mut ec = ExprCreator::<isize>::new();
-        //ec = ExprCreator::<isize>::new();
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone() & v[2].clone()).index() },
+            concat!(
+                "p cnf 2 2\n",
+                "1 0\n2 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone() | v[2].clone()).index() },
+            concat!(
+                "p cnf 2 1\n",
+                "1 2 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone().imp(v[2].clone())).index() },
+            concat!(
+                "p cnf 2 1\n",
+                "-1 2 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone() ^ v[2].clone()).index() },
+            concat!(
+                "p cnf 2 2\n",
+                "1 2 0\n-1 -2 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone().equal(v[2].clone())).index() },
+            concat!(
+                "p cnf 2 2\n",
+                "1 -2 0\n-1 2 0\n"
+            )
+        );
         expr_creator_testcase!(
             ec,
             v,
