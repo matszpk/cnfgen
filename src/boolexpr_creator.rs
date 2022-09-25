@@ -294,6 +294,7 @@ where
         let mut stack = vec![DepEntry::<T>::new_root(start)];
         stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
 
+        println!("----------write");
         while !stack.is_empty() {
             {
                 // push child parent node linkvar to joining clause
@@ -1169,19 +1170,34 @@ mod tests {
                 "-5 -6 7 0\n5 6 -7 0\n"
             )
         );
-        // expr_creator_testcase!(
-        //     ec,
-        //     v,
-        //     4,
-        //     {
-        //         let xp1 = v[1].clone() ^ v[2].clone();
-        //         let xp2 = v[3].clone() ^ v[4].clone();
-        //         (( xp1.clone() | xp2.clone()) | (xp1.imp(xp2))).index()
-        //     },
-        //     concat!(
-        //         "p cnf 7 7\n",
-        //         "1 2 -5 0\n-1 -2 -5 0\n3 4 -6 0\n-3 -4 -6 0\n5 -7 0\n6 -7 0\n5 6 7 0\n"
-        //     )
-        // );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[3].clone() ^ v[4].clone();
+                (( xp1.clone() | xp2.clone()) | (xp1.imp(xp2))).index()
+            },
+            concat!(
+                "p cnf 6 7\n",
+                "1 2 -5 0\n-1 -2 -5 0\n1 -2 5 0\n-1 2 5 0\n3 4 -6 0\n-3 -4 -6 0\n1 -1 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[3].clone() ^ v[4].clone();
+                (( xp1.clone() | xp2.clone()) & (xp1.imp(xp2))).index()
+            },
+            concat!(
+                "p cnf 8 10\n",
+                "1 2 -6 0\n-1 -2 -6 0\n1 -2 6 0\n-1 2 6 0\n3 4 -7 0\n-3 -4 -7 0\n",
+                "-5 6 7 0\n-6 7 -8 0\n5 0\n8 0\n"
+            )
+        );
     }
 }
