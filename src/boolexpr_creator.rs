@@ -918,6 +918,31 @@ mod tests {
                 "1 2 0\n"
             )
         );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (!(v[1].clone() ^ v[2].clone())).index() },
+            concat!(
+                "p cnf 2 2\n",
+                "1 -2 0\n-1 2 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let mut ec = ec.borrow_mut();
+                let xp1 = ec.new_not(xp1.index());
+                ec.new_not(xp1)
+            },
+            concat!(
+                "p cnf 2 2\n",
+                "1 2 0\n-1 -2 0\n"
+            )
+        );
         
         expr_creator_testcase!(
             ec,
