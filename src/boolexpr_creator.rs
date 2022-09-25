@@ -822,61 +822,43 @@ mod tests {
             v,
             2,
             { (v[1].clone() & v[2].clone()).index() },
-            concat!(
-                "p cnf 2 2\n",
-                "1 0\n2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 0\n2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (v[1].clone() | v[2].clone()).index() },
-            concat!(
-                "p cnf 2 1\n",
-                "1 2 0\n"
-            )
+            concat!("p cnf 2 1\n", "1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (v[1].clone().imp(v[2].clone())).index() },
-            concat!(
-                "p cnf 2 1\n",
-                "-1 2 0\n"
-            )
+            concat!("p cnf 2 1\n", "-1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (v[1].clone() ^ v[2].clone()).index() },
-            concat!(
-                "p cnf 2 2\n",
-                "1 2 0\n-1 -2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (v[1].clone().equal(v[2].clone())).index() },
-            concat!(
-                "p cnf 2 2\n",
-                "1 -2 0\n-1 2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
-        
+
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (!(v[1].clone() & v[2].clone())).index() },
-            concat!(
-                "p cnf 2 1\n",
-                "-1 -2 0\n"
-            )
+            concat!("p cnf 2 1\n", "-1 -2 0\n")
         );
         expr_creator_testcase!(
             ec,
@@ -888,20 +870,14 @@ mod tests {
                 let xp1 = ec.new_not(xp1.index());
                 ec.new_not(xp1)
             },
-            concat!(
-                "p cnf 2 2\n",
-                "1 0\n2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 0\n2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (!(v[1].clone() | v[2].clone())).index() },
-            concat!(
-                "p cnf 2 2\n",
-                "-1 0\n-2 0\n"
-            )
+            concat!("p cnf 2 2\n", "-1 0\n-2 0\n")
         );
         expr_creator_testcase!(
             ec,
@@ -913,20 +889,14 @@ mod tests {
                 let xp1 = ec.new_not(xp1.index());
                 ec.new_not(xp1)
             },
-            concat!(
-                "p cnf 2 1\n",
-                "1 2 0\n"
-            )
+            concat!("p cnf 2 1\n", "1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
             { (!(v[1].clone() ^ v[2].clone())).index() },
-            concat!(
-                "p cnf 2 2\n",
-                "1 -2 0\n-1 2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
@@ -938,12 +908,9 @@ mod tests {
                 let xp1 = ec.new_not(xp1.index());
                 ec.new_not(xp1)
             },
-            concat!(
-                "p cnf 2 2\n",
-                "1 2 0\n-1 -2 0\n"
-            )
+            concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
-        
+
         expr_creator_testcase!(
             ec,
             v,
@@ -1077,6 +1044,31 @@ mod tests {
             concat!(
                 "p cnf 5 8\n",
                 "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 -5 0\n-4 5 0\n"
+            )
+        );
+        
+        expr_creator_testcase!(
+            ec,
+            v,
+            8,
+            { (((v[1].clone() ^ v[2].clone()) | (v[3].clone() ^ v[4].clone())) |
+                ((v[5].clone() ^ v[6].clone()) | (v[7].clone() ^ v[8].clone()))).index() },
+            concat!(
+                "p cnf 12 9\n",
+                "1 2 -9 0\n-1 -2 -9 0\n3 4 -10 0\n-3 -4 -10 0\n5 6 -11 0\n-5 -6 -11 0\n",
+                "7 8 -12 0\n-7 -8 -12 0\n9 10 11 12 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            8,
+            { (((v[1].clone() ^ v[2].clone()) & (v[3].clone() ^ v[4].clone())) &
+                ((v[5].clone() ^ v[6].clone()) & (v[7].clone() ^ v[8].clone()))).index() },
+            concat!(
+                "p cnf 12 12\n",
+                "1 2 -9 0\n-1 -2 -9 0\n3 4 -10 0\n-3 -4 -10 0\n5 6 -11 0\n-5 -6 -11 0\n",
+                "7 8 -12 0\n-7 -8 -12 0\n9 0\n10 0\n11 0\n12 0\n"
             )
         );
     }
