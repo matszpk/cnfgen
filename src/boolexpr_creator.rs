@@ -570,15 +570,15 @@ where
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
 
-                if top.path == 0 {
+                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let second_path = top.path == 1 && !node.is_unary();
+
+                if !node.is_unary() && first_path {
                     dep_nodes[node_index].parent_count += 1;
                 }
-                
-                if !visited[node_index] {
-                    let first_path = top.path == 0 && !matches!(node, Node::Single(_));
-                    let second_path = top.path == 1 && !node.is_unary();
 
-                    if !node.is_unary() && second_path {
+                if !first_path || !visited[node_index] {
+                    if first_path {
                         visited[node_index] = true;
                     }
 
@@ -683,10 +683,11 @@ where
                     }
                 }
 
-                if (top.normal_usage && !dep_node.normal_usage)
+                if !first_path
+                    || (top.normal_usage && !dep_node.normal_usage)
                     || (top.negated_usage && !dep_node.negated_usage)
                 {
-                    if (node.is_unary() && first_path) || second_path {
+                    if first_path {
                         dep_node.normal_usage |= top.normal_usage;
                         dep_node.negated_usage |= top.negated_usage;
                     }
@@ -1134,7 +1135,7 @@ mod tests {
                 "9 12 0\n-9 -12 0\n"
             )
         );
-        
+
         expr_creator_testcase!(
             ec,
             v,
@@ -1142,7 +1143,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                (( xp1.clone() | xp2.clone()) | (xp1 & xp2)).index()
+                ((xp1.clone() | xp2.clone()) | (xp1 & xp2)).index()
             },
             concat!(
                 "p cnf 7 7\n",
@@ -1156,7 +1157,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                (( xp1.clone() | xp2.clone()) | !(xp1 & xp2)).index()
+                ((xp1.clone() | xp2.clone()) | !(xp1 & xp2)).index()
             },
             concat!(
                 "p cnf 7 10\n",
