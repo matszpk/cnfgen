@@ -345,7 +345,11 @@ where
 
             let mut do_pop = false;
 
-            if !visited[node_index] {
+            if !first_path || !visited[node_index] {
+                if first_path {
+                    visited[node_index] = true;
+                }
+                
                 let conj = node.is_conj();
                 let disjunc = node.is_disjunc();
 
@@ -437,7 +441,6 @@ where
                 } else {
                     println!("WPP: {} {}", node_index, top.path);
                     do_pop = true;
-                    visited[node_index] = true;
                 }
             } else {
                 stack.pop().unwrap();
