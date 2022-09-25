@@ -570,12 +570,15 @@ where
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
 
+                if top.path == 0 {
+                    dep_nodes[node_index].parent_count += 1;
+                }
+                
                 if !visited[node_index] {
                     let first_path = top.path == 0 && !matches!(node, Node::Single(_));
                     let second_path = top.path == 1 && !node.is_unary();
 
                     if !node.is_unary() && second_path {
-                        dep_nodes[node_index].parent_count += 1;
                         visited[node_index] = true;
                     }
 
@@ -817,6 +820,7 @@ mod tests {
         let mut v = vec![];
         #[allow(unused_assignments)]
         let mut ec = ExprCreator::<isize>::new();
+        // single operator testcases
         expr_creator_testcase!(
             ec,
             v,
@@ -853,6 +857,7 @@ mod tests {
             concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
 
+        // negation at root
         expr_creator_testcase!(
             ec,
             v,
@@ -911,6 +916,7 @@ mod tests {
             concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
 
+        // simple testcases
         expr_creator_testcase!(
             ec,
             v,
@@ -1047,6 +1053,7 @@ mod tests {
             )
         );
 
+        // more complicated, but simple
         expr_creator_testcase!(
             ec,
             v,
@@ -1127,5 +1134,50 @@ mod tests {
                 "9 12 0\n-9 -12 0\n"
             )
         );
+        
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[3].clone() ^ v[4].clone();
+                (( xp1.clone() | xp2.clone()) | (xp1 & xp2)).index()
+            },
+            concat!(
+                "p cnf 7 7\n",
+                "1 2 -5 0\n-1 -2 -5 0\n3 4 -6 0\n-3 -4 -6 0\n5 -7 0\n6 -7 0\n5 6 7 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() ^ v[2].clone();
+                let xp2 = v[3].clone() ^ v[4].clone();
+                (( xp1.clone() | xp2.clone()) | !(xp1 & xp2)).index()
+            },
+            concat!(
+                "p cnf 7 10\n",
+                "1 2 -5 0\n-1 -2 -5 0\n1 -2 5 0\n-1 2 5 0\n",
+                "3 4 -6 0\n-3 -4 -6 0\n3 -4 6 0\n-3 4 6 0\n",
+                "-5 -6 7 0\n5 6 -7 0\n"
+            )
+        );
+        // expr_creator_testcase!(
+        //     ec,
+        //     v,
+        //     4,
+        //     {
+        //         let xp1 = v[1].clone() ^ v[2].clone();
+        //         let xp2 = v[3].clone() ^ v[4].clone();
+        //         (( xp1.clone() | xp2.clone()) | (xp1.imp(xp2))).index()
+        //     },
+        //     concat!(
+        //         "p cnf 7 7\n",
+        //         "1 2 -5 0\n-1 -2 -5 0\n3 4 -6 0\n-3 -4 -6 0\n5 -7 0\n6 -7 0\n5 6 7 0\n"
+        //     )
+        // );
     }
 }
