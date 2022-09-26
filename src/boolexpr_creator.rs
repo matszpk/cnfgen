@@ -1212,6 +1212,29 @@ mod tests {
             )
         );
 
+        // not joining
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            { (!((v[1].clone() | v[2].clone()).imp(v[3].clone())) | v[4].clone()).index },
+            concat!("p cnf 7 4\n", "1 2 -7 0\n6 7 0\n-3 6 0\n4 -6 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            { (!((v[1].clone() | v[2].clone()).imp(v[2].clone())) | v[3].clone()).index },
+            concat!("p cnf 6 4\n", "1 2 -6 0\n5 6 0\n-2 5 0\n3 -5 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            { (!((v[1].clone() | v[2].clone()) | (v[3].clone())) | v[4].clone()).index },
+            concat!("p cnf 6 4\n", "-1 6 0\n-2 6 0\n-3 6 0\n4 -6 0\n")
+        );
+
         // joinings of conjunction and disjunction
         expr_creator_testcase!(
             ec,
