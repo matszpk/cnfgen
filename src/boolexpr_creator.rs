@@ -1202,5 +1202,26 @@ mod tests {
                 "-5 6 7 0\n-6 7 -8 0\n5 0\n8 0\n"
             )
         );
+
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() | v[2].clone();
+                ((xp1.clone() | v[3].clone()) & (xp1 | v[4].clone())).index
+            },
+            concat!("p cnf 7 5\n", "1 2 -6 0\n3 -5 6 0\n4 6 -7 0\n5 0\n7 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() | v[2].clone();
+                ((xp1.clone() | v[3].clone()) | (xp1 | v[4].clone())).index
+            },
+            concat!("p cnf 5 2\n", "1 2 -5 0\n3 4 5 0\n")
+        );
     }
 }
