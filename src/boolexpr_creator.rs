@@ -115,8 +115,10 @@ enum OpJoin {
     Disjunc,
 }
 
-/// The ExprCreator holds all expressions which will be written later. An ExprCreator is used
-/// with ExprNode to create new expression.
+/// The ExprCreator holds all expressions which will be written later.
+/// Main purpose of ExprCreator is maintenance state of expression with its variables
+/// during creating that expression by using ExprNode.
+/// An ExprCreator is used with ExprNode to create new expression.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit + Debug> {
     pub(super) nodes: Vec<Node<T>>,
