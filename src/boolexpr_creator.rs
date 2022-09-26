@@ -419,7 +419,7 @@ where
                     };
                     let start = node.is_negated() && top.start;
 
-                    let negated = if top.not_join && not_join && node.is_negated() {
+                    let negated = if top.not_join && node.is_negated() {
                         !top.negated
                     } else {
                         not_join
@@ -733,7 +733,7 @@ where
                         };
                         let start = node.is_negated() && top.start;
 
-                        let negated = if top.not_join && not_join && node.is_negated() {
+                        let negated = if top.not_join && node.is_negated() {
                             !top.negated
                         } else {
                             not_join
