@@ -34,8 +34,8 @@ macro_rules! test_println {
 
 #[cfg(not(test))]
 macro_rules! test_println {
-    () => { };
-    ($($arg:tt)*) => { };
+    () => {};
+    ($($arg:tt)*) => {};
 }
 
 use crate::{CNFError, CNFWriter, Literal, VarLit};
@@ -382,7 +382,10 @@ where
                     top.joining_clause = JoiningClause::new(&node);
                     test_println!(
                         "Wc: {} {}: {:?} {:?}",
-                        node_index, top.path, dep_node.linkvar, top.joining_clause
+                        node_index,
+                        top.path,
+                        dep_node.linkvar,
+                        top.joining_clause
                     );
                 }
                 // generate joining clause for next
@@ -401,7 +404,10 @@ where
                 };
                 test_println!(
                     "WcN: {} {} {}: {:?}",
-                    node_index, top.path, stacklen, next_clause
+                    node_index,
+                    top.path,
+                    stacklen,
+                    next_clause
                 );
                 //////////////
 
@@ -467,7 +473,9 @@ where
                 let dep_node = dep_nodes.get(top.node_index).unwrap();
                 test_println!(
                     "WW {} {}: {:?}",
-                    top.node_index, top.path, top.joining_clause
+                    top.node_index,
+                    top.path,
+                    top.joining_clause
                 );
                 match top.joining_clause {
                     JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
