@@ -30,12 +30,14 @@ use crate::boolexpr_creator::{ExprCreator, Node};
 
 use crate::{CNFError, CNFWriter, Literal, VarLit};
 
+/// Equality operator for boolean expressions and boolean words.
 pub trait BoolEqual<Rhs = Self> {
     type Output;
 
     fn equal(self, rhs: Rhs) -> Self::Output;
 }
 
+/// Equality operator for bool.
 impl BoolEqual for bool {
     type Output = bool;
     fn equal(self, rhs: bool) -> Self::Output {
@@ -43,12 +45,14 @@ impl BoolEqual for bool {
     }
 }
 
+/// Material implication `(!self | rhs)` operator for boolean expressions and boolean words.
 pub trait BoolImpl<Rhs = Self> {
     type Output;
 
     fn imp(self, rhs: Rhs) -> Self::Output;
 }
 
+/// Material implication for bool.
 impl BoolImpl for bool {
     type Output = bool;
     fn imp(self, rhs: bool) -> Self::Output {
@@ -56,6 +60,21 @@ impl BoolImpl for bool {
     }
 }
 
+/// Main structure that represents expression, subexpression or literal.
+///
+/// It joined with
+/// ExprCreator that holds all expressions.
+/// Creation of new expression is naturally simple thanks operators. However, expression nodes
+/// must be cloned before using in other expressions if they will be used more than once.
+/// Simple examples:
+///
+/// * `(v1.clone() ^ v2) | v1`.
+/// * `(v1.clone() ^ v2) | v1 & !v3`.
+///
+/// Expression nodes can be used with literals (Literal) or same values (boolean or integer).
+/// If integer will be given then that integer will represents variable literal.
+/// This implementation provides some simplification when an expression node will be joined with
+/// literal or value or this same expresion node (example: `v1 ^ true` => `!v1`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug> {
     creator: Rc<RefCell<ExprCreator<T>>>,
@@ -70,11 +89,13 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates single literal as expression node.
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
         ExprNode { creator, index }
     }
 
+    // Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
         let index = {
             let mut creator = creator.borrow_mut();
@@ -84,12 +105,14 @@ where
         ExprNode { creator, index }
     }
 
+    /// Writes expression to CNF.
     #[inline]
     pub fn write<W: Write>(&self, cnf: &mut CNFWriter<W>) -> Result<(), CNFError> {
         self.creator.borrow().write(self.index, cnf)
     }
 }
 
+/// Implementation Not for ExprNode.
 impl<T> Not for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -131,6 +154,7 @@ where
 macro_rules! new_op_impl {
     // for argeqres - if None then use self
     ($t:ident, $u:ident, $v:ident, $argeqres:expr) => {
+        /// Implementation operator for ExprNode.
         impl<T> $t for ExprNode<T>
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -185,6 +209,7 @@ new_op_impl!(BitXor, new_xor, bitxor, Some(false));
 new_op_impl!(BoolEqual, new_equal, equal, Some(true));
 new_op_impl!(BoolImpl, new_impl, imp, Some(true));
 
+/// Implementation BitAnd for ExprNode where rhs is Literal.
 impl<T, U> BitAnd<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -235,6 +260,7 @@ where
     }
 }
 
+/// Implementation BitAnd for Literal where rhs is ExprNode.
 impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -252,6 +278,7 @@ where
 
 macro_rules! new_op_l_xn_impl {
     ($t:ty, $u: ident, $v: ident) => {
+        /// Implementation operator for value where rhs is ExprNode.
         impl $u<ExprNode<$t>> for $t {
             type Output = ExprNode<$t>;
 
@@ -264,6 +291,7 @@ macro_rules! new_op_l_xn_impl {
 
 macro_rules! new_all_op_l_xn_impls {
     ($u: ident, $v: ident) => {
+        /// Implementation operator for boolean where rhs is ExprNode.
         impl<T> $u<ExprNode<T>> for bool
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -288,6 +316,7 @@ macro_rules! new_all_op_l_xn_impls {
 
 new_all_op_l_xn_impls!(BitAnd, bitand);
 
+/// Implementation BitOr for ExprNode where rhs is Literal.
 impl<T, U> BitOr<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -338,6 +367,7 @@ where
     }
 }
 
+/// Implementation BitOr for Literal where rhs is ExprNode.
 impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -355,6 +385,7 @@ where
 
 new_all_op_l_xn_impls!(BitOr, bitor);
 
+/// Implementation BitXor for ExprNode where rhs is Literal.
 impl<T, U> BitXor<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -402,6 +433,7 @@ where
     }
 }
 
+/// Implementation BitXor for Literal where rhs is ExprNode.
 impl<T> BitXor<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -419,6 +451,7 @@ where
 
 new_all_op_l_xn_impls!(BitXor, bitxor);
 
+/// Implementation BoolEqual for ExprNode where rhs is Literal.
 impl<T, U> BoolEqual<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -466,6 +499,7 @@ where
     }
 }
 
+/// Implementation BoolEqual for Literal where rhs is ExprNode.
 impl<T> BoolEqual<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -483,6 +517,7 @@ where
 
 new_all_op_l_xn_impls!(BoolEqual, equal);
 
+/// Implementation BoolImpl for ExprNode where rhs is Literal.
 impl<T, U> BoolImpl<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -533,6 +568,7 @@ where
     }
 }
 
+/// Implementation BoolImpl for Literal where rhs is ExprNode.
 impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -576,6 +612,7 @@ where
     }
 }
 
+/// Implementation BoolImpl for bool where rhs is ExprNode.
 impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
     type Output = ExprNode<T>;
 
@@ -593,6 +630,7 @@ impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
 
 macro_rules! new_impl_imp_impls {
     ($ty: ty) => {
+        /// Implementation BoolImpl for value where rhs is ExprNode.
         impl BoolImpl<ExprNode<$ty>> for $ty {
             type Output = ExprNode<$ty>;
 

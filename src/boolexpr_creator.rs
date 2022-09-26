@@ -115,8 +115,8 @@ enum OpJoin {
     Disjunc,
 }
 
-//
-
+/// The ExprCreator holds all expressions which will be written later. An ExprCreator is used
+/// with ExprNode to create new expression.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit + Debug> {
     pub(super) nodes: Vec<Node<T>>,
@@ -181,6 +181,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates new ExprCreator as returns it as RefCounter.
     pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(ExprCreator {
             nodes: vec![
@@ -191,6 +192,7 @@ where
         }))
     }
 
+    /// Returns variable count.
     #[inline]
     pub fn var_count(&self) -> T {
         T::from_usize(self.lit_to_index.len() >> 1)
