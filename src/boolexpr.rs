@@ -112,7 +112,7 @@ where
     }
 }
 
-/// Implementation Not for ExprNode.
+/// An implementation Not for ExprNode.
 impl<T> Not for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -154,7 +154,7 @@ where
 macro_rules! new_op_impl {
     // for argeqres - if None then use self
     ($t:ident, $u:ident, $v:ident, $argeqres:expr) => {
-        /// Implementation operator for ExprNode.
+        /// An implementation operator for ExprNode.
         impl<T> $t for ExprNode<T>
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -209,7 +209,7 @@ new_op_impl!(BitXor, new_xor, bitxor, Some(false));
 new_op_impl!(BoolEqual, new_equal, equal, Some(true));
 new_op_impl!(BoolImpl, new_impl, imp, Some(true));
 
-/// Implementation BitAnd for ExprNode where rhs is Literal.
+/// An implementation BitAnd for ExprNode where rhs is Literal.
 impl<T, U> BitAnd<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -260,7 +260,7 @@ where
     }
 }
 
-/// Implementation BitAnd for Literal where rhs is ExprNode.
+/// An implementation BitAnd for Literal where rhs is ExprNode.
 impl<T> BitAnd<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -278,7 +278,7 @@ where
 
 macro_rules! new_op_l_xn_impl {
     ($t:ty, $u: ident, $v: ident) => {
-        /// Implementation operator for value where rhs is ExprNode.
+        /// An implementation operator for value where rhs is ExprNode.
         impl $u<ExprNode<$t>> for $t {
             type Output = ExprNode<$t>;
 
@@ -291,7 +291,7 @@ macro_rules! new_op_l_xn_impl {
 
 macro_rules! new_all_op_l_xn_impls {
     ($u: ident, $v: ident) => {
-        /// Implementation operator for boolean where rhs is ExprNode.
+        /// An implementation operator for boolean where rhs is ExprNode.
         impl<T> $u<ExprNode<T>> for bool
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -316,7 +316,7 @@ macro_rules! new_all_op_l_xn_impls {
 
 new_all_op_l_xn_impls!(BitAnd, bitand);
 
-/// Implementation BitOr for ExprNode where rhs is Literal.
+/// An implementation BitOr for ExprNode where rhs is Literal.
 impl<T, U> BitOr<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -367,7 +367,7 @@ where
     }
 }
 
-/// Implementation BitOr for Literal where rhs is ExprNode.
+/// An implementation BitOr for Literal where rhs is ExprNode.
 impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -385,7 +385,7 @@ where
 
 new_all_op_l_xn_impls!(BitOr, bitor);
 
-/// Implementation BitXor for ExprNode where rhs is Literal.
+/// An implementation BitXor for ExprNode where rhs is Literal.
 impl<T, U> BitXor<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -433,7 +433,7 @@ where
     }
 }
 
-/// Implementation BitXor for Literal where rhs is ExprNode.
+/// An implementation BitXor for Literal where rhs is ExprNode.
 impl<T> BitXor<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -451,7 +451,7 @@ where
 
 new_all_op_l_xn_impls!(BitXor, bitxor);
 
-/// Implementation BoolEqual for ExprNode where rhs is Literal.
+/// An implementation BoolEqual for ExprNode where rhs is Literal.
 impl<T, U> BoolEqual<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -499,7 +499,7 @@ where
     }
 }
 
-/// Implementation BoolEqual for Literal where rhs is ExprNode.
+/// An implementation BoolEqual for Literal where rhs is ExprNode.
 impl<T> BoolEqual<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -517,7 +517,7 @@ where
 
 new_all_op_l_xn_impls!(BoolEqual, equal);
 
-/// Implementation BoolImpl for ExprNode where rhs is Literal.
+/// An implementation BoolImpl for ExprNode where rhs is Literal.
 impl<T, U> BoolImpl<U> for ExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -568,7 +568,7 @@ where
     }
 }
 
-/// Implementation BoolImpl for Literal where rhs is ExprNode.
+/// An implementation BoolImpl for Literal where rhs is ExprNode.
 impl<T> BoolImpl<ExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -612,7 +612,7 @@ where
     }
 }
 
-/// Implementation BoolImpl for bool where rhs is ExprNode.
+/// An implementation BoolImpl for bool where rhs is ExprNode.
 impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
     type Output = ExprNode<T>;
 
@@ -630,7 +630,7 @@ impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
 
 macro_rules! new_impl_imp_impls {
     ($ty: ty) => {
-        /// Implementation BoolImpl for value where rhs is ExprNode.
+        /// An implementation BoolImpl for value where rhs is ExprNode.
         impl BoolImpl<ExprNode<$ty>> for $ty {
             type Output = ExprNode<$ty>;
 
