@@ -28,7 +28,7 @@ use std::ops::{Index, IndexMut, Neg, Not};
 
 #[derive(thiserror::Error, Debug)]
 /// An error type.
-pub enum Error {
+pub enum CNFError {
     /// It caused if header has already been written.
     #[error("Header has already been written")]
     HeaderAlreadyWritten,
@@ -675,7 +675,7 @@ impl<W: Write> CNFWriter<W> {
     }
 
     /// Writes a CNF header. It returns Ok if no error encountered.
-    pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), Error> {
+    pub fn write_header(&mut self, var_num: usize, clause_num: usize) -> Result<(), CNFError> {
         if self.header.is_none() {
             self.buf.clear();
             self.buf.extend_from_slice(b"p cnf ");
@@ -690,7 +690,7 @@ impl<W: Write> CNFWriter<W> {
             });
             Ok(())
         } else {
-            Err(Error::HeaderAlreadyWritten)
+            Err(CNFError::HeaderAlreadyWritten)
         }
     }
 
@@ -700,20 +700,20 @@ impl<W: Write> CNFWriter<W> {
         &mut self,
         q: Quantifier,
         qs: Q,
-    ) -> Result<(), Error>
+    ) -> Result<(), CNFError>
     where
         <T as TryInto<usize>>::Error: Debug,
     {
         if let Some(ref header) = self.header {
             if self.clause_count != 0 {
-                return Err(Error::QuantifierAfterClauses);
+                return Err(CNFError::QuantifierAfterClauses);
             }
             if !qs.check_quantset(header.var_num) {
-                return Err(Error::VarLitOutOfRange);
+                return Err(CNFError::VarLitOutOfRange);
             }
             if let Some(lastq) = self.last_quant {
                 if lastq == q {
-                    return Err(Error::QuantifierDuplicate);
+                    return Err(CNFError::QuantifierDuplicate);
                 }
             }
             self.buf.clear();
@@ -732,14 +732,14 @@ impl<W: Write> CNFWriter<W> {
             self.last_quant = Some(q);
             Ok(())
         } else {
-            Err(Error::HeaderNotWritten)
+            Err(CNFError::HeaderNotWritten)
         }
     }
 
     /// Writes Literals as clause. It returns Ok if no error encountered.
     /// It must be called after header write.
     /// It construct from literals clause and try to write this clause.
-    pub fn write_literals<T, I>(&mut self, iter: I) -> Result<(), Error>
+    pub fn write_literals<T, I>(&mut self, iter: I) -> Result<(), CNFError>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = Literal<T>>,
@@ -751,7 +751,7 @@ impl<W: Write> CNFWriter<W> {
     }
 
     /// Writes clause. It must be called after header write.
-    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), Error>
+    pub fn write_clause<T: VarLit, C: Clause<T>>(&mut self, clause: C) -> Result<(), CNFError>
     where
         T: Neg<Output = T>,
         isize: TryFrom<T>,
@@ -760,10 +760,10 @@ impl<W: Write> CNFWriter<W> {
     {
         if let Some(ref header) = self.header {
             if self.clause_count == header.clause_num {
-                return Err(Error::TooManyClauses);
+                return Err(CNFError::TooManyClauses);
             }
             if !clause.check_clause(header.var_num) {
-                return Err(Error::VarLitOutOfRange);
+                return Err(CNFError::VarLitOutOfRange);
             }
             // simplify clause
             self.buf_clause.assign(clause);
@@ -778,7 +778,7 @@ impl<W: Write> CNFWriter<W> {
             self.clause_count += 1;
             Ok(())
         } else {
-            Err(Error::HeaderNotWritten)
+            Err(CNFError::HeaderNotWritten)
         }
     }
 }

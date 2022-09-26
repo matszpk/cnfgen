@@ -22,12 +22,13 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
+use std::io::Write;
 use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
 use std::rc::Rc;
 
 use crate::boolexpr_creator::{ExprCreator, Node};
 
-use crate::{Literal, VarLit};
+use crate::{CNFError, CNFWriter, Literal, VarLit};
 
 pub trait BoolEqual<Rhs = Self> {
     type Output;
@@ -58,7 +59,7 @@ impl BoolImpl for bool {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug> {
     creator: Rc<RefCell<ExprCreator<T>>>,
-    index: usize,
+    pub(super) index: usize,
 }
 
 impl<T> ExprNode<T>
@@ -84,8 +85,8 @@ where
     }
 
     #[inline]
-    pub fn index(&self) -> usize {
-        self.index
+    pub fn write<W: Write>(&self, cnf: &mut CNFWriter<W>) -> Result<(), CNFError> {
+        self.creator.borrow().write(self.index, cnf)
     }
 }
 

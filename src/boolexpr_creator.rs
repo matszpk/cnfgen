@@ -26,8 +26,7 @@ use std::io::Write;
 use std::ops::Neg;
 use std::rc::Rc;
 
-use crate::writer;
-use crate::{CNFWriter, Literal, VarLit};
+use crate::{CNFError, CNFWriter, Literal, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Node<T: VarLit + Debug> {
@@ -126,7 +125,7 @@ pub struct ExprCreator<T: VarLit + Debug> {
 
 macro_rules! new_xxx {
     ($t:ident, $u:ident) => {
-        pub fn $t(&mut self, a_index: usize, b_index: usize) -> usize {
+        pub(super) fn $t(&mut self, a_index: usize, b_index: usize) -> usize {
             assert!(a_index < self.nodes.len());
             assert!(b_index < self.nodes.len());
             self.nodes.push(Node::$u(a_index, b_index));
@@ -136,7 +135,7 @@ macro_rules! new_xxx {
 }
 
 trait LiteralsWriter {
-    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
+    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), CNFError>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = Literal<T>>,
@@ -148,7 +147,7 @@ trait LiteralsWriter {
 struct ClauseCounter(usize);
 
 impl LiteralsWriter for ClauseCounter {
-    fn write_literals<T, I>(&mut self, _: I) -> Result<(), writer::Error>
+    fn write_literals<T, I>(&mut self, _: I) -> Result<(), CNFError>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = Literal<T>>,
@@ -162,7 +161,7 @@ impl LiteralsWriter for ClauseCounter {
 }
 
 impl<W: Write> LiteralsWriter for CNFWriter<W> {
-    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), writer::Error>
+    fn write_literals<T, I>(&mut self, iter: I) -> Result<(), CNFError>
     where
         T: VarLit + Neg<Output = T>,
         I: IntoIterator<Item = Literal<T>>,
@@ -197,13 +196,13 @@ where
         T::from_usize(self.lit_to_index.len() >> 1)
     }
 
-    pub fn new_variable(&mut self) -> Literal<T> {
+    pub(super) fn new_variable(&mut self) -> Literal<T> {
         self.lit_to_index.push(0); // zero - no variable
         self.lit_to_index.push(0);
         Literal::from(self.var_count())
     }
 
-    pub fn single(&mut self, l: impl Into<Literal<T>>) -> usize {
+    pub(super) fn single(&mut self, l: impl Into<Literal<T>>) -> usize {
         match l.into() {
             Literal::Value(false) => 0,
             Literal::Value(true) => 1,
@@ -223,7 +222,7 @@ where
         }
     }
 
-    pub fn new_not(&mut self, index: usize) -> usize {
+    pub(super) fn new_not(&mut self, index: usize) -> usize {
         assert!(index < self.nodes.len());
         self.nodes.push(Node::Negated(index));
         self.nodes.len() - 1
@@ -240,7 +239,7 @@ where
         start: usize,
         dep_nodes: &Vec<DepNode<T>>,
         cnf: &mut LW,
-    ) -> Result<(), writer::Error> {
+    ) -> Result<(), CNFError> {
         #[derive(Clone, Debug)]
         enum JoiningClause<T: VarLit + Debug> {
             Nothing,
@@ -350,7 +349,7 @@ where
                 if first_path {
                     visited[node_index] = true;
                 }
-                
+
                 let conj = node.is_conj();
                 let disjunc = node.is_disjunc();
 
@@ -532,11 +531,11 @@ where
 
     // TODO: try write, writer. first - determine real dependencies and
     // real usage (normal and negated) - and mark them.
-    pub fn write<W: Write>(
+    pub(super) fn write<W: Write>(
         &self,
         start: usize,
         cnf: &mut CNFWriter<W>,
-    ) -> Result<(), writer::Error> {
+    ) -> Result<(), CNFError> {
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         let mut total_var_count = self.var_count();
 
@@ -830,35 +829,35 @@ mod tests {
             ec,
             v,
             2,
-            { (v[1].clone() & v[2].clone()).index() },
+            { (v[1].clone() & v[2].clone()).index },
             concat!("p cnf 2 2\n", "1 0\n2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
-            { (v[1].clone() | v[2].clone()).index() },
+            { (v[1].clone() | v[2].clone()).index },
             concat!("p cnf 2 1\n", "1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
-            { (v[1].clone().imp(v[2].clone())).index() },
+            { (v[1].clone().imp(v[2].clone())).index },
             concat!("p cnf 2 1\n", "-1 2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
-            { (v[1].clone() ^ v[2].clone()).index() },
+            { (v[1].clone() ^ v[2].clone()).index },
             concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
         expr_creator_testcase!(
             ec,
             v,
             2,
-            { (v[1].clone().equal(v[2].clone())).index() },
+            { (v[1].clone().equal(v[2].clone())).index },
             concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
 
@@ -867,7 +866,7 @@ mod tests {
             ec,
             v,
             2,
-            { (!(v[1].clone() & v[2].clone())).index() },
+            { (!(v[1].clone() & v[2].clone())).index },
             concat!("p cnf 2 1\n", "-1 -2 0\n")
         );
         expr_creator_testcase!(
@@ -877,7 +876,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() & v[2].clone();
                 let mut ec = ec.borrow_mut();
-                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1.index);
                 ec.new_not(xp1)
             },
             concat!("p cnf 2 2\n", "1 0\n2 0\n")
@@ -886,7 +885,7 @@ mod tests {
             ec,
             v,
             2,
-            { (!(v[1].clone() | v[2].clone())).index() },
+            { (!(v[1].clone() | v[2].clone())).index },
             concat!("p cnf 2 2\n", "-1 0\n-2 0\n")
         );
         expr_creator_testcase!(
@@ -896,7 +895,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() | v[2].clone();
                 let mut ec = ec.borrow_mut();
-                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1.index);
                 ec.new_not(xp1)
             },
             concat!("p cnf 2 1\n", "1 2 0\n")
@@ -905,7 +904,7 @@ mod tests {
             ec,
             v,
             2,
-            { (!(v[1].clone() ^ v[2].clone())).index() },
+            { (!(v[1].clone() ^ v[2].clone())).index },
             concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
         expr_creator_testcase!(
@@ -915,7 +914,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let mut ec = ec.borrow_mut();
-                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1.index);
                 ec.new_not(xp1)
             },
             concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
@@ -926,7 +925,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) | (v[2].clone().equal(v[3].clone()))).index() },
+            { ((v[1].clone() ^ v[2].clone()) | (v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
@@ -936,7 +935,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) & (v[2].clone().equal(v[3].clone()))).index() },
+            { ((v[1].clone() ^ v[2].clone()) & (v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 6\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 0\n5 0\n"
@@ -946,7 +945,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()).imp(v[2].clone().equal(v[3].clone()))).index() },
+            { ((v[1].clone() ^ v[2].clone()).imp(v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
@@ -956,7 +955,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((!(v[1].clone() ^ v[2].clone())) | (v[2].clone().equal(v[3].clone()))).index() },
+            { ((!(v[1].clone() ^ v[2].clone())) | (v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
@@ -970,9 +969,9 @@ mod tests {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[2].clone().equal(v[3].clone());
                 let mut ec = ec.borrow_mut();
-                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1.index);
                 let xp1 = ec.new_not(xp1);
-                ec.new_or(xp1, xp2.index())
+                ec.new_or(xp1, xp2.index)
             },
             concat!(
                 "p cnf 5 5\n",
@@ -983,7 +982,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((!(v[1].clone() ^ v[2].clone())).imp(v[2].clone().equal(v[3].clone()))).index() },
+            { ((!(v[1].clone() ^ v[2].clone())).imp(v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
@@ -997,9 +996,9 @@ mod tests {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[2].clone().equal(v[3].clone());
                 let mut ec = ec.borrow_mut();
-                let xp1 = ec.new_not(xp1.index());
+                let xp1 = ec.new_not(xp1.index);
                 let xp1 = ec.new_not(xp1);
-                ec.new_impl(xp1, xp2.index())
+                ec.new_impl(xp1, xp2.index)
             },
             concat!(
                 "p cnf 5 5\n",
@@ -1010,7 +1009,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) ^ (v[2].clone().equal(v[3].clone()))).index() },
+            { ((v[1].clone() ^ v[2].clone()) ^ (v[2].clone().equal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 10\n",
                 "1 2 -4 0\n-1 -2 -4 0\n1 -2 4 0\n-1 2 4 0\n",
@@ -1021,7 +1020,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() & v[2].clone()) ^ (v[2].clone() & v[3].clone())).index() },
+            { ((v[1].clone() & v[2].clone()) ^ (v[2].clone() & v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "1 -4 0\n2 -4 0\n-1 -2 4 0\n2 -5 0\n3 -5 0\n-2 -3 5 0\n4 5 0\n-4 -5 0\n"
@@ -1031,7 +1030,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() | v[2].clone()) ^ (v[2].clone() | v[3].clone())).index() },
+            { ((v[1].clone() | v[2].clone()) ^ (v[2].clone() | v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 5 0\n-4 -5 0\n"
@@ -1041,7 +1040,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() & v[2].clone()).equal(v[2].clone() & v[3].clone())).index() },
+            { ((v[1].clone() & v[2].clone()).equal(v[2].clone() & v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "1 -4 0\n2 -4 0\n-1 -2 4 0\n2 -5 0\n3 -5 0\n-2 -3 5 0\n4 -5 0\n-4 5 0\n"
@@ -1051,7 +1050,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() | v[2].clone()).equal(v[2].clone() | v[3].clone())).index() },
+            { ((v[1].clone() | v[2].clone()).equal(v[2].clone() | v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 -5 0\n-4 5 0\n"
@@ -1066,7 +1065,7 @@ mod tests {
             {
                 (((v[1].clone() ^ v[2].clone()) | (v[3].clone() ^ v[4].clone()))
                     | ((v[5].clone() ^ v[6].clone()) | (v[7].clone() ^ v[8].clone())))
-                .index()
+                .index
             },
             concat!(
                 "p cnf 12 9\n",
@@ -1081,7 +1080,7 @@ mod tests {
             {
                 (((v[1].clone() ^ v[2].clone()) & (v[3].clone() ^ v[4].clone()))
                     & ((v[5].clone() ^ v[6].clone()) & (v[7].clone() ^ v[8].clone())))
-                .index()
+                .index
             },
             concat!(
                 "p cnf 12 12\n",
@@ -1096,7 +1095,7 @@ mod tests {
             {
                 (((v[1].clone() ^ v[2].clone()).imp(v[3].clone() ^ v[4].clone()))
                     | ((v[5].clone() ^ v[6].clone()).imp(v[7].clone() ^ v[8].clone())))
-                .index()
+                .index
             },
             concat!(
                 "p cnf 12 9\n",
@@ -1111,7 +1110,7 @@ mod tests {
             {
                 (((v[1].clone() ^ v[2].clone()) | (v[3].clone() ^ v[4].clone()))
                     .imp((v[5].clone() ^ v[6].clone()) | (v[7].clone() ^ v[8].clone())))
-                .index()
+                .index
             },
             concat!(
                 "p cnf 13 11\n",
@@ -1126,7 +1125,7 @@ mod tests {
             {
                 (((v[1].clone() ^ v[2].clone()) ^ (v[3].clone() ^ v[4].clone()))
                     ^ ((v[5].clone() ^ v[6].clone()) ^ (v[7].clone() ^ v[8].clone())))
-                .index()
+                .index
             },
             concat!(
                 "p cnf 14 26\n",
@@ -1147,7 +1146,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                ((xp1.clone() | xp2.clone()) | (xp1 & xp2)).index()
+                ((xp1.clone() | xp2.clone()) | (xp1 & xp2)).index
             },
             concat!(
                 "p cnf 7 7\n",
@@ -1161,7 +1160,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                ((xp1.clone() | xp2.clone()) | !(xp1 & xp2)).index()
+                ((xp1.clone() | xp2.clone()) | !(xp1 & xp2)).index
             },
             concat!(
                 "p cnf 7 10\n",
@@ -1177,7 +1176,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                (( xp1.clone() | xp2.clone()) | (xp1.imp(xp2))).index()
+                ((xp1.clone() | xp2.clone()) | (xp1.imp(xp2))).index
             },
             concat!(
                 "p cnf 6 7\n",
@@ -1191,7 +1190,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                (( xp1.clone() | xp2.clone()) & (xp1.imp(xp2))).index()
+                ((xp1.clone() | xp2.clone()) & (xp1.imp(xp2))).index
             },
             concat!(
                 "p cnf 8 10\n",
