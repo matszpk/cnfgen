@@ -26,6 +26,18 @@ use std::io::Write;
 use std::ops::Neg;
 use std::rc::Rc;
 
+#[cfg(test)]
+macro_rules! test_println {
+    () => { println!(); };
+    ($($arg:tt)*) => { println!($($arg)*); };
+}
+
+#[cfg(not(test))]
+macro_rules! test_println {
+    () => { };
+    ($($arg:tt)*) => { };
+}
+
 use crate::{CNFError, CNFWriter, Literal, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -305,7 +317,7 @@ where
         let mut stack = vec![DepEntry::<T>::new_root(start)];
         stack[0].joining_clause = JoiningClause::new(self.nodes.get(start).unwrap());
 
-        println!("----------write");
+        test_println!("----------write");
         while !stack.is_empty() {
             {
                 // push child parent node linkvar to joining clause
@@ -325,7 +337,7 @@ where
                         } else {
                             None
                         });
-                    println!("WcPZ {}: {:?} sp:{}", node_index, linkvar, stackpos);
+                    test_println!("WcPZ {}: {:?} sp:{}", node_index, linkvar, stackpos);
                     if let Some(linkvar) = linkvar {
                         let linkvar = if !negated { linkvar } else { !linkvar };
 
@@ -368,7 +380,7 @@ where
                 /////////////
                 if top.path == 0 && (top.start || dep_node.linkvar.is_some()) {
                     top.joining_clause = JoiningClause::new(&node);
-                    println!(
+                    test_println!(
                         "Wc: {} {}: {:?} {:?}",
                         node_index, top.path, dep_node.linkvar, top.joining_clause
                     );
@@ -387,7 +399,7 @@ where
                 } else {
                     JoiningClause::Nothing
                 };
-                println!(
+                test_println!(
                     "WcN: {} {} {}: {:?}",
                     node_index, top.path, stacklen, next_clause
                 );
@@ -443,7 +455,7 @@ where
                         });
                     }
                 } else {
-                    println!("WPP: {} {}", node_index, top.path);
+                    test_println!("WPP: {} {}", node_index, top.path);
                     do_pop = true;
                 }
             } else {
@@ -453,7 +465,7 @@ where
             if do_pop {
                 let top = stack.pop().unwrap();
                 let dep_node = dep_nodes.get(top.node_index).unwrap();
-                println!(
+                test_println!(
                     "WW {} {}: {:?}",
                     top.node_index, top.path, top.joining_clause
                 );
@@ -543,7 +555,7 @@ where
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         let mut total_var_count = self.var_count();
 
-        println!(
+        test_println!(
             "Debug nodes:\n{}",
             self.nodes
                 .iter()
@@ -589,7 +601,7 @@ where
                         visited[node_index] = true;
                     }
 
-                    //println!("Count: {}: {} {} {}", node_index, first_path, second_path,
+                    //test_println!("Count: {}: {} {} {}", node_index, first_path, second_path,
                     //        dep_nodes[node_index].parent_count);
 
                     if first_path {
@@ -613,7 +625,7 @@ where
             }
         }
 
-        println!(
+        test_println!(
             "DepNodes:\n{}",
             dep_nodes
                 .iter()
@@ -729,7 +741,7 @@ where
                             not_join
                         };
 
-                        println!(
+                        test_println!(
                             "Dp: {}:{} {} {}: normu:{} negu:{} j:{:?} n:{}",
                             top.node_index,
                             top.path,
@@ -775,7 +787,7 @@ where
             }
         }
 
-        println!(
+        test_println!(
             "DepNodes2:\n{}",
             dep_nodes
                 .iter()
@@ -816,7 +828,7 @@ mod tests {
             }
             let expr_index = $expr;
             let mut cnf_writer = CNFWriter::new(vec![]);
-            println!("expr: {}", expr_index);
+            test_println!("expr: {}", expr_index);
             $ec.borrow().write(expr_index, &mut cnf_writer).unwrap();
             assert_eq!($res, String::from_utf8_lossy(cnf_writer.inner()));
         }};
