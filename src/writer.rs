@@ -953,6 +953,7 @@ mod tests {
 
         ($cls:ident, $tau:expr) => {
             assert!($cls.clause().is_empty());
+            assert!($cls.is_empty());
             assert_eq!($tau, $cls.is_tautology());
         };
     }
@@ -1031,6 +1032,23 @@ mod tests {
         let mut iclause = InputClause::<i32>::new();
         iclause.extend(Vec::<Literal<i32>>::new());
         input_clause_assert!(iclause, false);
+
+        // extend for
+        let mut iclause = InputClause::<i32>::new();
+        iclause.extend([&2]);
+        input_clause_assert!(iclause, [2], false);
+        let mut iclause = InputClause::<i32>::new();
+        iclause.push(true);
+        iclause.extend([&2]);
+        input_clause_assert!(iclause, [1, -1], true);
+
+        let mut iclause = InputClause::<i32>::new();
+        iclause.extend([&Literal::from(2)]);
+        input_clause_assert!(iclause, [2], false);
+        let mut iclause = InputClause::<i32>::new();
+        iclause.push(true);
+        iclause.extend([&Literal::from(2)]);
+        input_clause_assert!(iclause, [1, -1], true);
     }
 
     #[test]
@@ -1262,6 +1280,14 @@ a 4 5 0
         );
 
         let mut cnf_writer = CNFWriter::new(vec![]);
+        assert_eq!(
+            Err("Header has not been written".to_string()),
+            cnf_writer
+                .write_quant(Quantifier::ForAll, [1, 4])
+                .map_err(|x| x.to_string())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
         cnf_writer.write_header(5, 4).unwrap();
         cnf_writer.write_clause([1, 4]).unwrap();
         assert_eq!(
@@ -1280,6 +1306,48 @@ a 4 5 0
             cnf_writer
                 .write_quant(Quantifier::Exists, [4, 5])
                 .map_err(|x| x.to_string())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(5, 4).unwrap();
+        cnf_writer.write_quant(Quantifier::ForAll, [3, 1]).unwrap();
+        assert_eq!(
+            Err("Variable literal is out of range".to_string()),
+            cnf_writer
+                .write_quant(Quantifier::Exists, [7])
+                .map_err(|x| x.to_string())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        cnf_writer.write_header(5, 4).unwrap();
+        cnf_writer
+            .write_quant(Quantifier::ForAll, vec![3, 1])
+            .unwrap();
+        cnf_writer
+            .write_quant(Quantifier::Exists, &[2][..])
+            .unwrap();
+        cnf_writer
+            .write_quant(Quantifier::ForAll, &[4, 5][..])
+            .unwrap();
+        for c in [
+            [-2, 1, 3].as_slice(),
+            [2, 4].as_slice(),
+            [5, -1, 2].as_slice(),
+            [-5, 3, -4].as_slice(),
+        ] {
+            cnf_writer.write_clause(c).unwrap();
+        }
+        assert_eq!(
+            r##"p cnf 5 4
+a 3 1 0
+e 2 0
+a 4 5 0
+1 -2 3 0
+2 4 0
+-1 2 5 0
+3 -4 -5 0
+"##,
+            String::from_utf8_lossy(cnf_writer.inner())
         );
     }
 }
