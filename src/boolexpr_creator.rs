@@ -279,7 +279,6 @@ where
             path: usize,
             normal_usage: bool,
             negated_usage: bool,
-            op_join: OpJoin,
             not_join: bool,
             negated: bool,
             start: bool,
@@ -294,7 +293,6 @@ where
                     path: 0,
                     normal_usage: true,
                     negated_usage: false,
-                    op_join: OpJoin::Nothing,
                     not_join: false,
                     negated: false,
                     start: true,
@@ -390,30 +388,24 @@ where
                     JoiningClause::Nothing
                 };
                 println!(
-                    "WcN: {} {} {}: {:?} {:?}",
-                    node_index, top.path, stacklen, next_clause, top.op_join
+                    "WcN: {} {} {}: {:?}",
+                    node_index, top.path, stacklen, next_clause
                 );
                 //////////////
 
                 if first_path || second_path {
-                    let (normal_usage, negated_usage, not_join, op_join) = match node {
-                        Node::Single(_) => (false, false, false, OpJoin::Nothing),
-                        Node::Negated(_) => {
-                            (top.negated_usage, top.normal_usage, true, top.op_join)
-                        }
-                        Node::And(_, _) => {
-                            (top.normal_usage, top.negated_usage, false, OpJoin::Conj)
-                        }
-                        Node::Or(_, _) => {
-                            (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
-                        }
-                        Node::Xor(_, _) => (true, true, false, OpJoin::Nothing),
-                        Node::Equal(_, _) => (true, true, false, OpJoin::Nothing),
+                    let (normal_usage, negated_usage, not_join) = match node {
+                        Node::Single(_) => (false, false, false),
+                        Node::Negated(_) => (top.negated_usage, top.normal_usage, true),
+                        Node::And(_, _) => (top.normal_usage, top.negated_usage, false),
+                        Node::Or(_, _) => (top.normal_usage, top.negated_usage, false),
+                        Node::Xor(_, _) => (true, true, false),
+                        Node::Equal(_, _) => (true, true, false),
                         Node::Impl(_, _) => {
                             if first_path {
-                                (top.negated_usage, top.normal_usage, true, OpJoin::Nothing)
+                                (top.negated_usage, top.normal_usage, true)
                             } else {
-                                (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
+                                (top.normal_usage, top.negated_usage, false)
                             }
                         }
                     };
@@ -432,7 +424,6 @@ where
                             path: 0,
                             normal_usage,
                             negated_usage,
-                            op_join,
                             not_join,
                             negated,
                             start,
@@ -445,7 +436,6 @@ where
                             path: 0,
                             normal_usage,
                             negated_usage,
-                            op_join,
                             not_join,
                             negated,
                             start,
