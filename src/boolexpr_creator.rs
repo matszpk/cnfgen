@@ -1336,5 +1336,20 @@ mod tests {
                 "1 -5 0\n2 -5 0\n-1 -2 5 0\n5 0\n3 0\n-5 0\n4 0\n"
             )
         );
+
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            {
+                let xp1 = (v[1].clone() | v[5].clone()).imp(v[2].clone());
+                ((xp1.clone() | v[3].clone()) & (!xp1 | v[4].clone())).index
+            },
+            concat!(
+                "p cnf 9 10\n",
+                "-1 8 0\n-5 8 0\n1 5 -8 0\n7 8 0\n-2 7 0\n2 -7 -8 0\n",
+                "3 -6 7 0\n4 -7 -9 0\n6 0\n9 0\n"
+            )
+        );
     }
 }
