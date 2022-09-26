@@ -833,7 +833,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_creator_simple() {
+    fn test_expr_creator_trivial() {
         let mut v = vec![];
         #[allow(unused_assignments)]
         let mut ec = ExprCreator::<isize>::new();
@@ -932,7 +932,13 @@ mod tests {
             },
             concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
+    }
 
+    #[test]
+    fn test_expr_creator_simple() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
         // simple testcases
         expr_creator_testcase!(
             ec,
@@ -1069,7 +1075,13 @@ mod tests {
                 "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 -5 0\n-4 5 0\n"
             )
         );
+    }
 
+    #[test]
+    fn test_expr_creator_more_complex() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
         // more complicated, but simple
         expr_creator_testcase!(
             ec,
@@ -1151,7 +1163,13 @@ mod tests {
                 "9 12 0\n-9 -12 0\n"
             )
         );
+    }
 
+    #[test]
+    fn test_expr_creator_join_more_time() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
         expr_creator_testcase!(
             ec,
             v,
