@@ -846,6 +846,31 @@ mod tests {
     }
 
     #[test]
+    fn test_expr_nodes_lits_imp_equal_2() {
+        let ec = ExprCreator::<isize>::new();
+        let _ = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let _ = v3.clone().equal(1.imp(v2.equal(v3)));
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Equal(3, 4),
+                    Node::Impl(2, 5),
+                    Node::Equal(6, 4),
+                ],
+                lit_to_index: vec![2, 0, 3, 0, 4, 0],
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
     fn test_expr_nodes_not_simpls() {
         {
             let ec = ExprCreator::<isize>::new();
