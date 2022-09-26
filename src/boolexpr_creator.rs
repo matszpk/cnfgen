@@ -65,6 +65,16 @@ impl<T: VarLit + Debug> Node<T> {
     }
 
     #[inline]
+    fn is_single(&self) -> bool {
+        matches!(self, Node::Single(_))
+    }
+
+    #[inline]
+    fn is_negated(&self) -> bool {
+        matches!(self, Node::Negated(_))
+    }
+
+    #[inline]
     fn is_unary(&self) -> bool {
         matches!(self, Node::Single(_) | Node::Negated(_))
     }
@@ -344,7 +354,7 @@ where
 
             let node_index = top.node_index;
             let node = self.nodes[top.node_index];
-            let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+            let first_path = top.path == 0 && !node.is_single();
             let second_path = top.path == 1 && !node.is_unary();
 
             let mut do_pop = false;
@@ -374,7 +384,7 @@ where
                     }
                 } else if node.is_xor_or_equal() {
                     JoiningClause::Join(stacklen)
-                } else if matches!(node, Node::Negated(_)) {
+                } else if node.is_negated() {
                     top.joining_clause.clone()
                 } else {
                     JoiningClause::Nothing
@@ -407,9 +417,9 @@ where
                             }
                         }
                     };
-                    let start = matches!(node, Node::Negated(_)) && top.start;
+                    let start = node.is_negated() && top.start;
 
-                    let negated = if top.not_join && not_join && matches!(node, Node::Negated(_)) {
+                    let negated = if top.not_join && not_join && node.is_negated() {
                         !top.negated
                     } else {
                         not_join
@@ -577,7 +587,7 @@ where
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
 
-                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let first_path = top.path == 0 && !node.is_single();
                 let second_path = top.path == 1 && !node.is_unary();
 
                 if !node.is_unary() && first_path {
@@ -660,7 +670,7 @@ where
                 let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
 
                 let node = self.nodes[top.node_index];
-                let first_path = top.path == 0 && !matches!(node, Node::Single(_));
+                let first_path = top.path == 0 && !node.is_single();
                 let second_path = top.path == 1 && !node.is_unary();
 
                 if first_path {
@@ -673,7 +683,7 @@ where
                     }
                 }
 
-                if first_path || second_path {
+                if first_path {
                     let new_var = match node {
                         Node::Single(_) => false,
                         Node::Negated(_) => false,
@@ -721,14 +731,13 @@ where
                                 }
                             }
                         };
-                        let start = matches!(node, Node::Negated(_)) && top.start;
+                        let start = node.is_negated() && top.start;
 
-                        let negated =
-                            if top.not_join && not_join && matches!(node, Node::Negated(_)) {
-                                !top.negated
-                            } else {
-                                not_join
-                            };
+                        let negated = if top.not_join && not_join && node.is_negated() {
+                            !top.negated
+                        } else {
+                            not_join
+                        };
 
                         println!(
                             "Dp: {}:{} {} {}: normu:{} negu:{} j:{:?} n:{}",
