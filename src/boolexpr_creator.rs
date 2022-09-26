@@ -942,6 +942,54 @@ mod tests {
             },
             concat!("p cnf 2 2\n", "1 2 0\n-1 -2 0\n")
         );
+
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let mut ec = ec.borrow_mut();
+                let nv1 = ec.new_not(v[1].index);
+                ec.new_and(nv1, v[2].index)
+            },
+            concat!("p cnf 2 2\n", "-1 0\n2 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let mut ec = ec.borrow_mut();
+                let nv1 = ec.new_not(v[1].index);
+                let nnv1 = ec.new_not(nv1);
+                ec.new_and(v[2].index, nnv1)
+            },
+            concat!("p cnf 2 2\n", "2 0\n1 0\n")
+        );
+
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let mut ec = ec.borrow_mut();
+                let nv1 = ec.new_not(v[1].index);
+                ec.new_or(nv1, v[2].index)
+            },
+            concat!("p cnf 2 1\n", "-1 2 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let mut ec = ec.borrow_mut();
+                let nv1 = ec.new_not(v[1].index);
+                let nnv1 = ec.new_not(nv1);
+                ec.new_or(v[2].index, nnv1)
+            },
+            concat!("p cnf 2 1\n", "1 2 0\n")
+        );
     }
 
     #[test]
