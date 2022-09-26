@@ -1247,5 +1247,54 @@ mod tests {
             },
             concat!("p cnf 5 4\n", "-1 5 0\n-2 5 0\n1 2 -5 0\n1 -1 0\n")
         );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) | (xp1 & v[4].clone())).index
+            },
+            concat!(
+                "p cnf 7 7\n",
+                "1 -6 0\n2 -6 0\n-5 6 0\n3 -5 0\n6 -7 0\n4 -7 0\n5 7 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) & (xp1 & v[4].clone())).index
+            },
+            concat!("p cnf 5 6\n", "1 -5 0\n2 -5 0\n5 0\n3 0\n5 0\n4 0\n")
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) | (!xp1 & v[4].clone())).index
+            },
+            concat!(
+                "p cnf 7 8\n",
+                "1 -6 0\n2 -6 0\n-1 -2 6 0\n-5 6 0\n3 -5 0\n-6 -7 0\n4 -7 0\n5 7 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) & (!xp1 & v[4].clone())).index
+            },
+            concat!(
+                "p cnf 5 7\n",
+                "1 -5 0\n2 -5 0\n-1 -2 5 0\n5 0\n3 0\n-5 0\n4 0\n"
+            )
+        );
     }
 }
