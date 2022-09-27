@@ -684,36 +684,6 @@ new_impl_imp_impls!(i32);
 new_impl_imp_impls!(i64);
 new_impl_imp_impls!(isize);
 
-pub fn quant_exists<T>(varlit: T, node: ExprNode<T>) -> ExprNode<T>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
-    let index = node.creator.borrow_mut().new_exists(varlit, node.index);
-    ExprNode {
-        creator: node.creator,
-        index,
-    }
-}
-
-pub fn quant_for_all<T>(varlit: T, node: ExprNode<T>) -> ExprNode<T>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
-    let index = node.creator.borrow_mut().new_for_all(varlit, node.index);
-    ExprNode {
-        creator: node.creator,
-        index,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1112,33 +1082,6 @@ mod tests {
         test_op_simpls!(
             imp, XPTrue, XPNotVar1, XPTrue, XPTrue, XPVar1, XPVar1, XPNotVar1, XPTrue, XPTrue,
             XPExpr, XPNotExpr
-        );
-    }
-
-    #[test]
-    fn test_expr_nodes_quantifiers() {
-        let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let xp1 = v1.clone() & v2.clone();
-        let _ = quant_for_all(
-            v2.varlit().unwrap(),
-            quant_exists(v1.varlit().unwrap(), xp1),
-        );
-        assert_eq!(
-            ExprCreator {
-                nodes: vec![
-                    Node::Single(Literal::Value(false)),
-                    Node::Single(Literal::Value(true)),
-                    Node::Single(Literal::VarLit(1)),
-                    Node::Single(Literal::VarLit(2)),
-                    Node::And(2, 3),
-                    Node::Exists(1, 4),
-                    Node::ForAll(2, 5),
-                ],
-                lit_to_index: vec![2, 0, 3, 0],
-            },
-            *ec.borrow()
         );
     }
 }
