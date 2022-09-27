@@ -888,6 +888,13 @@ mod tests {
         expr_creator_testcase!(
             ec,
             v,
+            1,
+            { v[1].index },
+            "p cnf 1 0\n"
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
             2,
             { (v[1].clone() & v[2].clone()).index },
             concat!("p cnf 2 2\n", "1 0\n2 0\n")
