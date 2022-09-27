@@ -1096,4 +1096,32 @@ mod tests {
             XPExpr, XPNotExpr
         );
     }
+
+    #[test]
+    fn test_expr_node_write() {
+        let ec = ExprCreator::<isize>::new();
+        let mut v = vec![];
+        v.push(ExprNode::single(ec.clone(), false));
+        for _ in 0..2 {
+            v.push(ExprNode::variable(ec.clone()));
+        }
+        let xp = v[1].clone() & v[2].clone();
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        xp.write(&mut cnf_writer).unwrap();
+        assert_eq!(
+            "p cnf 2 2\n1 0\n2 0\n",
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+
+        let mut cnf_writer = CNFWriter::new(vec![]);
+        xp.write_quant(
+            [(Quantifier::Exists, [1]), (Quantifier::ForAll, [2])],
+            &mut cnf_writer,
+        )
+        .unwrap();
+        assert_eq!(
+            "p cnf 2 2\ne 1 0\na 2 0\n1 0\n2 0\n",
+            String::from_utf8_lossy(cnf_writer.inner())
+        );
+    }
 }

@@ -838,7 +838,9 @@ where
                 dest_last_qs.push(t);
                 t = t.next_value().unwrap();
             }
-            cnf.write_quant(Quantifier::Exists, dest_last_qs)?;
+            if !dest_last_qs.is_empty() {
+                cnf.write_quant(Quantifier::Exists, dest_last_qs)?;
+            }
         }
 
         // write clauses
@@ -1553,6 +1555,14 @@ mod tests {
                 "e 1 0\na 2 0\ne 3 5 6 7 0\n",
                 "1 -6 0\n2 -6 0\n-1 -2 6 0\n-5 6 0\n3 -5 0\n-6 -7 0\n4 -7 0\n5 7 0\n"
             )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            { (v[1].clone() & v[2].clone()).index },
+            [(Quantifier::Exists, [1]), (Quantifier::ForAll, [2])],
+            concat!("p cnf 2 2\n", "e 1 0\na 2 0\n", "1 0\n2 0\n")
         );
     }
 }
