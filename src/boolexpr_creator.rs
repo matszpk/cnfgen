@@ -562,8 +562,6 @@ where
         Ok(())
     }
 
-    // TODO: try write, writer. first - determine real dependencies and
-    // real usage (normal and negated) - and mark them.
     pub(super) fn write<W, QL, Q>(
         &self,
         start: usize,
