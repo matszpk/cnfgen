@@ -49,6 +49,8 @@ pub(super) enum Node<T: VarLit + Debug> {
     Xor(usize, usize),
     Equal(usize, usize),
     Impl(usize, usize),
+    Exists(T, usize),
+    ForAll(T, usize),
 }
 
 impl<T: VarLit + Debug> Node<T> {
@@ -61,19 +63,25 @@ impl<T: VarLit + Debug> Node<T> {
             Node::Xor(first, _) => first,
             Node::Equal(first, _) => first,
             Node::Impl(first, _) => first,
+            Node::Exists(_, first) => first,
+            Node::ForAll(_, first) => first,
         }
     }
 
     fn second_path(&self) -> usize {
         match *self {
-            Node::Single(_) => panic!("No second path for single node"),
-            Node::Negated(_) => panic!("No second path for negated node"),
             Node::And(_, second) => second,
             Node::Or(_, second) => second,
             Node::Xor(_, second) => second,
             Node::Equal(_, second) => second,
             Node::Impl(_, second) => second,
+            _ => panic!("No second path for single node"),
         }
+    }
+
+    #[inline]
+    fn is_quantifier(&self) -> bool {
+        matches!(self, Node::Exists(_, _) | Node::ForAll(_, _))
     }
 
     #[inline]
@@ -254,6 +262,20 @@ where
         self.nodes.len() - 1
     }
 
+    pub(super) fn new_exists(&mut self, varid: T, index: usize) -> usize {
+        assert!(index < self.nodes.len());
+        assert!(varid > T::empty());
+        self.nodes.push(Node::Exists(varid, index));
+        self.nodes.len() - 1
+    }
+
+    pub(super) fn new_for_all(&mut self, varid: T, index: usize) -> usize {
+        assert!(index < self.nodes.len());
+        assert!(varid > T::empty());
+        self.nodes.push(Node::ForAll(varid, index));
+        self.nodes.len() - 1
+    }
+
     new_xxx!(new_and, And);
     new_xxx!(new_or, Or);
     new_xxx!(new_xor, Xor);
@@ -425,6 +447,9 @@ where
                             } else {
                                 (top.normal_usage, top.negated_usage, false)
                             }
+                        }
+                        _ => {
+                            panic!("Unsupported");
                         }
                     };
                     let start = node.is_negated() && top.start;
@@ -738,6 +763,9 @@ where
                                 } else {
                                     (top.normal_usage, top.negated_usage, false, OpJoin::Disjunc)
                                 }
+                            }
+                            _ => {
+                                panic!("Unsupported");
                             }
                         };
                         let start = node.is_negated() && top.start;
