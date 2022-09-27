@@ -673,7 +673,6 @@ where
             }
 
             let mut stack = vec![DepEntry::new_root(start)];
-            //dep_nodes[start].normal_usage = true;
 
             while !stack.is_empty() {
                 let mut top = stack.last_mut().unwrap();
