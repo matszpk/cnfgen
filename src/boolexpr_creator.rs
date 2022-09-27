@@ -370,7 +370,7 @@ where
             let mut do_pop = false;
 
             if !first_path || !visited[node_index] {
-                if first_path {
+                if !node.is_unary() && first_path {
                     visited[node_index] = true;
                 }
 
