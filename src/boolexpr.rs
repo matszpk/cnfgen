@@ -28,7 +28,7 @@ use std::rc::Rc;
 
 use crate::boolexpr_creator::{ExprCreator, Node};
 
-use crate::{CNFError, CNFWriter, Literal, VarLit};
+use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 /// Equality operator for boolean expressions and boolean words.
 pub trait BoolEqual<Rhs = Self> {
@@ -117,7 +117,19 @@ where
     /// Writes expression to CNF.
     #[inline]
     pub fn write<W: Write>(&self, cnf: &mut CNFWriter<W>) -> Result<(), CNFError> {
-        self.creator.borrow().write(self.index, cnf)
+        let empty: [(Quantifier, Vec<T>); 0] = [];
+        self.creator.borrow().write(self.index, empty, cnf)
+    }
+
+    /// Writes quantified expression to QCNF.
+    #[inline]
+    pub fn write_quant<W, QL, Q>(&self, quants: QL, cnf: &mut CNFWriter<W>) -> Result<(), CNFError>
+    where
+        W: Write,
+        QL: IntoIterator<Item = (Quantifier, Q)>,
+        Q: QuantSet<T>,
+    {
+        self.creator.borrow().write(self.index, quants, cnf)
     }
 }
 

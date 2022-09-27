@@ -38,7 +38,7 @@ macro_rules! test_println {
     ($($arg:tt)*) => {};
 }
 
-use crate::{CNFError, CNFWriter, Literal, VarLit};
+use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Node<T: VarLit + Debug> {
@@ -554,11 +554,17 @@ where
 
     // TODO: try write, writer. first - determine real dependencies and
     // real usage (normal and negated) - and mark them.
-    pub(super) fn write<W: Write>(
+    pub(super) fn write<W, QL, Q>(
         &self,
         start: usize,
+        quants: QL,
         cnf: &mut CNFWriter<W>,
-    ) -> Result<(), CNFError> {
+    ) -> Result<(), CNFError>
+    where
+        W: Write,
+        QL: IntoIterator<Item = (Quantifier, Q)>,
+        Q: QuantSet<T>,
+    {
         let mut dep_nodes = vec![DepNode::default(); self.nodes.len()];
         let mut total_var_count = self.var_count();
 
@@ -811,6 +817,30 @@ where
         // write header
         cnf.write_header(total_var_count.to_usize(), clause_count)?;
 
+        // write quantifiers
+        let mut cquants = quants.into_iter().collect::<Vec<(Quantifier, Q)>>();
+
+        if !cquants.is_empty() {
+            let last = cquants.pop().unwrap();
+            // write all except last
+            cquants
+                .drain(..)
+                .try_for_each(|(q, qs)| cnf.write_quant(q, qs))?;
+
+            let mut dest_last_qs = vec![];
+            if last.0 == Quantifier::Exists {
+                last.1.quant_for_each(|x| dest_last_qs.push(*x));
+            } else {
+                cnf.write_quant(last.0, last.1)?;
+            }
+            let mut t = self.var_count().next_value().unwrap();
+            while t <= total_var_count {
+                dest_last_qs.push(t);
+                t = t.next_value().unwrap();
+            }
+            cnf.write_quant(Quantifier::Exists, dest_last_qs)?;
+        }
+
         // write clauses
         self.write_clauses(start, &dep_nodes, cnf)?;
 
@@ -825,7 +855,12 @@ mod tests {
     use crate::boolexpr::*;
 
     macro_rules! expr_creator_testcase {
-        ($ec: ident, $v: ident, $vars:expr, $expr: tt, $res: expr) => {{
+        ($ec: ident, $v: ident, $vars: expr, $expr: tt, $res: expr) => {
+            let empty: [(Quantifier, Vec<isize>); 0] = [];
+            expr_creator_testcase!($ec, $v, $vars, $expr, empty, $res);
+        };
+
+        ($ec: ident, $v: ident, $vars:expr, $expr: tt, $quants: expr, $res: expr) => {
             $ec = ExprCreator::<isize>::new();
             $v.clear();
             $v.push(ExprNode::single($ec.clone(), false));
@@ -835,9 +870,11 @@ mod tests {
             let expr_index = $expr;
             let mut cnf_writer = CNFWriter::new(vec![]);
             test_println!("expr: {}", expr_index);
-            $ec.borrow().write(expr_index, &mut cnf_writer).unwrap();
+            $ec.borrow()
+                .write(expr_index, $quants, &mut cnf_writer)
+                .unwrap();
             assert_eq!($res, String::from_utf8_lossy(cnf_writer.inner()));
-        }};
+        };
     }
 
     #[test]
@@ -1474,6 +1511,47 @@ mod tests {
                 "11 -12 -13 0\n4 -17 0\n5 -17 0\n-4 -5 17 0\n10 -11 0\n10 -17 0\n-10 11 17 0\n",
                 "8 9 -19 0\n-8 -9 -19 0\n6 7 -22 0\n-6 -7 -22 0\n-21 22 0\n10 -21 0\n6 -23 0\n",
                 "7 -23 0\n-20 21 23 0\n-18 19 0\n-18 20 0\n8 -24 0\n9 -24 0\n-10 18 24 0\n"
+            )
+        );
+    }
+
+    #[test]
+    fn test_expr_creator_quantsets() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) | (!xp1 & v[4].clone())).index
+            },
+            [(Quantifier::Exists, [1]), (Quantifier::ForAll, [2])],
+            concat!(
+                "p cnf 7 8\n",
+                "e 1 0\na 2 0\ne 5 6 7 0\n",
+                "1 -6 0\n2 -6 0\n-1 -2 6 0\n-5 6 0\n3 -5 0\n-6 -7 0\n4 -7 0\n5 7 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            4,
+            {
+                let xp1 = v[1].clone() & v[2].clone();
+                ((xp1.clone() & v[3].clone()) | (!xp1 & v[4].clone())).index
+            },
+            [
+                (Quantifier::Exists, [1]),
+                (Quantifier::ForAll, [2]),
+                (Quantifier::Exists, [3])
+            ],
+            concat!(
+                "p cnf 7 8\n",
+                "e 1 0\na 2 0\ne 3 5 6 7 0\n",
+                "1 -6 0\n2 -6 0\n-1 -2 6 0\n-5 6 0\n3 -5 0\n-6 -7 0\n4 -7 0\n5 7 0\n"
             )
         );
     }
