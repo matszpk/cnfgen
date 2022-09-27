@@ -26,10 +26,45 @@ use std::rc::Rc;
 
 use std::ops::Neg;
 
+use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
-//use crate::boolexpr::ExprNode as BoolExprNode;
-
 use crate::VarLit;
+
+/// Equality operator for boolean expressions and boolean words.
+pub trait IntEqual<Rhs = Self> {
+    type Output;
+
+    fn equal(self, rhs: Rhs) -> Self::Output;
+    fn nequal(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Equality operator for PartialEq.
+macro_rules! int_equal_impl {
+    ($t: ty) => {
+        impl IntEqual for $t {
+            type Output = bool;
+            fn equal(self, rhs: $t) -> bool {
+                self == rhs
+            }
+            fn nequal(self, rhs: $t) -> bool {
+                self != rhs
+            }
+        }
+    };
+}
+
+int_equal_impl!(u8);
+int_equal_impl!(i8);
+int_equal_impl!(u16);
+int_equal_impl!(i16);
+int_equal_impl!(u32);
+int_equal_impl!(i32);
+int_equal_impl!(u64);
+int_equal_impl!(i64);
+int_equal_impl!(usize);
+int_equal_impl!(isize);
+int_equal_impl!(u128);
+int_equal_impl!(i128);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug, const N: usize> {
@@ -58,5 +93,39 @@ where
             index
         };
         ExprNode { creator, index }
+    }
+
+    pub fn bit(&self, n: usize) -> BoolExprNode<T> {
+        BoolExprNode {
+            creator: self.creator.clone(),
+            index: self.index + n,
+        }
+    }
+}
+
+impl<T, const N: usize> IntEqual for ExprNode<T, N>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = BoolExprNode<T>;
+
+    fn equal(self, rhs: Self) -> Self::Output {
+        let mut xp1 = self.bit(0).equal(rhs.bit(0));
+        for i in 1..N {
+            xp1 = xp1 & self.bit(i).equal(rhs.bit(i));
+        }
+        xp1
+    }
+
+    fn nequal(self, rhs: Self) -> Self::Output {
+        let mut xp1 = self.bit(0) ^ rhs.bit(0);
+        for i in 1..N {
+            xp1 = xp1 | self.bit(i) ^ rhs.bit(i);
+        }
+        xp1
     }
 }

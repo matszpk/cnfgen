@@ -43,4 +43,4 @@ pub use boolexpr::{BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 pub mod boolexpr_creator;
 pub use boolexpr_creator::ExprCreator;
 pub mod intexpr;
-pub use intexpr::ExprNode as IntExprNode;
+pub use intexpr::{ExprNode as IntExprNode, IntEqual};
