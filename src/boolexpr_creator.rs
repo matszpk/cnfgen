@@ -129,11 +129,12 @@ impl<T: VarLit + Debug> Default for DepNode<T> {
     }
 }
 
+// Operation join -
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OpJoin {
     Nothing,
-    Conj,
-    Disjunc,
+    Conj,    // if tree of conjunctions
+    Disjunc, // if tree of disjunctions
 }
 
 /// The ExprCreator holds all expressions which will be written later.
@@ -146,6 +147,7 @@ pub struct ExprCreator<T: VarLit + Debug> {
     pub(super) lit_to_index: Vec<usize>,
 }
 
+// macro to create new_* methods for ExprCreator.
 macro_rules! new_xxx {
     ($t:ident, $u:ident) => {
         pub(super) fn $t(&mut self, a_index: usize, b_index: usize) -> usize {
@@ -157,6 +159,8 @@ macro_rules! new_xxx {
     };
 }
 
+// Literal writer trait to share code to writing clauses.
+// Two types of code - to count clauses and to write clauses.
 trait LiteralsWriter {
     fn write_literals<T, I>(&mut self, iter: I) -> Result<(), CNFError>
     where
@@ -265,6 +269,8 @@ where
         dep_nodes: &Vec<DepNode<T>>,
         cnf: &mut LW,
     ) -> Result<(), CNFError> {
+        // Joining clause - structure to holds final subexpressions to join in one clause -
+        // conjunction, disjunction, XOR or Equality.
         #[derive(Clone, Debug)]
         enum JoiningClause<T: VarLit + Debug> {
             Nothing,
@@ -288,10 +294,10 @@ where
         struct DepEntry<T: VarLit + Debug> {
             node_index: usize,
             path: usize,
-            normal_usage: bool,
-            negated_usage: bool,
-            not_join: bool,
-            negated: bool,
+            normal_usage: bool,  // usage of clauses - not negated
+            negated_usage: bool, // usage of clauses - negated - after Negated
+            not_join: bool,      // true if chain Negated
+            negated: bool,       // if negated
             start: bool,
             joining_clause: JoiningClause<T>,
         }
@@ -326,6 +332,7 @@ where
                 };
                 if let JoiningClause::Join(stackpos) = stack.last().unwrap().joining_clause {
                     let join_entry = stack.get_mut(stackpos).unwrap();
+                    // get link variable or single literal.
                     let linkvar = dep_nodes
                         .get(node_index)
                         .unwrap()
@@ -341,6 +348,7 @@ where
                         let linkvar = if !negated { linkvar } else { !linkvar };
 
                         match &mut join_entry.joining_clause {
+                            // push literal into joining clause.
                             JoiningClause::Clause(ref mut v) => {
                                 v.push(linkvar);
                             }
@@ -411,6 +419,7 @@ where
                 //////////////
 
                 if first_path || second_path {
+                    // determine clauses usage and not_join.
                     let (normal_usage, negated_usage, not_join) = match node {
                         Node::Single(_) => (false, false, false),
                         Node::Negated(_) => (top.negated_usage, top.normal_usage, true),
@@ -427,7 +436,7 @@ where
                         }
                     };
                     let start = node.is_negated() && top.start;
-
+                    // determine negation
                     let negated = if top.not_join && node.is_negated() {
                         !top.negated
                     } else {
@@ -477,6 +486,7 @@ where
                     top.joining_clause
                 );
                 match top.joining_clause {
+                    // generate clauses
                     JoiningClause::Clause(literals) => match self.nodes[top.node_index] {
                         Node::And(_, _) => {
                             if dep_node.normal_usage {
@@ -653,11 +663,11 @@ where
             struct DepEntry {
                 node_index: usize,
                 path: usize,
-                normal_usage: bool,
-                negated_usage: bool,
-                op_join: OpJoin,
-                not_join: bool,
-                negated: bool,
+                normal_usage: bool,  // normal usage of clauses
+                negated_usage: bool, // negated usage of clauses - if after negated
+                op_join: OpJoin,     // operation join - if we in path of join.
+                not_join: bool,      // if negation chain
+                negated: bool,       // if negated
                 start: bool,
             }
 
@@ -688,7 +698,8 @@ where
                 let second_path = top.path == 1 && !node.is_unary();
 
                 if first_path {
-                    // fix OpJoin
+                    // fix OpJoin - if we have this same type of operation and this same
+                    // type of subtree (opjoin) and this node is negated - then clear joining.
                     if top.negated
                         && ((node.is_conj() && top.op_join == OpJoin::Conj)
                             || (node.is_disjunc() && top.op_join == OpJoin::Disjunc))
@@ -719,11 +730,13 @@ where
                     || (top.negated_usage && !dep_node.negated_usage)
                 {
                     if first_path {
+                        // update usage of clauses for node.
                         dep_node.normal_usage |= top.normal_usage;
                         dep_node.negated_usage |= top.negated_usage;
                     }
 
                     if first_path || second_path {
+                        // determine clauses usage, not_join and operation join.
                         let (normal_usage, negated_usage, not_join, op_join) = match node {
                             Node::Single(_) => (false, false, false, OpJoin::Nothing),
                             Node::Negated(_) => {
@@ -834,6 +847,7 @@ where
                 cnf.write_quant(last.0, last.1)?;
             }
             let mut t = self.var_count().next_value().unwrap();
+            // add extra variables to last 'exists' quantifier
             while t <= total_var_count {
                 dest_last_qs.push(t);
                 t = t.next_value().unwrap();
@@ -885,13 +899,7 @@ mod tests {
         #[allow(unused_assignments)]
         let mut ec = ExprCreator::<isize>::new();
         // single operator testcases
-        expr_creator_testcase!(
-            ec,
-            v,
-            1,
-            { v[1].index },
-            "p cnf 1 0\n"
-        );
+        expr_creator_testcase!(ec, v, 1, { v[1].index }, "p cnf 1 0\n");
         expr_creator_testcase!(
             ec,
             v,
