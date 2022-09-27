@@ -153,7 +153,7 @@ where
 
 macro_rules! new_op_impl {
     // for argeqres - if None then use self
-    ($t:ident, $u:ident, $v:ident, $argeqres:expr) => {
+    ($t:ident, $u:ident, $v:ident, $argeqres:expr, $argnegres:expr) => {
         /// An implementation operator for ExprNode.
         impl<T> $t for ExprNode<T>
         where
@@ -174,10 +174,19 @@ macro_rules! new_op_impl {
                         return self;
                     }
                 }
+
                 let (node1, node2) = {
                     let creator = self.creator.borrow();
                     (creator.nodes[self.index], creator.nodes[rhs.index])
                 };
+                if node2 == Node::Negated(self.index) || node1 == Node::Negated(rhs.index) {
+                    if let Some(t) = $argnegres {
+                        return ExprNode::single(self.creator, t);
+                    } else {
+                        return rhs; // for implication
+                    }
+                }
+
                 if let Node::Single(lit1) = node1 {
                     if let Node::Single(lit2) = node2 {
                         self.$v(lit2)
@@ -203,11 +212,11 @@ macro_rules! new_op_impl {
 }
 
 // for argeqres - if None then use self
-new_op_impl!(BitAnd, new_and, bitand, None::<bool>);
-new_op_impl!(BitOr, new_or, bitor, None::<bool>);
-new_op_impl!(BitXor, new_xor, bitxor, Some(false));
-new_op_impl!(BoolEqual, new_equal, equal, Some(true));
-new_op_impl!(BoolImpl, new_impl, imp, Some(true));
+new_op_impl!(BitAnd, new_and, bitand, None::<bool>, Some(false));
+new_op_impl!(BitOr, new_or, bitor, None::<bool>, Some(true));
+new_op_impl!(BitXor, new_xor, bitxor, Some(false), Some(true));
+new_op_impl!(BoolEqual, new_equal, equal, Some(true), Some(false));
+new_op_impl!(BoolImpl, new_impl, imp, Some(true), None::<bool>);
 
 /// An implementation BitAnd for ExprNode where rhs is Literal.
 impl<T, U> BitAnd<U> for ExprNode<T>
@@ -947,13 +956,14 @@ mod tests {
         XPVar1,
         XPNotVar1,
         XPExpr,
+        XPNotExpr,
     }
 
     use ExpOpResult::*;
 
     macro_rules! test_op_simpls {
         ($op:ident, $tt:expr, $v1f:expr, $fv1:expr, $v1t:expr, $tv1:expr, $nv1v1:expr, $v1nv1:expr,
-         $v1v1: expr, $xpxp: expr) => {
+         $v1v1: expr, $xpxp: expr, $nxpxp: expr, $xpnxp: expr) => {
             let ec = ExprCreator::<isize>::new();
             let v1 = ExprNode::variable(ec.clone());
             let nv1 = !v1.clone();
@@ -961,6 +971,7 @@ mod tests {
             let xptrue = ExprNode::single(ec.clone(), true);
             let v2 = ExprNode::variable(ec.clone());
             let xp = v1.clone() & v2.clone();
+            let nxp = !(xp.clone());
 
             macro_rules! select {
                 ($r:tt) => {
@@ -970,6 +981,7 @@ mod tests {
                         XPVar1 => v1.clone(),
                         XPNotVar1 => nv1.clone(),
                         XPExpr => xp.clone(),
+                        XPNotExpr => nxp.clone(),
                     }
                 };
             }
@@ -1008,41 +1020,48 @@ mod tests {
             assert_eq!(v1.clone().$op(v1.clone()), select!($v1v1));
 
             assert_eq!(xp.clone().$op(xp.clone()), select!($xpxp));
+            assert_eq!(nxp.clone().$op(xp.clone()), select!($nxpxp));
+            assert_eq!(xp.clone().$op(nxp.clone()), select!($xpnxp));
         };
     }
 
     #[test]
     fn test_expr_nodes_and_simpls() {
         test_op_simpls!(
-            bitand, XPTrue, XPFalse, XPFalse, XPVar1, XPVar1, XPFalse, XPFalse, XPVar1, XPExpr
+            bitand, XPTrue, XPFalse, XPFalse, XPVar1, XPVar1, XPFalse, XPFalse, XPVar1, XPExpr,
+            XPFalse, XPFalse
         );
     }
 
     #[test]
     fn test_expr_nodes_or_simpls() {
         test_op_simpls!(
-            bitor, XPTrue, XPVar1, XPVar1, XPTrue, XPTrue, XPTrue, XPTrue, XPVar1, XPExpr
+            bitor, XPTrue, XPVar1, XPVar1, XPTrue, XPTrue, XPTrue, XPTrue, XPVar1, XPExpr, XPTrue,
+            XPTrue
         );
     }
 
     #[test]
     fn test_expr_nodes_xor_simpls() {
         test_op_simpls!(
-            bitxor, XPFalse, XPVar1, XPVar1, XPNotVar1, XPNotVar1, XPTrue, XPTrue, XPFalse, XPFalse
+            bitxor, XPFalse, XPVar1, XPVar1, XPNotVar1, XPNotVar1, XPTrue, XPTrue, XPFalse,
+            XPFalse, XPTrue, XPTrue
         );
     }
 
     #[test]
     fn test_expr_nodes_equal_simpls() {
         test_op_simpls!(
-            equal, XPTrue, XPNotVar1, XPNotVar1, XPVar1, XPVar1, XPFalse, XPFalse, XPTrue, XPTrue
+            equal, XPTrue, XPNotVar1, XPNotVar1, XPVar1, XPVar1, XPFalse, XPFalse, XPTrue, XPTrue,
+            XPFalse, XPFalse
         );
     }
 
     #[test]
     fn test_expr_nodes_impl_simpls() {
         test_op_simpls!(
-            imp, XPTrue, XPNotVar1, XPTrue, XPTrue, XPVar1, XPVar1, XPNotVar1, XPTrue, XPTrue
+            imp, XPTrue, XPNotVar1, XPTrue, XPTrue, XPVar1, XPVar1, XPNotVar1, XPTrue, XPTrue,
+            XPExpr, XPNotExpr
         );
     }
 }
