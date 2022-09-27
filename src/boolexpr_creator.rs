@@ -1396,4 +1396,24 @@ mod tests {
             )
         );
     }
+    
+    #[test]
+    fn test_expr_creator_complex() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
+        expr_creator_testcase!(
+            ec,
+            v,
+            3,
+            {
+                let xp1 = !v[1].clone() & v[2].clone();
+                (xp1.clone() | !v[3].clone() ^ (v[1].clone() | v[2].clone())).index
+            },
+            concat!(
+                "p cnf 6 8\n",
+                "-1 -4 0\n2 -4 0\n-1 6 0\n-2 6 0\n1 2 -6 0\n-3 -5 6 0\n3 -5 -6 0\n4 5 0\n"
+            )
+        );
+    }
 }
