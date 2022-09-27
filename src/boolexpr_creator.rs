@@ -1396,7 +1396,7 @@ mod tests {
             )
         );
     }
-    
+
     #[test]
     fn test_expr_creator_complex() {
         let mut v = vec![];
@@ -1413,6 +1413,27 @@ mod tests {
             concat!(
                 "p cnf 6 8\n",
                 "-1 -4 0\n2 -4 0\n-1 6 0\n-2 6 0\n1 2 -6 0\n-3 -5 6 0\n3 -5 -6 0\n4 5 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            {
+                let xp1 = v[1].clone().imp(v[2].clone());
+                let xp2 = v[3].clone().imp(v[2].clone());
+                let xp3 = (xp1.clone() ^ xp2.clone()) | v[4].clone();
+                let xp4 = (xp1.clone().equal(xp2.clone())) & v[5].clone();
+                let xp5 = (xp1.clone() | xp3.clone()) & (xp2.clone() | xp4.clone());
+                let xp6 = (xp1.clone() & !xp3.clone()) | (!xp2.clone() & xp4.clone());
+                (xp6.clone().imp(xp5.clone())).index
+            },
+            concat!(
+                "p cnf 17 25\n",
+                "1 8 0\n-2 8 0\n-1 2 -8 0\n3 11 0\n-2 11 0\n2 -3 -11 0\n8 -10 11 0\n",
+                "-8 -10 -11 0\n4 -9 10 0\n7 -8 9 0\n8 -11 -14 0\n-8 11 -14 0\n8 11 14 0\n",
+                "-8 -11 14 0\n-13 14 0\n5 -13 0\n-5 13 -14 0\n11 12 -13 0\n6 -7 0\n",
+                "6 -12 0\n8 9 -16 0\n11 13 -17 0\n-15 16 0\n-15 17 0\n-6 15 0\n"
             )
         );
     }
