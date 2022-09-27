@@ -124,7 +124,7 @@ where
     fn nequal(self, rhs: Self) -> Self::Output {
         let mut xp1 = self.bit(0) ^ rhs.bit(0);
         for i in 1..N {
-            xp1 = xp1 | self.bit(i) ^ rhs.bit(i);
+            xp1 = xp1 | (self.bit(i) ^ rhs.bit(i));
         }
         xp1
     }
