@@ -110,171 +110,387 @@ where
 
 macro_rules! impl_int_ty1_lt_ty2 {
     ($impl_mac:ident) => {
-        $impl_mac!(UInt<N, B0>, UInt<N, B1>, );
-        $impl_mac!(UInt<UInt<N, B0>, BX0>, UInt<UInt<N, B1>, BX0>, BX0);
-        $impl_mac!(UInt<UInt<UInt<N, B0>, BX1>, BX0>, UInt<UInt<UInt<N, B1>, BX1>, BX0>, BX0, BX1);
-        $impl_mac!(UInt<UInt<UInt<UInt<N, B0>, BX2>, BX1>, BX0>,
-                UInt<UInt<UInt<UInt<N, B1>, BX2>, BX1>, BX0>, BX0, BX1, BX2);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<N, B0>, BX3>, BX2>, BX1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<N, B1>, BX3>, BX2>, BX1>, BX0>, BX0, BX1, BX2, BX3);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<N, B0>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UInt<N, B1>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                        BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                        BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<N, B0>,
-                        BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<N, B1>,
-                        BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<N, B0>,
-                        BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>,
-                        BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<N, B1>,
-                        BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>,
-                        BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<N, B0>,
-                        BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>,
-                        BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<N, B1>,
-                        BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>,
-                        BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<N, B0>,
-                        BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>,
-                        BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<N, B1>,
-                        BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>,
-                        BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>,
-                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>,
-                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>,
-                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>,
-                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>,
-                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>,
-                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18, BX19);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>,
-                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>,
-                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18, BX19, BX20);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>,
-                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>,
-                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18, BX19, BX20, BX21);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>,
-                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>,
-                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18, BX19, BX20, BX21, BX22);
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
-                        BX23>, BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>,
-                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                        BX0>,
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
-                        BX23>, BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>,
-                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                        BX0>,
-                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
-                    BX15, BX16, BX17, BX18, BX19, BX20, BX21, BX22, BX23);
+        // 1 < 0b1Y
+        $impl_mac!(U1, UInt<UInt<UTerm, B1>, BY0>, BY0);
+        // 1 < 0b1YY
+        $impl_mac!(U1, UInt<UInt<UInt<UTerm, B1>, BY1>, BY0>, BY0, BY1);
+        // 1 < 0b1YYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>, BY1>, BY0>, BY0, BY1, BY2);
+        // 1 < 0b1YYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY3>, BY2>, BY1>, BY0>,
+                BY0, BY1, BY2, BY3);
+        // 1 < 0b1YYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BY0, BY1, BY2, BY3, BY4);
+        // 1 < 0b1YYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5);
+        // 1 < 0b1YYYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        // 1 < 0b1YYYYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>,
+                BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
+        // 1 < 0b1YYYYYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>,
+                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7,
+                BY8);
+        // 1 < 0b1YYYYYYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>,
+                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4,
+                BY5, BY6, BY7, BY8, BY9);
+        // 1 < 0b1YYYYYYYYYYY
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2,
+                BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 2 < 3
+        $impl_mac!(U2, U3, );
+        // 0b1X < 0b1YY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UTerm, B1>, BY1>, BY0>,
+                BX0, BY0, BY1);
+        // 0b1X < 0b1YYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>, BY1>, BY0>,
+                BX0, BY0, BY1, BY2);
+        // 0b1X < 0b1YYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BY0, BY1, BY2, BY3);
+        // 0b1X < 0b1YYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4);
+        // 0b1X < 0b1YYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5);
+        // 0b1X < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
+                B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5,
+                BY6);
+        // 0b1X < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2,
+                BY3, BY4, BY5, BY6, BY7);
+        // 0b1X < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0,
+                BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1X < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
+        // 0b1X < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 4 < 5
+        $impl_mac!(U4, U5, );
+        // 0b10X < 0b11Y
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, B0>, BX0>, UInt<UInt<UInt<UTerm, B1>, B1>, BY0>,
+                BX0, BY0);
+        // 0b110 < 0b111
+        $impl_mac!(U6, U7, );
+        //---------------------
+        // 0b1XX < 0b1YYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>,
+                BY1>, BY0>, BX0, BX1, BY0, BY1, BY2);
+        // 0b1XX < 0b1YYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3);
+        // 0b1XX < 0b1YYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
+                B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4);
+        // 0b1XX < 0b1YYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3,
+                BY4, BY5);
+        // 0b1XX < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1,
+                BY2, BY3, BY4, BY5, BY6);
+        // 0b1XX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
+                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
+        // 0b1XX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1XX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
+        // 0b1XX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
+                BY9, BY10);
+        
+        //---------------------
+        // 8 < 9
+        $impl_mac!(U8, U9, );
+        // 0b100X < 0b101Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY0>, BX0, BY0);
+        // 0b100X < 0b11YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 10 < 11
+        $impl_mac!(U10, U11, );
+        // 0b101X < 0b11YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BX0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 12 < 13
+        $impl_mac!(U12, U13, );
+        // 0b110X < 0b111Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY0>, BX0, BY0);
+        // 14 < 15
+        $impl_mac!(U14, U15, );
+        //---------------------
+        // 0b1XXX < 0b1YYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UTerm, B1>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3);
+        // 0b1XXX < 0b1YYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2,
+                BY3, BY4);
+        // 0b1XXX < 0b1YYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0,
+                BY1, BY2, BY3, BY4, BY5);
+        // 0b1XXX < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
+                BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        // 0b1XXX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
+        // 0b1XXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1XXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7,
+                BY8, BY9);
+        // 0b1XXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>,
+                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5,
+                BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b10000 < 0b10001
+        $impl_mac!(U16, U17, );
+        // 0b1000X < 0b1001Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BY0>, BX0, BY0);
+        // 0b1000X < 0b101YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 0b1000X < 0b11YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2);
+        // 0b10010 < 0b10011
+        $impl_mac!(U18, U19, );
+        // 0b1001X < 0b101YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 0b1001X < 0b11YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2);
+        // 0b10100 < 0b10101
+        $impl_mac!(U20, U21, );
+        // 0b1010X < 0b1011Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, BY0>, BX0, BY0);
+        // 0b101XX < 0b11YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BX1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1,
+                BY2);
+        // 0b11000 < 0b11001
+        $impl_mac!(U24, U25, );
+        // 0b1100X < 0b1101Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, BY0>, BX0, BY0);
+        // 0b1100X < 0b111YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 0b11010 < 0b11011
+        $impl_mac!(U26, U27, );
+        // 0b1101X < 0b111YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        // 0b11100 < 0b11101
+        $impl_mac!(U28, U29, );
+        // 0b1110X < 0b1111Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, BY0>, BX0, BY0);
+        // 0b11110 < 0b11111
+        $impl_mac!(U30, U31, );
+        //---------------------
+        // 0b1XXXX < 0b1YYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt <UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3,
+                BY0, BY1, BY2, BY3, BY4);
+        // 0b1XXXX < 0b1YYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
+                BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5);
+        // 0b1XXXX < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        // 0b1XXXX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
+        // 0b1XXXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6,
+                BY7, BY8);
+        // 0b1XXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>,
+                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4,
+                BY5, BY6, BY7, BY8, BY9);
+        // 0b1XXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>,
+                BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1,
+                BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXX < 0b1YYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>,
+                BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5);
+        // 0b1XXXXX < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        // 0b1XXXXX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>,
+                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5,
+                BY6, BY7);
+        // 0b1XXXXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, 
+                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4,
+                BY5, BY6, BY7, BY8);
+        // 0b1XXXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>,
+                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2,
+                BY3, BY4, BY5, BY6, BY7, BY8, BY9);
+        // 0b1XXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>,
+                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
+                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXXX < 0b1YYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                BX0>, UInt<UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>,
+                BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        // 0b1XXXXXX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>,
+                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1, BY2, BY3,
+                BY4, BY5, BY6, BY7);
+        // 0b1XXXXXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>,
+                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1,
+                BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1XXXXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>,
+                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
+                BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
+        // 0b1XXXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
+                BX3, BX4, BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXXXX < 0b1YYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
+                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>,
+                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BY0,
+                BY1, BY2, BY3, BY4, BY5, BY6, BY7);
+        // 0b1XXXXXXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
+                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
+                BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1XXXXXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
+                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
+                B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
+                BX3, BX4, BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
+        // 0b1XXXXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
+                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BX1, BX2, BX3, BX4, BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
+                BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXXXXX < 0b1YYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
+                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
+                BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
+        // 0b1XXXXXXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
+                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0,
+                BX1, BX2, BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
+                BY9);
+        // 0b1XXXXXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
+                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5,
+                BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXXXXXX < 0b1YYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX8>, BX7>, BX6>,
+                BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
+                BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BY0, BY1, BY2, BY3, BY4, BY5, BY6,
+                BY7, BY8, BY9);
+        // 0b1XXXXXXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX8>, BX7>, BX6>,
+                BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
+                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BY0, BY1, BY2, BY3, BY4,
+                BY5, BY6, BY7, BY8, BY9, BY10);
+        
+        //---------------------
+        // 0b1XXXXXXXXXX < 0b1YYYYYYYYYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX9>, BX8>,
+                BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>,
+                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9,
+                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
     }
 }
 
 // TryFrom implementation
 macro_rules! impl_int_try_from {
     ($ty1:ty, $ty2: ty, $($gparams:ident),*) => {
-        impl<T: VarLit, N: ArrayLength<usize>, const SIGN2: bool, $( $gparams ),* >
+        impl<T: VarLit, const SIGN2: bool, $( $gparams ),* >
                 TryFrom<ExprNode<T, $ty2, SIGN2>> for ExprNode<T, $ty1, false>
         where
             $ty1: ArrayLength<usize>,
@@ -295,7 +511,7 @@ macro_rules! impl_int_try_from {
             }
         }
 
-        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+        impl<T: VarLit, $( $gparams ),* >
                 TryFrom<ExprNode<T, $ty2, false>> for ExprNode<T, $ty1, true>
         where
             $ty1: ArrayLength<usize>,
@@ -316,7 +532,7 @@ macro_rules! impl_int_try_from {
             }
         }
 
-        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+        impl<T: VarLit, $( $gparams ),* >
                 TryFrom<ExprNode<T, $ty2, true>> for ExprNode<T, $ty1, true>
         where
             $ty1: ArrayLength<usize>,
@@ -338,7 +554,7 @@ macro_rules! impl_int_try_from {
         }
 
         // try from for rest
-        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+        impl<T: VarLit, $( $gparams ),* >
                 TryFrom<ExprNode<T, $ty1, true>> for ExprNode<T, $ty2, false>
             where
                 $ty1: ArrayLength<usize>,
@@ -394,7 +610,7 @@ impl<T: VarLit, N: ArrayLength<usize>> TryFrom<ExprNode<T, N, true>> for ExprNod
 // From implementation
 macro_rules! impl_int_from {
     ($ty1:ty, $ty2: ty, $($gparams:ident),*) => {
-        impl<T: VarLit, N: ArrayLength<usize>, const SIGN2: bool, $( $gparams ),* >
+        impl<T: VarLit, const SIGN2: bool, $( $gparams ),* >
                 From<ExprNode<T, $ty1, false>> for ExprNode<T, $ty2, SIGN2>
             where
                 $ty1: ArrayLength<usize>,
@@ -408,7 +624,7 @@ macro_rules! impl_int_from {
             }
         }
 
-        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+        impl<T: VarLit, $( $gparams ),* >
                 From<ExprNode<T, $ty1, true>> for ExprNode<T, $ty2, true>
             where
                 $ty1: ArrayLength<usize>,
@@ -455,4 +671,10 @@ where
         }
         xp
     }
+}
+
+fn test_xxx() {
+    let ec = ExprCreator::new();
+    let v1 = ExprNode::<isize, U454, false>::variable(ec.clone());
+    let tv1 = ExprNode::<isize, U6, false>::try_from(v1).unwrap();
 }
