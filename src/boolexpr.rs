@@ -110,6 +110,15 @@ where
         ExprNode { creator, index }
     }
 
+    /// Returns literal value if exists
+    pub fn value(&self) -> Option<bool> {
+        if let Node::Single(Literal::Value(b)) = self.creator.borrow().nodes[self.index] {
+            Some(b)
+        } else {
+            None
+        }
+    }
+
     /// Returns variable literal if exists
     pub fn varlit(&self) -> Option<T> {
         if let Node::Single(Literal::VarLit(l)) = self.creator.borrow().nodes[self.index] {

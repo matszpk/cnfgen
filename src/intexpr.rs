@@ -30,6 +30,12 @@ use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 
+#[derive(thiserror::Error, Debug)]
+pub enum IntError {
+    #[error("Bit overflow")]
+    BitOverflow,
+}
+
 /// Equality operator for boolean expressions and boolean words.
 pub trait IntEqual<Rhs = Self> {
     type Output;
