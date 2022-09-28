@@ -22,14 +22,15 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
 use std::ops::Neg;
+use std::rc::Rc;
 
+use generic_array::typenum::*;
 use generic_array::*;
 
 use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
-use crate::boolexpr_creator::ExprCreator;
-use crate::VarLit;
+use crate::boolexpr_creator::{ExprCreator, Node};
+use crate::{Literal, VarLit};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -100,10 +101,246 @@ where
         ExprNode { creator, indexes }
     }
 
+    #[inline]
     pub fn bit(&self, n: usize) -> BoolExprNode<T> {
         BoolExprNode::new(self.creator.clone(), self.indexes[n])
     }
 }
+
+macro_rules! impl_int_ty1_lt_ty2 {
+    ($impl_mac:ident) => {
+        $impl_mac!(UInt<N, B0>, UInt<N, B1>, );
+        $impl_mac!(UInt<UInt<N, B0>, BX0>, UInt<UInt<N, B1>, BX0>, BX0);
+        $impl_mac!(UInt<UInt<UInt<N, B0>, BX1>, BX0>, UInt<UInt<UInt<N, B1>, BX1>, BX0>, BX0, BX1);
+        $impl_mac!(UInt<UInt<UInt<UInt<N, B0>, BX2>, BX1>, BX0>,
+                UInt<UInt<UInt<UInt<N, B1>, BX2>, BX1>, BX0>, BX0, BX1, BX2);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<N, B0>, BX3>, BX2>, BX1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<N, B1>, BX3>, BX2>, BX1>, BX0>, BX0, BX1, BX2, BX3);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<N, B0>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<N, B1>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                        BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                        BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<N, B0>,
+                        BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<N, B1>,
+                        BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<N, B0>,
+                        BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>,
+                        BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<N, B1>,
+                        BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>,
+                        BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<N, B0>,
+                        BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>,
+                        BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<N, B1>,
+                        BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>,
+                        BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<N, B0>,
+                        BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>,
+                        BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<N, B1>,
+                        BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>,
+                        BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>,
+                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>, BX7>,
+                        BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>,
+                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>, BX8>,
+                        BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>,
+                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>, BX9>,
+                        BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18, BX19);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>,
+                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>, BX10>,
+                        BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18, BX19, BX20);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>,
+                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>, BX11>,
+                        BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18, BX19, BX20, BX21);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>,
+                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>, BX12>,
+                        BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18, BX19, BX20, BX21, BX22);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B0>,
+                        BX23>, BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>,
+                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                        BX0>,
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<N, B1>,
+                        BX23>, BX22>, BX21>, BX20>, BX19>, BX18>, BX17>, BX16>, BX15>, BX14>, BX13>,
+                        BX12>, BX11>, BX10>, BX9>, BX8>, BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>,
+                        BX0>,
+                    BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9, BX10, BX11, BX12, BX13, BX14,
+                    BX15, BX16, BX17, BX18, BX19, BX20, BX21, BX22, BX23);
+    }
+}
+
+macro_rules! impl_int_try_from {
+    ($ty1:ty, $ty2: ty, $($gparams:ident),*) => {
+        impl<T: VarLit, N: ArrayLength<usize>, const SIGN2: bool, $( $gparams ),* >
+                TryFrom<ExprNode<T, $ty2, SIGN2>> for ExprNode<T, $ty1, false>
+        where
+            $ty1: ArrayLength<usize>,
+            $ty2: ArrayLength<usize>,
+        {
+            type Error = IntError;
+            fn try_from(v: ExprNode<T, $ty2, SIGN2>) -> Result<Self, Self::Error> {
+                let mut new_v = ExprNode::<T, $ty1, false>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                let len1 = new_v.indexes.len();
+                {
+                    let creator = v.creator.borrow();
+                    if !v.indexes.iter().skip(len1).all(|x|
+                            matches!(creator.nodes[*x], Node::Single(Literal::Value(false)))) {
+                        return Err(IntError::BitOverflow);
+                    }
+                }
+                new_v.indexes.copy_from_slice(&v.indexes[0..len1]);
+                Ok(new_v)
+            }
+        }
+
+        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+                TryFrom<ExprNode<T, $ty2, false>> for ExprNode<T, $ty1, true>
+        where
+            $ty1: ArrayLength<usize>,
+            $ty2: ArrayLength<usize>,
+        {
+            type Error = IntError;
+            fn try_from(v: ExprNode<T, $ty2, false>) -> Result<Self, Self::Error> {
+                let mut new_v = ExprNode::<T, $ty1, true>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                let len1 = new_v.indexes.len();
+                {
+                    let creator = v.creator.borrow();
+                    if !v.indexes.iter().skip(len1-1).all(|x|
+                            matches!(creator.nodes[*x], Node::Single(Literal::Value(false)))) {
+                        return Err(IntError::BitOverflow);
+                    }
+                }
+                new_v.indexes.copy_from_slice(&v.indexes[0..len1]);
+                Ok(new_v)
+            }
+        }
+
+        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+                TryFrom<ExprNode<T, $ty2, true>> for ExprNode<T, $ty1, true>
+        where
+            $ty1: ArrayLength<usize>,
+            $ty2: ArrayLength<usize>,
+        {
+            type Error = IntError;
+            fn try_from(v: ExprNode<T, $ty2, true>) -> Result<Self, Self::Error> {
+                let mut new_v = ExprNode::<T, $ty1, true>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                let len1 = new_v.indexes.len();
+                let last_idx = v.indexes[len1-1];
+                if !v.indexes.iter().skip(len1).all(|x| last_idx==*x) {
+                    return Err(IntError::BitOverflow);
+                }
+                new_v.indexes.copy_from_slice(&v.indexes[0..len1]);
+                Ok(new_v)
+            }
+        }
+    }
+}
+
+impl_int_ty1_lt_ty2!(impl_int_try_from);
 
 impl<T, N: ArrayLength<usize>, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
 where
