@@ -95,10 +95,7 @@ where
     }
 
     pub fn bit(&self, n: usize) -> BoolExprNode<T> {
-        BoolExprNode {
-            creator: self.creator.clone(),
-            index: self.indexes[n],
-        }
+        BoolExprNode::new(self.creator.clone(), self.indexes[n])
     }
 }
 

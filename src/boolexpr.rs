@@ -77,7 +77,7 @@ impl BoolImpl for bool {
 /// literal or value or this same expresion node (example: `v1 ^ true` => `!v1`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug> {
-    pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
+    creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) index: usize,
 }
 
@@ -89,6 +89,11 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    #[inline]
+    pub fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
+        ExprNode { creator, index }
+    }
+
     /// Creates single literal as expression node.
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
