@@ -40,6 +40,7 @@ pub trait BoolEqual<Rhs = Self> {
 /// Equality operator for bool.
 impl BoolEqual for bool {
     type Output = bool;
+
     fn equal(self, rhs: bool) -> Self::Output {
         self == rhs
     }
@@ -55,6 +56,7 @@ pub trait BoolImpl<Rhs = Self> {
 /// Material implication for bool.
 impl BoolImpl for bool {
     type Output = bool;
+
     fn imp(self, rhs: bool) -> Self::Output {
         (!self) | rhs
     }

@@ -29,8 +29,8 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
-use crate::boolexpr_creator::{ExprCreator, Node};
-use crate::{Literal, VarLit};
+use crate::boolexpr_creator::ExprCreator;
+use crate::VarLit;
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -51,6 +51,7 @@ macro_rules! int_equal_impl {
     ($t: ty) => {
         impl IntEqual for $t {
             type Output = bool;
+
             fn equal(self, rhs: $t) -> bool {
                 self == rhs
             }
@@ -270,6 +271,7 @@ macro_rules! impl_int_ty1_lt_ty2 {
     }
 }
 
+// TryFrom implementation
 macro_rules! impl_int_try_from {
     ($ty1:ty, $ty2: ty, $($gparams:ident),*) => {
         impl<T: VarLit, N: ArrayLength<usize>, const SIGN2: bool, $( $gparams ),* >
@@ -279,16 +281,14 @@ macro_rules! impl_int_try_from {
             $ty2: ArrayLength<usize>,
         {
             type Error = IntError;
+
             fn try_from(v: ExprNode<T, $ty2, SIGN2>) -> Result<Self, Self::Error> {
                 let mut new_v = ExprNode::<T, $ty1, false>{ creator: v.creator.clone(),
                     indexes: GenericArray::default() };
                 let len1 = new_v.indexes.len();
-                {
-                    let creator = v.creator.borrow();
-                    if !v.indexes.iter().skip(len1).all(|x|
-                            matches!(creator.nodes[*x], Node::Single(Literal::Value(false)))) {
-                        return Err(IntError::BitOverflow);
-                    }
+                // if all rest of bits are 0 - just false
+                if !v.indexes.iter().skip(len1).all(|x| *x==0) {
+                    return Err(IntError::BitOverflow);
                 }
                 new_v.indexes.copy_from_slice(&v.indexes[0..len1]);
                 Ok(new_v)
@@ -302,16 +302,14 @@ macro_rules! impl_int_try_from {
             $ty2: ArrayLength<usize>,
         {
             type Error = IntError;
+
             fn try_from(v: ExprNode<T, $ty2, false>) -> Result<Self, Self::Error> {
                 let mut new_v = ExprNode::<T, $ty1, true>{ creator: v.creator.clone(),
                     indexes: GenericArray::default() };
                 let len1 = new_v.indexes.len();
-                {
-                    let creator = v.creator.borrow();
-                    if !v.indexes.iter().skip(len1-1).all(|x|
-                            matches!(creator.nodes[*x], Node::Single(Literal::Value(false)))) {
-                        return Err(IntError::BitOverflow);
-                    }
+                // if all rest of bits are 0 - just false
+                if !v.indexes.iter().skip(len1-1).all(|x| *x==0) {
+                    return Err(IntError::BitOverflow);
                 }
                 new_v.indexes.copy_from_slice(&v.indexes[0..len1]);
                 Ok(new_v)
@@ -325,6 +323,7 @@ macro_rules! impl_int_try_from {
             $ty2: ArrayLength<usize>,
         {
             type Error = IntError;
+
             fn try_from(v: ExprNode<T, $ty2, true>) -> Result<Self, Self::Error> {
                 let mut new_v = ExprNode::<T, $ty1, true>{ creator: v.creator.clone(),
                     indexes: GenericArray::default() };
@@ -337,10 +336,99 @@ macro_rules! impl_int_try_from {
                 Ok(new_v)
             }
         }
+
+        // try from for rest
+        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+                TryFrom<ExprNode<T, $ty1, true>> for ExprNode<T, $ty2, false>
+            where
+                $ty1: ArrayLength<usize>,
+                $ty2: ArrayLength<usize>, {
+            type Error = IntError;
+
+            fn try_from(v: ExprNode<T, $ty1, true>) -> Result<Self, Self::Error> {
+                if *v.indexes.last().unwrap() != 0 {
+                    return Err(IntError::BitOverflow); // if minus
+                }
+                // default is zero - then is false - zero bit value
+                let mut new_v = ExprNode::<T, $ty2, false>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                new_v.indexes[0..v.indexes.len()].copy_from_slice(v.indexes.as_slice());
+                Ok(new_v)
+            }
+        }
     }
 }
 
 impl_int_ty1_lt_ty2!(impl_int_try_from);
+
+impl<T: VarLit, N: ArrayLength<usize>> TryFrom<ExprNode<T, N, false>> for ExprNode<T, N, true> {
+    type Error = IntError;
+
+    fn try_from(v: ExprNode<T, N, false>) -> Result<Self, Self::Error> {
+        if *v.indexes.last().unwrap() != 0 {
+            // if input if higher than possible output
+            return Err(IntError::BitOverflow);
+        }
+        Ok(ExprNode {
+            creator: v.creator,
+            indexes: v.indexes,
+        })
+    }
+}
+
+impl<T: VarLit, N: ArrayLength<usize>> TryFrom<ExprNode<T, N, true>> for ExprNode<T, N, false> {
+    type Error = IntError;
+
+    fn try_from(v: ExprNode<T, N, true>) -> Result<Self, Self::Error> {
+        if *v.indexes.last().unwrap() != 0 {
+            // if input is lower than 0
+            return Err(IntError::BitOverflow);
+        }
+        Ok(ExprNode {
+            creator: v.creator,
+            indexes: v.indexes,
+        })
+    }
+}
+
+// From implementation
+macro_rules! impl_int_from {
+    ($ty1:ty, $ty2: ty, $($gparams:ident),*) => {
+        impl<T: VarLit, N: ArrayLength<usize>, const SIGN2: bool, $( $gparams ),* >
+                From<ExprNode<T, $ty1, false>> for ExprNode<T, $ty2, SIGN2>
+            where
+                $ty1: ArrayLength<usize>,
+                $ty2: ArrayLength<usize>, {
+            fn from(v: ExprNode<T, $ty1, false>) -> Self {
+                // default is zero - then is false - zero bit value
+                let mut new_v = ExprNode::<T, $ty2, SIGN2>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                new_v.indexes[0..v.indexes.len()].copy_from_slice(v.indexes.as_slice());
+                new_v
+            }
+        }
+
+        impl<T: VarLit, N: ArrayLength<usize>, $( $gparams ),* >
+                From<ExprNode<T, $ty1, true>> for ExprNode<T, $ty2, true>
+            where
+                $ty1: ArrayLength<usize>,
+                $ty2: ArrayLength<usize>, {
+            fn from(v: ExprNode<T, $ty1, true>) -> Self {
+                // default is zero - then is false - zero bit value
+                let mut new_v = ExprNode::<T, $ty2, true>{ creator: v.creator.clone(),
+                    indexes: GenericArray::default() };
+                let len = v.indexes.len();
+                new_v.indexes[0..len].copy_from_slice(v.indexes.as_slice());
+                let last = *v.indexes.last().unwrap();
+                // copy sign to rest
+                new_v.indexes[len..].iter_mut().for_each(|x| *x = last);
+                new_v
+            }
+        }
+    }
+}
+
+impl_int_ty1_lt_ty2!(impl_int_from);
 
 impl<T, N: ArrayLength<usize>, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
 where
