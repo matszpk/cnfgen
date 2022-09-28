@@ -67,12 +67,12 @@ int_equal_impl!(u128);
 int_equal_impl!(i128);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit + Debug, const N: usize> {
+pub struct ExprNode<T: VarLit + Debug, const N: usize, const SIGN: bool> {
     creator: Rc<RefCell<ExprCreator<T>>>,
-    pub(super) index: usize,
+    pub(super) indexes: Vec<usize>,
 }
 
-impl<T, const N: usize> ExprNode<T, N>
+impl<T, const N: usize, const SIGN: bool> ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -82,28 +82,27 @@ where
 {
     // Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
-        let index = {
+        let indexes = {
             let mut creator = creator.borrow_mut();
-            let l = creator.new_variable();
-            let index = creator.single(l);
-            for _ in 1..N {
-                let l = creator.new_variable();
-                creator.single(l);
-            }
-            index
+            (1..N)
+                .map(|_| {
+                    let l = creator.new_variable();
+                    creator.single(l)
+                })
+                .collect::<Vec<_>>()
         };
-        ExprNode { creator, index }
+        ExprNode { creator, indexes }
     }
 
     pub fn bit(&self, n: usize) -> BoolExprNode<T> {
         BoolExprNode {
             creator: self.creator.clone(),
-            index: self.index + n,
+            index: self.indexes[n],
         }
     }
 }
 
-impl<T, const N: usize> IntEqual for ExprNode<T, N>
+impl<T, const N: usize, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -114,18 +113,18 @@ where
     type Output = BoolExprNode<T>;
 
     fn equal(self, rhs: Self) -> Self::Output {
-        let mut xp1 = self.bit(0).equal(rhs.bit(0));
-        for i in 1..N {
-            xp1 = xp1 & self.bit(i).equal(rhs.bit(i));
+        let mut xp = BoolExprNode::single(self.creator.clone(), true);
+        for i in 0..N {
+            xp = xp & self.bit(i).equal(rhs.bit(i));
         }
-        xp1
+        xp
     }
 
     fn nequal(self, rhs: Self) -> Self::Output {
-        let mut xp1 = self.bit(0) ^ rhs.bit(0);
-        for i in 1..N {
-            xp1 = xp1 | (self.bit(i) ^ rhs.bit(i));
+        let mut xp = BoolExprNode::single(self.creator.clone(), false);
+        for i in 0..N {
+            xp = xp | (self.bit(i) ^ rhs.bit(i));
         }
-        xp1
+        xp
     }
 }
