@@ -83,7 +83,7 @@ pub trait IntConstant<T: VarLit, U> {
 pub trait BitVal {
     type Output;
     
-    fn bitval(self, n: usize) -> Self::Output;
+    fn bit(self, n: usize) -> Self::Output;
 }
 
 macro_rules! impl_int_bitval_upty {
@@ -92,7 +92,7 @@ macro_rules! impl_int_bitval_upty {
             type Output = bool;
 
             #[inline]
-            fn bitval(self, x: usize) -> Self::Output {
+            fn bit(self, x: usize) -> Self::Output {
                 if x < <$pty>::BITS as usize {
                     ((self & (1<<x)) != 0)
                 } else { false }
@@ -114,7 +114,7 @@ macro_rules! impl_int_bitval_ipty {
             type Output = bool;
 
             #[inline]
-            fn bitval(self, x: usize) -> Self::Output {
+            fn bit(self, x: usize) -> Self::Output {
                 if x < <$pty>::BITS as usize {
                     ((self & (1<<x)) != 0)
                 } else {
