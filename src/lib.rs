@@ -44,3 +44,4 @@ pub mod boolexpr_creator;
 pub use boolexpr_creator::ExprCreator;
 pub mod intexpr;
 pub use intexpr::{ExprNode as IntExprNode, IntEqual};
+mod intmacros;
