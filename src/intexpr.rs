@@ -22,7 +22,7 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::ops::Neg;
+use std::ops::{BitAnd, BitOr, BitXor, Neg};
 use std::rc::Rc;
 
 use generic_array::typenum::*;
@@ -469,6 +469,104 @@ macro_rules! impl_int_equal_ipty {
 
 impl_int_upty_ty1!(impl_int_equal_upty);
 impl_int_ipty_ty1!(impl_int_equal_ipty);
+
+macro_rules! impl_int_bitop {
+    ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
+        impl<T, N, const SIGN: bool> $trait for ExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn $op(self, rhs: Self) -> Self::Output {
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: GenericArray::from_exact_iter(
+                        (0..N::USIZE)
+                            .into_iter()
+                            .map(|x| (self.bit(x).$op(rhs.bit(x))).index),
+                    )
+                    .unwrap(),
+                }
+            }
+        }
+
+        macro_rules! $macro_gen {
+                    ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = Self;
+
+                            fn $op(self, rhs: $pty) -> Self::Output {
+                                ExprNode {
+                                    creator: self.creator.clone(),
+                                    indexes: GenericArray::from_exact_iter(
+                                        (0..<$ty>::USIZE)
+                                            .into_iter()
+                                            .map(|x| (self.bit(x).$op(rhs.bit(x))).index),
+                                    )
+                                    .unwrap(),
+                                }
+                            }
+                        }
+
+                        impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = ExprNode<T, $ty, $sign>;
+
+                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                                ExprNode {
+                                    creator: rhs.creator.clone(),
+                                    indexes: GenericArray::from_exact_iter(
+                                        (0..<$ty>::USIZE)
+                                            .into_iter()
+                                            .map(|x| (self.bit(x).$op(rhs.bit(x))).index),
+                                    )
+                                    .unwrap(),
+                                }
+                            }
+                        }
+                    }
+                }
+
+        macro_rules! $macro_upty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(false, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+        macro_rules! $macro_ipty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(true, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+
+        impl_int_upty_ty1!($macro_upty);
+        impl_int_ipty_ty1!($macro_ipty);
+    };
+}
+
+impl_int_bitop!($, BitAnd, bitand, impl_int_bitand_pty, impl_int_bitand_upty, impl_int_bitand_ipty);
+impl_int_bitop!($, BitOr, bitor, impl_int_bitor_pty, impl_int_bitor_upty, impl_int_bitor_ipty);
+impl_int_bitop!($, BitXor, bitxor, impl_int_bitxor_pty, impl_int_bitxor_upty, impl_int_bitxor_ipty);
 
 fn test_xxx() {
     let ec = ExprCreator::new();
