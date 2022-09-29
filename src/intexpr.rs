@@ -82,7 +82,7 @@ pub trait IntConstant<T: VarLit, U> {
 
 pub trait BitVal {
     type Output;
-    
+
     fn bit(self, n: usize) -> Self::Output;
 }
 
@@ -94,11 +94,13 @@ macro_rules! impl_int_bitval_upty {
             #[inline]
             fn bit(self, x: usize) -> Self::Output {
                 if x < <$pty>::BITS as usize {
-                    ((self & (1<<x)) != 0)
-                } else { false }
+                    ((self & (1 << x)) != 0)
+                } else {
+                    false
+                }
             }
         }
-    }
+    };
 }
 
 impl_int_bitval_upty!(u8);
@@ -116,13 +118,13 @@ macro_rules! impl_int_bitval_ipty {
             #[inline]
             fn bit(self, x: usize) -> Self::Output {
                 if x < <$pty>::BITS as usize {
-                    ((self & (1<<x)) != 0)
+                    ((self & (1 << x)) != 0)
                 } else {
-                    ((self & (1<<((<$pty>::BITS-1) as usize))) != 0)
+                    ((self & (1 << ((<$pty>::BITS - 1) as usize))) != 0)
                 }
             }
         }
-    }
+    };
 }
 
 impl_int_bitval_ipty!(i8);
@@ -366,13 +368,14 @@ macro_rules! impl_int_from {
 
 impl_int_ty1_lt_ty2!(impl_int_from);
 
-impl<T, N: ArrayLength<usize>, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
 {
     type Output = BoolExprNode<T>;
 
@@ -392,6 +395,80 @@ where
         xp
     }
 }
+
+macro_rules! impl_int_equal_pty {
+    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T, $( $gparams ),* > IntEqual<$pty> for ExprNode<T, $ty, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn equal(self, rhs: $pty) -> Self::Output {
+                let mut xp = BoolExprNode::single(self.creator.clone(), true);
+                for i in 0..self.indexes.len() {
+                    xp = xp & self.bit(i).equal(rhs.bit(i));
+                }
+                xp
+            }
+
+            fn nequal(self, rhs: $pty) -> Self::Output {
+                let mut xp = BoolExprNode::single(self.creator.clone(), false);
+                for i in 0..self.indexes.len() {
+                    xp = xp | (self.bit(i) ^ rhs.bit(i));
+                }
+                xp
+            }
+        }
+
+        impl<T, $( $gparams ),* > IntEqual<ExprNode<T, $ty, $sign>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn equal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                let mut xp = BoolExprNode::single(rhs.creator.clone(), true);
+                for i in 0..rhs.indexes.len() {
+                    xp = xp & self.bit(i).equal(rhs.bit(i));
+                }
+                xp
+            }
+
+            fn nequal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                let mut xp = BoolExprNode::single(rhs.creator.clone(), false);
+                for i in 0..rhs.indexes.len() {
+                    xp = xp | (self.bit(i) ^ rhs.bit(i));
+                }
+                xp
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_equal_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_equal_pty!(false, $pty, $ty, $( $gparams ),*);
+    }
+}
+macro_rules! impl_int_equal_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_equal_pty!(true, $pty, $ty, $( $gparams ),*);
+    }
+}
+
+impl_int_upty_ty1!(impl_int_equal_upty);
+impl_int_ipty_ty1!(impl_int_equal_ipty);
 
 fn test_xxx() {
     let ec = ExprCreator::new();
