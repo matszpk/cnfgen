@@ -111,379 +111,358 @@ where
 macro_rules! impl_int_ty1_lt_ty2 {
     ($impl_mac:ident) => {
         // 1 < 0b1Y
-        $impl_mac!(U1, UInt<UInt<UTerm, B1>, BY0>, BY0);
+        $impl_mac!(U1, UInt<UInt<UTerm, B1>, Y0>, Y0);
         // 1 < 0b1YY
-        $impl_mac!(U1, UInt<UInt<UInt<UTerm, B1>, BY1>, BY0>, BY0, BY1);
+        $impl_mac!(U1, UInt<UInt<UInt<UTerm, B1>, Y1>, Y0>, Y0, Y1);
         // 1 < 0b1YYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>, BY1>, BY0>, BY0, BY1, BY2);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UTerm, B1>, Y2>, Y1>, Y0>, Y0, Y1, Y2);
         // 1 < 0b1YYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY3>, BY2>, BY1>, BY0>,
-                BY0, BY1, BY2, BY3);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y3>, Y2>, Y1>, Y0>,
+                Y0, Y1, Y2, Y3);
         // 1 < 0b1YYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BY0, BY1, BY2, BY3, BY4);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y4>, Y3>, Y2>, Y1>, Y0>,
+                Y0, Y1, Y2, Y3, Y4);
         // 1 < 0b1YYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y5>, Y4>, Y3>, Y2>,
+                Y1>, Y0>, Y0, Y1, Y2, Y3, Y4, Y5);
         // 1 < 0b1YYYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y6>, Y5>, Y4>,
+                Y3>, Y2>, Y1>, Y0>, Y0, Y1, Y2, Y3, Y4, Y5, Y6);
         // 1 < 0b1YYYYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>,
-                BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
-        // 1 < 0b1YYYYYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>,
-                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7,
-                BY8);
-        // 1 < 0b1YYYYYYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>,
-                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2, BY3, BY4,
-                BY5, BY6, BY7, BY8, BY9);
-        // 1 < 0b1YYYYYYYYYYY
-        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
-                BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BY0, BY1, BY2,
-                BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(U1, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>,
+                Y4>, Y3>, Y2>, Y1>, Y0>, Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7);
         
         //---------------------
         // 2 < 3
         $impl_mac!(U2, U3, );
         // 0b1X < 0b1YY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UTerm, B1>, BY1>, BY0>,
-                BX0, BY0, BY1);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UTerm, B1>, Y1>, Y0>,
+                X0, Y0, Y1);
         // 0b1X < 0b1YYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>, BY1>, BY0>,
-                BX0, BY0, BY1, BY2);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UTerm, B1>, Y2>, Y1>, Y0>,
+                X0, Y0, Y1, Y2);
         // 0b1X < 0b1YYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BY0, BY1, BY2, BY3);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y3>, Y2>,
+                Y1>, Y0>, X0, Y0, Y1, Y2, Y3);
         // 0b1X < 0b1YYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y4>,
+                Y3>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2, Y3, Y4);
         // 0b1X < 0b1YYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
-                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2, Y3, Y4, Y5);
         // 0b1X < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
-                B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5,
-                BY6);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
+                B1>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2, Y3, Y4, Y5,
+                Y6);
         // 0b1X < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2,
-                BY3, BY4, BY5, BY6, BY7);
-        // 0b1X < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BY0,
-                BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1X < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
-        // 0b1X < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UTerm, B1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UTerm, B1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
+                UTerm, B1>, Y7>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2,
+                Y3, Y4, Y5, Y6, Y7);
         
         //---------------------
-        // 4 < 5
+        // 0b100 < 0b101
         $impl_mac!(U4, U5, );
         // 0b10X < 0b11Y
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, B0>, BX0>, UInt<UInt<UInt<UTerm, B1>, B1>, BY0>,
-                BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, B0>, X0>, UInt<UInt<UInt<UTerm, B1>, B1>, Y0>,
+                X0, Y0);
         // 0b110 < 0b111
         $impl_mac!(U6, U7, );
         //---------------------
         // 0b1XX < 0b1YYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UTerm, B1>, BY2>,
-                BY1>, BY0>, BX0, BX1, BY0, BY1, BY2);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UTerm, B1>, Y2>,
+                Y1>, Y0>, X0, X1, Y0, Y1, Y2);
         // 0b1XX < 0b1YYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
+                Y3>, Y2>, Y1>, Y0>, X0, X1, Y0, Y1, Y2, Y3);
         // 0b1XX < 0b1YYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
-                B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
+                B1>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, Y0, Y1, Y2, Y3, Y4);
         // 0b1XX < 0b1YYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3,
-                BY4, BY5);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UTerm, B1>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, Y0, Y1, Y2, Y3,
+                Y4, Y5);
         // 0b1XX < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1,
-                BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UTerm, B1>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, Y0, Y1,
+                Y2, Y3, Y4, Y5, Y6);
         // 0b1XX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
-                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
-        // 0b1XX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1XX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
-        // 0b1XX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
-                BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UTerm, B1>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1,
+                Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7);
         
         //---------------------
-        // 8 < 9
+        // 0b1000 < 0b1001
         $impl_mac!(U8, U9, );
         // 0b100X < 0b101Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY0>, BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y0>, X0, Y0);
         // 0b100X < 0b11YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
-        // 10 < 11
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
+        // 0b1010 < 0b1011
         $impl_mac!(U10, U11, );
         // 0b101X < 0b11YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BX0>,
-                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
-        // 12 < 13
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
+        // 0b1100 < 0b1101
         $impl_mac!(U12, U13, );
         // 0b110X < 0b111Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY0>, BX0, BY0);
-        // 14 < 15
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y0>, X0, Y0);
+        // 0b1100 < 0b1111
         $impl_mac!(U14, U15, );
         //---------------------
         // 0b1XXX < 0b1YYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UTerm, B1>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt
+                <UTerm, B1>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, Y0, Y1, Y2, Y3);
         // 0b1XXX < 0b1YYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2,
-                BY3, BY4);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UTerm, B1>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, Y0, Y1, Y2,
+                Y3, Y4);
         // 0b1XXX < 0b1YYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0,
-                BY1, BY2, BY3, BY4, BY5);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UTerm, B1>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, Y0,
+                Y1, Y2, Y3, Y4, Y5);
         // 0b1XXX < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
-                BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt<UInt<UTerm, B1>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1,
+                X2, Y0, Y1, Y2, Y3, Y4, Y5, Y6);
         // 0b1XXX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
-        // 0b1XXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1XXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7,
-                BY8, BY9);
-        // 0b1XXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>,
-                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BY0, BY1, BY2, BY3, BY4, BY5,
-                BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>,
+                X0, X1, X2, Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7);
         
         //---------------------
         // 0b10000 < 0b10001
         $impl_mac!(U16, U17, );
         // 0b1000X < 0b1001Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BY0>, BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, Y0>, X0, Y0);
         // 0b1000X < 0b101YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y1>, Y0>, X0, Y0, Y1);
         // 0b1000X < 0b11YYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2);
         // 0b10010 < 0b10011
         $impl_mac!(U18, U19, );
         // 0b1001X < 0b101YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y1>, Y0>, X0, Y0, Y1);
         // 0b1001X < 0b11YYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BY0, BY1, BY2);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y2>, Y1>, Y0>, X0, Y0, Y1, Y2);
         // 0b10100 < 0b10101
         $impl_mac!(U20, U21, );
         // 0b1010X < 0b1011Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, BY0>, BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, Y0>, X0, Y0);
+        // 0b10100 < 0b10111
+        $impl_mac!(U22, U23, );
         // 0b101XX < 0b11YYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, BX1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, BY2>, BY1>, BY0>, BX0, BX1, BY0, BY1,
-                BY2);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, X1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y2>, Y1>, Y0>, X0, X1, Y0, Y1,
+                Y2);
         // 0b11000 < 0b11001
         $impl_mac!(U24, U25, );
         // 0b1100X < 0b1101Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, BY0>, BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, Y0>, X0, Y0);
         // 0b1100X < 0b111YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
         // 0b11010 < 0b11011
         $impl_mac!(U26, U27, );
         // 0b1101X < 0b111YY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, BY1>, BY0>, BX0, BY0, BY1);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
         // 0b11100 < 0b11101
         $impl_mac!(U28, U29, );
         // 0b1110X < 0b1111Y
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, BX0>,
-                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, BY0>, BX0, BY0);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, Y0>, X0, Y0);
         // 0b11110 < 0b11111
         $impl_mac!(U30, U31, );
         //---------------------
         // 0b1XXXX < 0b1YYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt <UInt<UTerm, B1>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3,
-                BY0, BY1, BY2, BY3, BY4);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>, UInt<UInt<UInt
+                <UInt<UInt <UInt<UTerm, B1>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, X3,
+                Y0, Y1, Y2, Y3, Y4);
         // 0b1XXXX < 0b1YYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1,
-                BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UTerm, B1>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1,
+                X2, X3, Y0, Y1, Y2, Y3, Y4, Y5);
         // 0b1XXXX < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>, UInt<UInt<UInt
+                <UInt<UInt <UInt<UInt<UInt<UTerm, B1>, Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>,
+                X0, X1, X2, X3, Y0, Y1, Y2, Y3, Y4, Y5, Y6);
         // 0b1XXXX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7);
-        // 0b1XXXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4, BY5, BY6,
-                BY7, BY8);
-        // 0b1XXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>,
-                BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1, BY2, BY3, BY4,
-                BY5, BY6, BY7, BY8, BY9);
-        // 0b1XXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt
-                <UInt<UInt <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>,
-                BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BY0, BY1,
-                BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>, UInt<UInt<UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>, Y4>, Y3>, Y2>,
+                Y1>, Y0>, X0, X1, X2, X3, Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7);
+        
         
         //---------------------
+        // 0b100000 < 0b100001
+        $impl_mac!(U32, U33, );
+        // 0b10000X < 0b10001Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B1>, Y0>, X0, Y0);
+        // 0b10000X < 0b1001YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b10000X < 0b101YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2);
+        // 0b10000X < 0b11YYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y3>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2, Y3);
+        // 0b100010 < 0b100011
+        $impl_mac!(U34, U35, );
+        // 0b10001X < 0b1001YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b10001X < 0b101YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2);
+        // 0b10001X < 0b11YYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y3>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2, Y3);
+        // 0b100100 < 0b100101
+        $impl_mac!(U36, U37, );
+        // 0b10010X < 0b10011Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, B1>, Y0>, X0, Y0);
+        // 0b100100 < 0b100111
+        $impl_mac!(U38, U39, );
+        // 0b1001XX < 0b101YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, X1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, Y2>, Y1>, Y0>, X0, X1,
+                Y0, Y1, Y2);
+        // 0b1001XX < 0b11YYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B0>, B1>, X1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y3>, Y2>, Y1>, Y0>, X0, X1,
+                Y0, Y1, Y2, Y3);
+        //---------------------
+        // 0b101000 < 0b101001
+        $impl_mac!(U40, U41, );
+        // 0b10100X < 0b10101Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, B1>, Y0>, X0, Y0);
+        // 0b10100X < 0b1011YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
+        // 0b101010 < 0b101011
+        $impl_mac!(U42, U43, );
+        // 0b10101X < 0b1011YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, Y1>, Y0>, X0, Y0, Y1);
+        // 0b101100 < 0b101101
+        $impl_mac!(U44, U45, );
+        // 0b10110X < 0b10111Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, B1>, B1>, Y0>, X0, Y0);
+        // 0b101100 < 0b101111
+        $impl_mac!(U46, U47, );
+        // 0b101XXX < 0b11YYYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B0>, B1>, X2>, X1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, Y3>, Y2>, Y1>, Y0>, X0, X1,
+                X2, Y0, Y1, Y2, Y3);
+        //---------------------
+        // 0b110000 < 0b110001
+        $impl_mac!(U48, U49, );
+        // 0b11000X < 0b11001Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B1>, Y0>, X0, Y0);
+        // 0b11000X < 0b1101YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b11000X < 0b111YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2);
+        // 0b110010 < 0b110011
+        $impl_mac!(U50, U51, );
+        // 0b11001X < 0b1101YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b11001X < 0b111YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y2>, Y1>, Y0>, X0, Y0,
+                Y1, Y2);
+        // 0b110100 < 0b110101
+        $impl_mac!(U52, U53, );
+        // 0b11010X < 0b11011Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, B1>, Y0>, X0, Y0);
+        // 0b110100 < 0b110111
+        $impl_mac!(U54, U55, );
+        // 0b1101XX < 0b111YYY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B0>, B1>, X1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, Y2>, Y1>, Y0>, X0, X1,
+                Y0, Y1, Y2);
+        // 0b111000 < 0b111001
+        $impl_mac!(U56, U57, );
+        // 0b11100X < 0b11101Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, B1>, Y0>, X0, Y0);
+        // 0b11100X < 0b1111YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b111010 < 0b111011
+        $impl_mac!(U58, U59, );
+        // 0b11101X < 0b1111YY
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B0>, B1>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, Y1>, Y0>, X0, Y0,
+                Y1);
+        // 0b111100 < 0b111101
+        $impl_mac!(U60, U61, );
+        // 0b11110X < 0b11111Y
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, B0>, X0>,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, B1>, B1>, B1>, B1>, Y0>, X0, Y0);
+        // 0b111110 < 0b111111
+        $impl_mac!(U62, U63, );
+        //---------------------
         // 0b1XXXXX < 0b1YYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY5>, BY4>, BY3>, BY2>, BY1>,
-                BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y5>, Y4>, Y3>, Y2>, Y1>,
+                Y0>, X0, X1, X2, X3, X4, Y0, Y1, Y2, Y3, Y4, Y5);
         // 0b1XXXXX < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>, UInt
+                <UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, Y6>, Y5>, Y4>, Y3>, Y2>,
+                Y1>, Y0>, X0, X1, X2, X3, X4, Y0, Y1, Y2, Y3, Y4, Y5, Y6);
         // 0b1XXXXX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>, BY4>,
-                BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4, BY5,
-                BY6, BY7);
-        // 0b1XXXXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>, BY6>, BY5>, 
-                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2, BY3, BY4,
-                BY5, BY6, BY7, BY8);
-        // 0b1XXXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>,
-                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BY0, BY1, BY2,
-                BY3, BY4, BY5, BY6, BY7, BY8, BY9);
-        // 0b1XXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt
-                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>,
-                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
-                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>, UInt
+                <UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>, Y4>,
+                Y3>, Y2>, Y1>, Y0>, X0, X1, X2, X3, X4, Y0, Y1, Y2, Y3, Y4, Y5,
+                Y6, Y7);
         
         //---------------------
         // 0b1XXXXXX < 0b1YYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                BX0>, UInt<UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, BY6>, BY5>, BY4>, BY3>,
-                BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>,
+                X0>, UInt<UInt<UInt<UInt<UInt <UInt<UInt<UInt<UTerm, B1>, Y6>, Y5>, Y4>, Y3>,
+                Y2>, Y1>, Y0>, X0, X1, X2, X3, X4, X5, Y0, Y1, Y2, Y3, Y4, Y5, Y6);
         // 0b1XXXXXX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>, BY6>, BY5>,
-                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1, BY2, BY3,
-                BY4, BY5, BY6, BY7);
-        // 0b1XXXXXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY8>, BY7>,
-                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BY0, BY1,
-                BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1XXXXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY9>,
-                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
-                BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
-        // 0b1XXXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX5>, BX4>, BX3>, BX2>, BX1>,
-                BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
-                BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
-                BX3, BX4, BX5, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>,
+                X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y7>, Y6>, Y5>,
+                Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, X3, X4, X5, Y0, Y1, Y2, Y3,
+                Y4, Y5, Y6, Y7);
         
         //---------------------
         // 0b1XXXXXXX < 0b1YYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
-                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY7>,
-                BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BY0,
-                BY1, BY2, BY3, BY4, BY5, BY6, BY7);
-        // 0b1XXXXXXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
-                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>,
-                BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4,
-                BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1XXXXXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
-                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm,
-                B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
-                BX3, BX4, BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9);
-        // 0b1XXXXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX6>, BX5>, BX4>, BX3>,
-                BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BX1, BX2, BX3, BX4, BX5, BX6, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
-                BY9, BY10);
-        
-        //---------------------
-        // 0b1XXXXXXXX < 0b1YYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
-                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UTerm, B1>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2,
-                BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8);
-        // 0b1XXXXXXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
-                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>, BX0,
-                BX1, BX2, BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8,
-                BY9);
-        // 0b1XXXXXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX7>, BX6>, BX5>,
-                BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BY0, BY1, BY2, BY3, BY4, BY5,
-                BY6, BY7, BY8, BY9, BY10);
-        
-        //---------------------
-        // 0b1XXXXXXXXX < 0b1YYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX8>, BX7>, BX6>,
-                BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UInt<UTerm, B1>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>, BY1>, BY0>,
-                BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BY0, BY1, BY2, BY3, BY4, BY5, BY6,
-                BY7, BY8, BY9);
-        // 0b1XXXXXXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX8>, BX7>, BX6>,
-                BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>, BY4>, BY3>, BY2>,
-                BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BY0, BY1, BY2, BY3, BY4,
-                BY5, BY6, BY7, BY8, BY9, BY10);
-        
-        //---------------------
-        // 0b1XXXXXXXXXX < 0b1YYYYYYYYYYY
-        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BX9>, BX8>,
-                BX7>, BX6>, BX5>, BX4>, BX3>, BX2>, BX1>, BX0>, UInt<UInt<UInt<UInt<UInt<UInt<
-                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, BY10>, BY9>, BY8>, BY7>, BY6>, BY5>,
-                BY4>, BY3>, BY2>, BY1>, BY0>, BX0, BX1, BX2, BX3, BX4, BX5, BX6, BX7, BX8, BX9,
-                BY0, BY1, BY2, BY3, BY4, BY5, BY6, BY7, BY8, BY9, BY10);
+        $impl_mac!(UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>,
+                X2>, X1>, X0>, UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, Y7>,
+                Y6>, Y5>, Y4>, Y3>, Y2>, Y1>, Y0>, X0, X1, X2, X3, X4, X5, X6, Y0,
+                Y1, Y2, Y3, Y4, Y5, Y6, Y7);
     }
 }
 
@@ -675,6 +654,6 @@ where
 
 fn test_xxx() {
     let ec = ExprCreator::new();
-    let v1 = ExprNode::<isize, U454, false>::variable(ec.clone());
+    let v1 = ExprNode::<isize, U167, false>::variable(ec.clone());
     let tv1 = ExprNode::<isize, U6, false>::try_from(v1).unwrap();
 }
