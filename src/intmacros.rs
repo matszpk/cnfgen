@@ -20,6 +20,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to generate CNF clauses from boolean expressions.
 
+/// Macro helper
 #[macro_export]
 macro_rules! impl_int_ty1_lt_ty2 {
     ($impl_mac:ident) => {
@@ -1008,6 +1009,749 @@ macro_rules! impl_int_ty1_lt_ty2 {
             Y5,
             Y6,
             Y7
+        );
+    };
+}
+
+/// Macro helper
+#[macro_export]
+macro_rules! impl_int_pty_ty1 {
+    ($impl_mac:ident) => {
+        $impl_mac!(
+            u8,
+            false,
+            UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2
+        );
+        $impl_mac!(
+            u8,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3
+        );
+        $impl_mac!(
+            u8,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            u8,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            u8,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            u8,
+            false,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        $impl_mac!(
+            u16,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3
+        );
+        $impl_mac!(
+            u16,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            u16,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            u16,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            u16,
+            false,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        $impl_mac!(
+            u32,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            u32,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            u32,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            u32,
+            false,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        #[cfg(target_pointer_width = "32")]
+        {
+            $impl_mac!(
+                usize,
+                false,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4
+            );
+            $impl_mac!(
+                usize,
+                false,
+                UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5
+            );
+            $impl_mac!(
+                usize,
+                false,
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6
+            );
+            $impl_mac!(
+                usize,
+                false,
+                UInt<
+                    UInt<
+                        UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                        X1,
+                    >,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6,
+                X7
+            );
+        }
+
+        $impl_mac!(
+            u64,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            u64,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            u64,
+            false,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        #[cfg(target_pointer_width = "64")]
+        {
+            $impl_mac!(
+                usize,
+                false,
+                UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5
+            );
+            $impl_mac!(
+                usize,
+                false,
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6
+            );
+            $impl_mac!(
+                usize,
+                false,
+                UInt<
+                    UInt<
+                        UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                        X1,
+                    >,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6,
+                X7
+            );
+        }
+
+        $impl_mac!(
+            u128,
+            false,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            u128,
+            false,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        ///////////////
+        $impl_mac!(
+            i8,
+            true,
+            UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2
+        );
+        $impl_mac!(
+            i8,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3
+        );
+        $impl_mac!(
+            i8,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            i8,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            i8,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            i8,
+            true,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        $impl_mac!(
+            i16,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3
+        );
+        $impl_mac!(
+            i16,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            i16,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            i16,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            i16,
+            true,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        $impl_mac!(
+            i32,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4
+        );
+        $impl_mac!(
+            i32,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            i32,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            i32,
+            true,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        #[cfg(target_pointer_width = "32")]
+        {
+            $impl_mac!(
+                isize,
+                true,
+                UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4
+            );
+            $impl_mac!(
+                isize,
+                true,
+                UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5
+            );
+            $impl_mac!(
+                isize,
+                true,
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6
+            );
+            $impl_mac!(
+                isize,
+                true,
+                UInt<
+                    UInt<
+                        UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                        X1,
+                    >,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6,
+                X7
+            );
+        }
+
+        $impl_mac!(
+            i64,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5
+        );
+        $impl_mac!(
+            i64,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            i64,
+            true,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
+        );
+
+        #[cfg(target_pointer_width = "64")]
+        {
+            $impl_mac!(
+                isize,
+                true,
+                UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5
+            );
+            $impl_mac!(
+                isize,
+                true,
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6
+            );
+            $impl_mac!(
+                isize,
+                true,
+                UInt<
+                    UInt<
+                        UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                        X1,
+                    >,
+                    X0,
+                >,
+                X0,
+                X1,
+                X2,
+                X3,
+                X4,
+                X5,
+                X6,
+                X7
+            );
+        }
+
+        $impl_mac!(
+            i128,
+            true,
+            UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6
+        );
+        $impl_mac!(
+            i128,
+            true,
+            UInt<
+                UInt<
+                    UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
+                    X1,
+                >,
+                X0,
+            >,
+            X0,
+            X1,
+            X2,
+            X3,
+            X4,
+            X5,
+            X6,
+            X7
         );
     };
 }
