@@ -30,8 +30,8 @@ use generic_array::*;
 
 use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
-use crate::impl_int_ty1_lt_ty2;
 use crate::VarLit;
+use crate::{impl_int_ty1_lt_ty2, impl_int_upty_ty1};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -76,6 +76,10 @@ int_equal_impl!(isize);
 int_equal_impl!(u128);
 int_equal_impl!(i128);
 
+pub trait IntConstant<T: VarLit, U> {
+    fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug, N: ArrayLength<usize>, const SIGN: bool> {
     creator: Rc<RefCell<ExprCreator<T>>>,
@@ -109,15 +113,51 @@ where
     }
 }
 
-impl<T, N: ArrayLength<usize>, const SIGN: bool> ExprNode<T, N, SIGN>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
+macro_rules! impl_int_constant {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, false>
+        where
+            $ty: ArrayLength<usize>,
+        {
+            fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: $pty) -> Self {
+                ExprNode{ creator, indexes: GenericArray::from_exact_iter(
+                    (0..<$ty>::USIZE).into_iter().map(|x| {
+                        // return 1 - true node index, 0 - false node index
+                        if x < <$pty>::BITS as usize {
+                            if ((v & (1<<x)) != 0) { 1 } else { 0 }
+                        } else { 0 }
+                    })
+                ).unwrap() }
+            }
+        }
+    }
 }
+
+impl_int_upty_ty1!(impl_int_constant);
+
+macro_rules! impl_int_constant {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, true>
+        where
+            $ty: ArrayLength<usize>,
+        {
+            fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: $pty) -> Self {
+                ExprNode{ creator, indexes: GenericArray::from_exact_iter(
+                    (0..<$ty>::USIZE).into_iter().map(|x| {
+                        // return 1 - true node index, 0 - false node index
+                        if x < <$pty>::BITS as usize {
+                            if ((v & (1<<x)) != 0) { 1 } else { 0 }
+                        } else {
+                            if ((v & (1<<((<$pty>::BITS-1) as usize))) != 0) { 1 } else { 0 }
+                        }
+                    })
+                ).unwrap() }
+            }
+        }
+    }
+}
+
+impl_int_upty_ty1!(impl_int_constant);
 
 // TryFrom implementation
 macro_rules! impl_int_try_from {
