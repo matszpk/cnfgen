@@ -80,6 +80,60 @@ pub trait IntConstant<T: VarLit, U> {
     fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
 }
 
+pub trait BitVal {
+    type Output;
+    
+    fn bitval(self, n: usize) -> Self::Output;
+}
+
+macro_rules! impl_int_bitval_upty {
+    ($pty:ty) => {
+        impl BitVal for $pty {
+            type Output = bool;
+
+            #[inline]
+            fn bitval(self, x: usize) -> Self::Output {
+                if x < <$pty>::BITS as usize {
+                    ((self & (1<<x)) != 0)
+                } else { false }
+            }
+        }
+    }
+}
+
+impl_int_bitval_upty!(u8);
+impl_int_bitval_upty!(u16);
+impl_int_bitval_upty!(u32);
+impl_int_bitval_upty!(usize);
+impl_int_bitval_upty!(u64);
+impl_int_bitval_upty!(u128);
+
+macro_rules! impl_int_bitval_ipty {
+    ($pty:ty) => {
+        impl BitVal for $pty {
+            type Output = bool;
+
+            #[inline]
+            fn bitval(self, x: usize) -> Self::Output {
+                if x < <$pty>::BITS as usize {
+                    ((self & (1<<x)) != 0)
+                } else {
+                    ((self & (1<<((<$pty>::BITS-1) as usize))) != 0)
+                }
+            }
+        }
+    }
+}
+
+impl_int_bitval_ipty!(i8);
+impl_int_bitval_ipty!(i16);
+impl_int_bitval_ipty!(i32);
+impl_int_bitval_ipty!(isize);
+impl_int_bitval_ipty!(i64);
+impl_int_bitval_ipty!(i128);
+
+// ExprNode - main node
+//
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug, N: ArrayLength<usize>, const SIGN: bool> {
     creator: Rc<RefCell<ExprCreator<T>>>,
