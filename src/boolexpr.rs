@@ -720,7 +720,7 @@ macro_rules! impl_op_assign {
             isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug, 
+            <isize as TryFrom<T>>::Error: Debug,
         {
             fn $op_assign(&mut self, rhs: ExprNode<T>) {
                 *self = self.clone().$op(rhs);
@@ -734,13 +734,13 @@ macro_rules! impl_op_assign {
             isize: TryFrom<T>,
             <T as TryInto<usize>>::Error: Debug,
             <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug, 
+            <isize as TryFrom<T>>::Error: Debug,
         {
             fn $op_assign(&mut self, rhs: U) {
                 *self = self.clone().$op(rhs);
             }
         }
-    }
+    };
 }
 
 impl_op_assign!(BitAndAssign, bitand_assign, bitand);
@@ -1147,7 +1147,7 @@ mod tests {
             XPExpr, XPNotExpr
         );
     }
-    
+
     #[test]
     fn test_expr_op_assign() {
         let ec = ExprCreator::<isize>::new();
@@ -1179,7 +1179,7 @@ mod tests {
             *ec.borrow()
         );
     }
-    
+
     #[test]
     fn test_expr_op_assign_lit() {
         let ec = ExprCreator::<isize>::new();
