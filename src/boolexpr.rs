@@ -747,6 +747,20 @@ impl_op_assign!(BitAndAssign, bitand_assign, bitand);
 impl_op_assign!(BitOrAssign, bitor_assign, bitor);
 impl_op_assign!(BitXorAssign, bitxor_assign, bitxor);
 
+/// Returns result of the If-Then-Else (ITE).
+pub fn ite<C, T, E>(
+    c: C,
+    t: T,
+    e: E,
+) -> <<C as BitAnd<T>>::Output as BitOr<<<C as Not>::Output as BitAnd<E>>::Output>>::Output
+where
+    C: BitAnd<T> + Not + Clone,
+    <C as Not>::Output: BitAnd<E>,
+    <C as BitAnd<T>>::Output: BitOr<<<C as Not>::Output as BitAnd<E>>::Output>,
+{
+    (c.clone() & t) | ((!c) & e)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1207,6 +1221,32 @@ mod tests {
                     Node::Xor(4, 5),
                 ],
                 lit_to_index: vec![2, 0, 3, 0, 4, 0, 5, 0],
+            },
+            *ec.borrow()
+        );
+    }
+    
+    #[test]
+    fn test_expr_ite() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let _ = ite(v1, v2, v3);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::And(2, 3),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::And(6, 4),
+                    Node::Or(5, 7)
+                ],
+                lit_to_index: vec![2, 6, 3, 0, 4, 0],
             },
             *ec.borrow()
         );
