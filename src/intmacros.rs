@@ -1015,11 +1015,10 @@ macro_rules! impl_int_ty1_lt_ty2 {
 
 /// Macro helper
 #[macro_export]
-macro_rules! impl_int_pty_ty1 {
+macro_rules! impl_int_upty_ty1 {
     ($impl_mac:ident) => {
         $impl_mac!(
             u8,
-            false,
             UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1027,7 +1026,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u8,
-            false,
             UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1036,7 +1034,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u8,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1046,7 +1043,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u8,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1057,7 +1053,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u8,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1069,7 +1064,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u8,
-            false,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1089,7 +1083,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             u16,
-            false,
             UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1098,7 +1091,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u16,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1108,7 +1100,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u16,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1119,7 +1110,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u16,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1131,7 +1121,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u16,
-            false,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1151,7 +1140,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             u32,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1161,7 +1149,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u32,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1172,7 +1159,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u32,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1184,7 +1170,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u32,
-            false,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1206,7 +1191,6 @@ macro_rules! impl_int_pty_ty1 {
         {
             $impl_mac!(
                 usize,
-                false,
                 UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1216,7 +1200,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 usize,
-                false,
                 UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1227,7 +1210,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 usize,
-                false,
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
                     X0,
@@ -1242,7 +1224,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 usize,
-                false,
                 UInt<
                     UInt<
                         UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1263,7 +1244,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             u64,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1274,7 +1254,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u64,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1286,7 +1265,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u64,
-            false,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1308,7 +1286,6 @@ macro_rules! impl_int_pty_ty1 {
         {
             $impl_mac!(
                 usize,
-                false,
                 UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1319,7 +1296,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 usize,
-                false,
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
                     X0,
@@ -1334,7 +1310,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 usize,
-                false,
                 UInt<
                     UInt<
                         UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1355,7 +1330,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             u128,
-            false,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1367,7 +1341,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             u128,
-            false,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1384,11 +1357,15 @@ macro_rules! impl_int_pty_ty1 {
             X6,
             X7
         );
+    };
+}
 
-        ///////////////
+/// Macro helper
+#[macro_export]
+macro_rules! impl_int_ipty_ty1 {
+    ($impl_mac:ident) => {
         $impl_mac!(
             i8,
-            true,
             UInt<UInt<UInt<UInt<UTerm, B1>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1396,7 +1373,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i8,
-            true,
             UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1405,7 +1381,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i8,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1415,7 +1390,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i8,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1426,7 +1400,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i8,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1438,7 +1411,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i8,
-            true,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1458,7 +1430,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             i16,
-            true,
             UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1467,7 +1438,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i16,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1477,7 +1447,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i16,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1488,7 +1457,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i16,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1500,7 +1468,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i16,
-            true,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1520,7 +1487,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             i32,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1530,7 +1496,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i32,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1541,7 +1506,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i32,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1553,7 +1517,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i32,
-            true,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1575,7 +1538,6 @@ macro_rules! impl_int_pty_ty1 {
         {
             $impl_mac!(
                 isize,
-                true,
                 UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1585,7 +1547,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 isize,
-                true,
                 UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1596,7 +1557,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 isize,
-                true,
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
                     X0,
@@ -1611,7 +1571,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 isize,
-                true,
                 UInt<
                     UInt<
                         UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1632,7 +1591,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             i64,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1643,7 +1601,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i64,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1655,7 +1612,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i64,
-            true,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1677,7 +1633,6 @@ macro_rules! impl_int_pty_ty1 {
         {
             $impl_mac!(
                 isize,
-                true,
                 UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X5>, X4>, X3>, X2>, X1>, X0>,
                 X0,
                 X1,
@@ -1688,7 +1643,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 isize,
-                true,
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>,
                     X0,
@@ -1703,7 +1657,6 @@ macro_rules! impl_int_pty_ty1 {
             );
             $impl_mac!(
                 isize,
-                true,
                 UInt<
                     UInt<
                         UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
@@ -1724,7 +1677,6 @@ macro_rules! impl_int_pty_ty1 {
 
         $impl_mac!(
             i128,
-            true,
             UInt<UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X6>, X5>, X4>, X3>, X2>, X1>, X0>,
             X0,
             X1,
@@ -1736,7 +1688,6 @@ macro_rules! impl_int_pty_ty1 {
         );
         $impl_mac!(
             i128,
-            true,
             UInt<
                 UInt<
                     UInt<UInt<UInt<UInt<UInt<UInt<UInt<UTerm, B1>, X7>, X6>, X5>, X4>, X3>, X2>,
