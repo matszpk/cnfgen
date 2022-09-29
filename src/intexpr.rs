@@ -31,7 +31,7 @@ use generic_array::*;
 use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
-use crate::{impl_int_ty1_lt_ty2, impl_int_upty_ty1};
+use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -113,7 +113,7 @@ where
     }
 }
 
-macro_rules! impl_int_constant {
+macro_rules! impl_int_uconstant {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
         impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, false>
         where
@@ -133,9 +133,9 @@ macro_rules! impl_int_constant {
     }
 }
 
-impl_int_upty_ty1!(impl_int_constant);
+impl_int_upty_ty1!(impl_int_uconstant);
 
-macro_rules! impl_int_constant {
+macro_rules! impl_int_iconstant {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
         impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, true>
         where
@@ -157,7 +157,7 @@ macro_rules! impl_int_constant {
     }
 }
 
-impl_int_upty_ty1!(impl_int_constant);
+impl_int_ipty_ty1!(impl_int_iconstant);
 
 // TryFrom implementation
 macro_rules! impl_int_try_from {
