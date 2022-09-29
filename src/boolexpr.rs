@@ -23,7 +23,7 @@
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::io::Write;
-use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use std::rc::Rc;
 
 use crate::boolexpr_creator::{ExprCreator, Node};
@@ -712,6 +712,41 @@ new_impl_imp_impls!(i32);
 new_impl_imp_impls!(i64);
 new_impl_imp_impls!(isize);
 
+macro_rules! impl_op_assign {
+    ($trait:ident, $op_assign:ident, $op:ident) => {
+        impl<T> $trait for ExprNode<T>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug, 
+        {
+            fn $op_assign(&mut self, rhs: ExprNode<T>) {
+                *self = self.clone().$op(rhs);
+            }
+        }
+
+        impl<T, U> $trait<U> for ExprNode<T>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            U: Into<Literal<T>>,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug, 
+        {
+            fn $op_assign(&mut self, rhs: U) {
+                *self = self.clone().$op(rhs);
+            }
+        }
+    }
+}
+
+impl_op_assign!(BitAndAssign, bitand_assign, bitand);
+impl_op_assign!(BitOrAssign, bitor_assign, bitor);
+impl_op_assign!(BitXorAssign, bitxor_assign, bitxor);
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1110,6 +1145,70 @@ mod tests {
         test_op_simpls!(
             imp, XPTrue, XPNotVar1, XPTrue, XPTrue, XPVar1, XPVar1, XPNotVar1, XPTrue, XPTrue,
             XPExpr, XPNotExpr
+        );
+    }
+    
+    #[test]
+    fn test_expr_op_assign() {
+        let ec = ExprCreator::<isize>::new();
+        let mut v1 = ExprNode::variable(ec.clone());
+        let mut v2 = ExprNode::variable(ec.clone());
+        let mut v3 = ExprNode::variable(ec.clone());
+        let v4 = ExprNode::variable(ec.clone());
+        v1 &= v4.clone();
+        v2 |= v4.clone();
+        v3 ^= v4;
+        assert_eq!(6, v1.index);
+        assert_eq!(7, v2.index);
+        assert_eq!(8, v3.index);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(4)),
+                    Node::And(2, 5),
+                    Node::Or(3, 5),
+                    Node::Xor(4, 5),
+                ],
+                lit_to_index: vec![2, 0, 3, 0, 4, 0, 5, 0],
+            },
+            *ec.borrow()
+        );
+    }
+    
+    #[test]
+    fn test_expr_op_assign_lit() {
+        let ec = ExprCreator::<isize>::new();
+        let mut v1 = ExprNode::variable(ec.clone());
+        let mut v2 = ExprNode::variable(ec.clone());
+        let mut v3 = ExprNode::variable(ec.clone());
+        let v4 = ExprNode::variable(ec.clone()).varlit().unwrap();
+        v1 &= Literal::from(v4);
+        v2 |= Literal::from(v4);
+        v3 ^= Literal::from(v4);
+        assert_eq!(6, v1.index);
+        assert_eq!(7, v2.index);
+        assert_eq!(8, v3.index);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(4)),
+                    Node::And(2, 5),
+                    Node::Or(3, 5),
+                    Node::Xor(4, 5),
+                ],
+                lit_to_index: vec![2, 0, 3, 0, 4, 0, 5, 0],
+            },
+            *ec.borrow()
         );
     }
 

@@ -22,7 +22,7 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::ops::{BitAnd, BitOr, BitXor, Neg};
+use std::ops::{BitAnd, BitOr, BitXor, Neg, Not};
 use std::rc::Rc;
 
 use generic_array::typenum::*;
@@ -567,6 +567,28 @@ macro_rules! impl_int_bitop {
 impl_int_bitop!($, BitAnd, bitand, impl_int_bitand_pty, impl_int_bitand_upty, impl_int_bitand_ipty);
 impl_int_bitop!($, BitOr, bitor, impl_int_bitor_pty, impl_int_bitor_upty, impl_int_bitor_ipty);
 impl_int_bitop!($, BitXor, bitxor, impl_int_bitxor_pty, impl_int_bitxor_upty, impl_int_bitxor_ipty);
+
+impl<T, N, const SIGN: bool> Not for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn not(self) -> Self {
+        ExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::from_exact_iter(
+                (0..N::USIZE).into_iter().map(|x| (!self.bit(x)).index),
+            )
+            .unwrap(),
+        }
+    }
+}
 
 fn test_xxx() {
     let ec = ExprCreator::new();
