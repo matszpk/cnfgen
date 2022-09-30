@@ -25,7 +25,7 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, Sub,
+    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, Shr, Sub,
 };
 use std::rc::Rc;
 
@@ -913,7 +913,7 @@ macro_rules! impl_int_shl_immi {
 
             fn shl(self, rhs: $ty) -> Self::Output {
                 // check whether zeroes and sign in rhs
-                if rhs >= 0 && (rhs as usize) < N::USIZE {
+                if rhs < 0 || (rhs as usize) < N::USIZE {
                     panic!("this arithmetic operation will overflow");
                 }
                 let usize_rhs = rhs as usize;
@@ -975,6 +975,197 @@ impl_int_shl_self_imm!(isize, U32);
 impl_int_shl_self_imm!(isize, U64);
 impl_int_shl_self_imm!(i64, U64);
 impl_int_shl_self_imm!(i128, U128);
+
+/// Shift right implementation.
+impl<T, N, const SIGN: bool, N2, const SIGN2: bool> Shr<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn shr(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
+        let nbits = {
+            let nbits = usize::BITS - N::USIZE.leading_zeros();
+            if (1 << (nbits - 1)) == N::USIZE {
+                nbits - 1
+            } else {
+                nbits
+            }
+        } as usize;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
+        let mut output = GenericArray::default();
+        for i in 0..nbits {
+            output.iter_mut().enumerate().for_each(|(x, out)| {
+                *out = bool_ite(
+                    rhs.bit(i),
+                    // if no overflow then get bit(v)
+                    if x + (1usize << i) < N::USIZE {
+                        self.bit(x + (1 << i))
+                    } else {
+                        BoolExprNode::new(
+                            self.creator.clone(),
+                            if SIGN {
+                                *self.indexes.last().unwrap()
+                            } else {
+                                0
+                            },
+                        )
+                    },
+                    self.bit(x),
+                )
+                .index
+            });
+        }
+        ExprNode {
+            creator: self.creator.clone(),
+            indexes: output,
+        }
+    }
+}
+
+macro_rules! impl_int_shr_immu {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> Shr<$ty> for ExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn shr(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                if (rhs as usize) < N::USIZE {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = GenericArray::from_exact_iter(
+                    iter::repeat(if SIGN {
+                        *self.indexes.last().unwrap()
+                    } else {
+                        0
+                    })
+                    .take(N::USIZE),
+                )
+                .unwrap();
+                output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_shr_immu!(u8);
+impl_int_shr_immu!(u16);
+impl_int_shr_immu!(u32);
+impl_int_shr_immu!(usize);
+impl_int_shr_immu!(u64);
+impl_int_shr_immu!(u128);
+
+macro_rules! impl_int_shr_immi {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> Shr<$ty> for ExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn shr(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                if rhs < 0 || (rhs as usize) < N::USIZE {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = GenericArray::from_exact_iter(
+                    iter::repeat(if SIGN {
+                        *self.indexes.last().unwrap()
+                    } else {
+                        0
+                    })
+                    .take(N::USIZE),
+                )
+                .unwrap();
+                output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_shr_immi!(i8);
+impl_int_shr_immi!(i16);
+impl_int_shr_immi!(i32);
+impl_int_shr_immi!(isize);
+impl_int_shr_immi!(i64);
+impl_int_shr_immi!(i128);
+
+macro_rules! impl_int_shr_self_imm {
+    ($ty:ty, $bits:ty) => {
+        impl<T, N, const SIGN: bool> Shr<ExprNode<T, N, SIGN>> for $ty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+            ExprNode<T, $bits, SIGN>: IntConstant<T, $ty>,
+        {
+            type Output = ExprNode<T, $bits, SIGN>;
+
+            fn shr(self, rhs: ExprNode<T, N, SIGN>) -> Self::Output {
+                ExprNode::<T, $bits, SIGN>::constant(rhs.creator.clone(), self) >> rhs
+            }
+        }
+    };
+}
+
+impl_int_shr_self_imm!(u8, U8);
+impl_int_shr_self_imm!(u16, U16);
+impl_int_shr_self_imm!(u32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_shr_self_imm!(usize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_shr_self_imm!(usize, U64);
+impl_int_shr_self_imm!(u64, U64);
+impl_int_shr_self_imm!(u128, U128);
+
+impl_int_shr_self_imm!(i8, U8);
+impl_int_shr_self_imm!(i16, U16);
+impl_int_shr_self_imm!(i32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_shr_self_imm!(isize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_shr_self_imm!(isize, U64);
+impl_int_shr_self_imm!(i64, U64);
+impl_int_shr_self_imm!(i128, U128);
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
