@@ -199,6 +199,43 @@ where
         }
         ExprNode { creator, indexes }
     }
+
+    pub fn as_unsigned(self) -> ExprNode<T, N, false> {
+        ExprNode {
+            creator: self.creator,
+            indexes: self.indexes,
+        }
+    }
+
+    pub fn as_signed(self) -> ExprNode<T, N, true> {
+        ExprNode {
+            creator: self.creator,
+            indexes: self.indexes,
+        }
+    }
+
+    pub fn subvalue<N2, const SIGN2: bool>(&self, start: usize) -> ExprNode<T, N2, SIGN2>
+    where
+        N2: ArrayLength<usize>,
+    {
+        ExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::clone_from_slice(&self.indexes[start..start + N2::USIZE]),
+        }
+    }
+
+    pub fn select_bits<N2, I, const SIGN2: bool>(&self, iter: I) -> Option<ExprNode<T, N2, SIGN2>>
+    where
+        N2: ArrayLength<usize>,
+        I: IntoIterator<Item = usize>,
+    {
+        GenericArray::from_exact_iter(iter.into_iter().map(|x| self.indexes[x])).map(|indexes| {
+            ExprNode {
+                creator: self.creator.clone(),
+                indexes,
+            }
+        })
+    }
 }
 
 impl<'a, T, N, const SIGN: bool> BitVal for &'a ExprNode<T, N, SIGN>
