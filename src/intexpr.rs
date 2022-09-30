@@ -281,7 +281,7 @@ where
                 indexes: indexes1,
             },
             ExprNode {
-                creator: self.creator.clone(),
+                creator: self.creator,
                 indexes: indexes2,
             },
         )
