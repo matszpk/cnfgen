@@ -722,8 +722,8 @@ where
 }
 
 /// Shift left implementation.
-impl<T, N, N2, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, N2, SIGN2>> for
-        ExprNode<T, N, SIGN>
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -738,23 +738,36 @@ where
     fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
         let nbits = {
             let nbits = usize::BITS - N::USIZE.leading_zeros();
-            if (1<<nbits) == N::USIZE {
-                nbits+1
-            } else { nbits }
+            if (1 << nbits) == N::USIZE {
+                nbits + 1
+            } else {
+                nbits
+            }
         } as usize;
         // check whether zeroes in sign and in unused bits in Rhs
-        if (SIGN2 && *rhs.indexes.last().unwrap() != 0) ||
-            !rhs.indexes.iter().skip(nbits).all(|x| *x == 0) {
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+        {
             panic!("this arithmetic operation will overflow");
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
         let mut output = GenericArray::default();
         for i in 0..nbits {
-            output.iter_mut().enumerate().for_each(|(x, out)|
-                *out = bool_ite(rhs.bit(i), self.bit(x+(1<<i)), self.bit(x)).index
-            );
+            output.iter_mut().enumerate().for_each(|(x, out)| {
+                *out = bool_ite(
+                    rhs.bit(i),
+                    // if no overflow then get bit(v)
+                    x.checked_sub(1usize << i)
+                        .map_or(BoolExprNode::new(self.creator.clone(), 0), |v| self.bit(v)),
+                    self.bit(x),
+                )
+                .index
+            });
         }
-        ExprNode{ creator: self.creator.clone(), indexes: output }
+        ExprNode {
+            creator: self.creator.clone(),
+            indexes: output,
+        }
     }
 }
 
