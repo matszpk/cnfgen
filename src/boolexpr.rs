@@ -747,8 +747,8 @@ impl_op_assign!(BitAndAssign, bitand_assign, bitand);
 impl_op_assign!(BitOrAssign, bitor_assign, bitor);
 impl_op_assign!(BitXorAssign, bitxor_assign, bitxor);
 
-/// Returns result of the If-Then-Else (ITE).
-pub fn ite<C, T, E>(
+/// Returns result of the If-Then-Else (ITE) - bitwise version.
+pub fn bool_ite<C, T, E>(
     c: C,
     t: T,
     e: E,
@@ -1225,14 +1225,14 @@ mod tests {
             *ec.borrow()
         );
     }
-    
+
     #[test]
     fn test_expr_ite() {
         let ec = ExprCreator::<isize>::new();
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let _ = ite(v1, v2, v3);
+        let _ = bool_ite(v1, v2, v3);
         assert_eq!(
             ExprCreator {
                 nodes: vec![
