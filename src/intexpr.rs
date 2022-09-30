@@ -25,7 +25,8 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, Shr, Sub,
+    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, ShlAssign,
+    Shr, ShrAssign, Sub,
 };
 use std::rc::Rc;
 
@@ -1166,6 +1167,102 @@ impl_int_shr_self_imm!(isize, U32);
 impl_int_shr_self_imm!(isize, U64);
 impl_int_shr_self_imm!(i64, U64);
 impl_int_shr_self_imm!(i128, U128);
+
+// ShlAssign
+impl<T, N, const SIGN: bool, N2, const SIGN2: bool> ShlAssign<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    fn shl_assign(&mut self, rhs: ExprNode<T, N2, SIGN2>) {
+        *self = self.clone().shl(rhs)
+    }
+}
+
+macro_rules! impl_int_shl_assign_imm {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> ShlAssign<$ty> for ExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            fn shl_assign(&mut self, rhs: $ty) {
+                *self = self.clone().shl(rhs)
+            }
+        }
+    };
+}
+
+impl_int_shl_assign_imm!(u8);
+impl_int_shl_assign_imm!(u16);
+impl_int_shl_assign_imm!(u32);
+impl_int_shl_assign_imm!(usize);
+impl_int_shl_assign_imm!(u64);
+impl_int_shl_assign_imm!(u128);
+impl_int_shl_assign_imm!(i8);
+impl_int_shl_assign_imm!(i16);
+impl_int_shl_assign_imm!(i32);
+impl_int_shl_assign_imm!(isize);
+impl_int_shl_assign_imm!(i64);
+impl_int_shl_assign_imm!(i128);
+
+// ShrAssign
+impl<T, N, const SIGN: bool, N2, const SIGN2: bool> ShrAssign<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    fn shr_assign(&mut self, rhs: ExprNode<T, N2, SIGN2>) {
+        *self = self.clone().shr(rhs)
+    }
+}
+
+macro_rules! impl_int_shr_assign_imm {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> ShrAssign<$ty> for ExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            fn shr_assign(&mut self, rhs: $ty) {
+                *self = self.clone().shr(rhs)
+            }
+        }
+    };
+}
+
+impl_int_shr_assign_imm!(u8);
+impl_int_shr_assign_imm!(u16);
+impl_int_shr_assign_imm!(u32);
+impl_int_shr_assign_imm!(usize);
+impl_int_shr_assign_imm!(u64);
+impl_int_shr_assign_imm!(u128);
+impl_int_shr_assign_imm!(i8);
+impl_int_shr_assign_imm!(i16);
+impl_int_shr_assign_imm!(i32);
+impl_int_shr_assign_imm!(isize);
+impl_int_shr_assign_imm!(i64);
+impl_int_shr_assign_imm!(i128);
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
