@@ -878,16 +878,6 @@ macro_rules! impl_int_ord_ipty {
         }
     }
 }
-// macro_rules! impl_int_ord_upty {
-//     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-//         impl_int_ord_pty!(false, $pty, $ty, $( $gparams ),*);
-//     }
-// }
-// macro_rules! impl_int_ord_ipty {
-//     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-//         impl_int_ord_pty!(true, $pty, $ty, $( $gparams ),*);
-//     }
-// }
 
 impl_int_upty_ty1!(impl_int_ord_upty);
 impl_int_ipty_ty1!(impl_int_ord_ipty);
@@ -1688,6 +1678,97 @@ where
             indexes: output,
         }
     }
+}
+
+/// Most advanced: multiplication.
+
+fn gen_dadda<T>(creator: Rc<RefCell<ExprCreator<T>>>, matrix: &mut [Vec<usize>]) -> Vec<usize>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    let max_col_size = matrix.iter().map(|col| col.len()).max().unwrap();
+    let mut step_sizes = vec![];
+    {
+        let mut max_step_size = 2usize;
+        while max_step_size < max_col_size {
+            step_sizes.push(max_step_size);
+            max_step_size += max_step_size >> 1;
+        }
+    }
+    let mut extracol: Vec<usize> = vec![];
+    let mut next_extracol: Vec<usize> = vec![];
+    // main routine
+    let matrixlen = matrix.len();
+    for new_column_size in step_sizes.iter().rev() {
+        for (coli, col) in matrix.iter_mut().enumerate() {
+            extracol.clear();
+            if col.len() + extracol.len() > *new_column_size {
+                let cells_to_reduce = extracol.len() + col.len() - *new_column_size;
+                let mut src = col.len() - cells_to_reduce - ((cells_to_reduce + 1) >> 1);
+                let mut dest = src;
+                while src < col.len() {
+                    let a = BoolExprNode::new(creator.clone(), col[src]);
+                    let b = BoolExprNode::new(creator.clone(), col[src + 1]);
+                    if coli + 1 < matrixlen {
+                        let (s, c) = if src + 2 < col.len() {
+                            // full adder
+                            full_adder(a, b, BoolExprNode::new(creator.clone(), col[src + 2]))
+                        } else {
+                            // half adder
+                            half_adder(a, b)
+                        };
+                        col[dest] = s.index;
+                        next_extracol.push(c.index);
+                    } else {
+                        // only sum, ignore carry
+                        col[dest] = if src + 2 < col.len() {
+                            // full adder
+                            a ^ b ^ BoolExprNode::new(creator.clone(), col[src + 2])
+                        } else {
+                            // half adder
+                            a ^ b
+                        }
+                        .index;
+                    }
+                    src += 3;
+                    dest += 1;
+                }
+                col.resize(dest, 0);
+            }
+            col.extend(extracol.iter());
+            std::mem::swap(&mut extracol, &mut next_extracol);
+        }
+    }
+
+    // last phase
+    let mut output = vec![0; matrix.len()];
+    let mut c = BoolExprNode::new(creator.clone(), 0); // false
+    for (i, col) in matrix.iter().enumerate() {
+        (output[i], c) = if col.len() == 2 {
+            let (s0, c0) = full_adder(
+                BoolExprNode::new(creator.clone(), col[0]),
+                BoolExprNode::new(creator.clone(), col[1]),
+                c,
+            );
+            (s0.index, c0)
+        } else {
+            let (s0, c0) = half_adder(BoolExprNode::new(creator.clone(), col[0]), c);
+            (s0.index, c0)
+        };
+    }
+    let col = matrix.last().unwrap();
+    output[matrix.len() - 1] = if col.len() == 2 {
+        BoolExprNode::new(creator.clone(), col[0]) ^ BoolExprNode::new(creator.clone(), col[1]) ^ c
+    } else {
+        BoolExprNode::new(creator.clone(), col[0]) ^ c
+    }
+    .index;
+
+    output
 }
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
