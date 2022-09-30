@@ -162,10 +162,21 @@ where
         }
         ExprNode { creator, indexes }
     }
+}
 
-    #[inline]
-    pub fn bit(&self, n: usize) -> BoolExprNode<T> {
-        BoolExprNode::new(self.creator.clone(), self.indexes[n])
+impl<'a, T, N, const SIGN: bool> BitVal for &'a ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = BoolExprNode<T>;
+    
+    fn bit(self, x: usize) -> Self::Output {
+        BoolExprNode::new(self.creator.clone(), self.indexes[x])
     }
 }
 
