@@ -24,7 +24,9 @@ use std::cell::RefCell;
 use std::cmp;
 use std::fmt::Debug;
 use std::iter;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl};
+use std::ops::{
+    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, Sub,
+};
 use std::rc::Rc;
 
 use generic_array::typenum::*;
@@ -213,8 +215,17 @@ where
             indexes: self.indexes,
         }
     }
+}
 
-    pub fn subvalue<N2, const SIGN2: bool>(&self, start: usize) -> ExprNode<T, N2, SIGN2>
+impl<T, N: ArrayLength<usize>> ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn subvalue<N2>(&self, start: usize) -> ExprNode<T, N2, false>
     where
         N2: ArrayLength<usize>,
     {
@@ -224,7 +235,7 @@ where
         }
     }
 
-    pub fn select_bits<N2, I, const SIGN2: bool>(&self, iter: I) -> Option<ExprNode<T, N2, SIGN2>>
+    pub fn select_bits<N2, I>(&self, iter: I) -> Option<ExprNode<T, N2, false>>
     where
         N2: ArrayLength<usize>,
         I: IntoIterator<Item = usize>,
@@ -235,6 +246,45 @@ where
                 indexes,
             }
         })
+    }
+
+    pub fn concat<N2>(self, rest: ExprNode<T, N2, false>) -> ExprNode<T, Sum<N, N2>, false>
+    where
+        N: Add<N2>,
+        N2: ArrayLength<usize>,
+        Sum<N, N2>: ArrayLength<usize>,
+    {
+        use generic_array::sequence::*;
+        assert_eq!(self.creator, rest.creator);
+        ExprNode {
+            creator: self.creator,
+            indexes: self.indexes.concat(rest.indexes),
+        }
+    }
+
+    pub fn split<K>(
+        self,
+    ) -> (
+        ExprNode<T, K, false>,
+        ExprNode<T, operator_aliases::Diff<N, K>, false>,
+    )
+    where
+        N: Sub<K>,
+        K: ArrayLength<usize>,
+        operator_aliases::Diff<N, K>: ArrayLength<usize>,
+    {
+        use generic_array::sequence::*;
+        let (indexes1, indexes2) = self.indexes.split();
+        (
+            ExprNode {
+                creator: self.creator.clone(),
+                indexes: indexes1,
+            },
+            ExprNode {
+                creator: self.creator.clone(),
+                indexes: indexes2,
+            },
+        )
     }
 }
 
