@@ -736,16 +736,18 @@ where
     type Output = Self;
 
     fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
-        let nbits = cmp::min({
+        let nbits = {
             let nbits = usize::BITS - N::USIZE.leading_zeros();
             if (1<<nbits) == N::USIZE {
                 nbits+1
             } else { nbits }
-        } as usize, N2::USIZE - usize::from(SIGN2));
+        } as usize;
         // check whether zeroes in sign and in unused bits in Rhs
-        if !rhs.indexes.iter().skip(nbits).all(|x| *x == 0) {
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0) ||
+            !rhs.indexes.iter().skip(nbits).all(|x| *x == 0) {
             panic!("this arithmetic operation will overflow");
         }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
         let mut output = GenericArray::default();
         for i in 0..nbits {
             output.iter_mut().enumerate().for_each(|(x, out)|
