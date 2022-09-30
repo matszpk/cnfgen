@@ -21,15 +21,16 @@
 //! The module to generate CNF clauses from boolean expressions.
 
 use std::cell::RefCell;
+use std::cmp;
 use std::fmt::Debug;
 use std::iter;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl};
 use std::rc::Rc;
 
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{BoolEqual, ExprNode as BoolExprNode};
+use crate::boolexpr::{bool_ite, BoolEqual, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
@@ -244,7 +245,7 @@ macro_rules! impl_int_uconstant {
                     (0..<$ty>::USIZE).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
                         if x < <$pty>::BITS as usize {
-                            if ((v & (1<<x)) != 0) { 1 } else { 0 }
+                            usize::from((v & (1<<x)) != 0)
                         } else { 0 }
                     })
                 ).unwrap() }
@@ -266,9 +267,9 @@ macro_rules! impl_int_iconstant {
                     (0..<$ty>::USIZE).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
                         if x < <$pty>::BITS as usize {
-                            if ((v & (1<<x)) != 0) { 1 } else { 0 }
+                            usize::from((v & (1<<x)) != 0)
                         } else {
-                            if ((v & (1<<((<$pty>::BITS-1) as usize))) != 0) { 1 } else { 0 }
+                            usize::from((v & (1<<((<$pty>::BITS-1) as usize))) != 0)
                         }
                     })
                 ).unwrap() }
@@ -534,8 +535,10 @@ macro_rules! impl_int_equal_ipty {
 impl_int_upty_ty1!(impl_int_equal_upty);
 impl_int_ipty_ty1!(impl_int_equal_ipty);
 
+// macro helpers for binary operation traits.
 macro_rules! impl_int_bitop {
     ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
+        /// Binary operation traits implementation.
         impl<T, N, const SIGN: bool> $trait for ExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -562,6 +565,7 @@ macro_rules! impl_int_bitop {
 
         macro_rules! $macro_gen {
                     ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        /// Binary operation traits implementation.
                         impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
                         where
                             T: VarLit + Neg<Output = T> + Debug,
@@ -586,6 +590,7 @@ macro_rules! impl_int_bitop {
                             }
                         }
 
+                        /// Binary operation traits implementation.
                         impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
                         where
                             T: VarLit + Neg<Output = T> + Debug,
@@ -632,9 +637,11 @@ impl_int_bitop!($, BitAnd, bitand, impl_int_bitand_pty, impl_int_bitand_upty, im
 impl_int_bitop!($, BitOr, bitor, impl_int_bitor_pty, impl_int_bitor_upty, impl_int_bitor_ipty);
 impl_int_bitop!($, BitXor, bitxor, impl_int_bitxor_pty, impl_int_bitxor_upty, impl_int_bitxor_ipty);
 
+// macro helpers for binary operation and assign traits.
 macro_rules! impl_int_bitop_assign {
     ($d:tt, $trait:ident, $op_assign:ident, $op:ident, $macro_gen:ident, $macro_upty:ident,
             $macro_ipty:ident) => {
+        /// Binary operation and assign traits implementation.
         impl<T, N, const SIGN: bool> $trait for ExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -651,6 +658,7 @@ macro_rules! impl_int_bitop_assign {
 
         macro_rules! $macro_gen {
                     ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        /// Binary operation and assign traits implementation.
                         impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
                         where
                             T: VarLit + Neg<Output = T> + Debug,
@@ -690,6 +698,7 @@ impl_int_bitop_assign!($, BitOrAssign, bitor_assign, bitor, impl_int_bitor_assig
 impl_int_bitop_assign!($, BitXorAssign, bitxor_assign, bitxor, impl_int_bitxor_assign_pty,
         impl_int_bitxor_assign_upty, impl_int_bitxor_assign_ipty);
 
+/// Not trait implementation.
 impl<T, N, const SIGN: bool> Not for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -709,6 +718,41 @@ where
             )
             .unwrap(),
         }
+    }
+}
+
+/// Shift left implementation.
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, N2, SIGN2>> for
+        ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
+        let nbits = cmp::min({
+            let nbits = usize::BITS - N::USIZE.leading_zeros();
+            if (1<<nbits) == N::USIZE {
+                nbits+1
+            } else { nbits }
+        } as usize, N2::USIZE - usize::from(SIGN2));
+        // check whether zeroes in sign and in unused bits in Rhs
+        if !rhs.indexes.iter().skip(nbits).all(|x| *x == 0) {
+            panic!("this arithmetic operation will overflow");
+        }
+        let mut output = GenericArray::default();
+        for i in 0..nbits {
+            output.iter_mut().enumerate().for_each(|(x, out)|
+                *out = bool_ite(rhs.bit(i), self.bit(x+(1<<i)), self.bit(x)).index
+            );
+        }
+        ExprNode{ creator: self.creator.clone(), indexes: output }
     }
 }
 
