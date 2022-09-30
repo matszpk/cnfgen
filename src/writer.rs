@@ -26,6 +26,8 @@ use std::io::{self, Write};
 use std::iter::Extend;
 use std::ops::{Index, IndexMut, Neg, Not};
 
+use generic_array::*;
+
 #[derive(thiserror::Error, Debug)]
 /// An error type.
 pub enum CNFError {
@@ -288,6 +290,25 @@ where
 {
     fn clause_len(&self) -> usize {
         N
+    }
+
+    fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
+    }
+
+    fn clause_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
+}
+
+/// An implementation for an generic-array.
+impl<T, N: ArrayLength<T>> Clause<T> for GenericArray<T, N>
+where
+    T: VarLit + Neg<Output = T>,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn clause_len(&self) -> usize {
+        N::USIZE
     }
 
     fn clause_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
@@ -619,6 +640,26 @@ where
     }
 }
 
+/// An implementation for an array.
+impl<T, N: ArrayLength<T>> QuantSet<T> for GenericArray<T, N>
+where
+    T: VarLit,
+    <T as TryInto<usize>>::Error: Debug,
+{
+    fn quant_len(&self) -> usize {
+        self.len()
+    }
+
+    fn quant_all<F: FnMut(&T) -> bool>(&self, f: F) -> bool {
+        self.iter().all(f)
+    }
+
+    fn quant_for_each<F: FnMut(&T)>(&self, f: F) {
+        self.iter().for_each(f);
+    }
+}
+
+
 /// Quantifier type. It can be a existential and universal.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quantifier {
@@ -891,6 +932,7 @@ mod tests {
         clause_func(Vec::from(clause));
         clause_func(BTreeSet::from(clause));
         clause_func(clause.as_slice());
+        clause_func(GenericArray::<_, typenum::U3>::clone_from_slice(&[1, 2, 4]));
 
         let mut v = vec![];
         clause.clause_for_each(|x| v.push(*x));
@@ -898,6 +940,13 @@ mod tests {
         assert!(clause.clause_all(|x| *x <= 4));
         assert!(!clause.clause_all(|x| *x > 2));
         assert_eq!(clause.len(), clause.clause_len());
+        let gnclause = GenericArray::<_, typenum::U3>::clone_from_slice(&[1, 2, 4]);
+        assert_eq!(gnclause.as_slice(), v.as_slice());
+        assert!(gnclause.clause_all(|x| *x <= 4));
+        assert!(!gnclause.clause_all(|x| *x > 2));
+        let mut v = vec![];
+        gnclause.clause_for_each(|x| v.push(*x));
+        assert_eq!(Vec::from([1, 2, 4]), v);
     }
 
     #[test]
@@ -1094,6 +1143,7 @@ mod tests {
         quantset_func(Vec::from(quantset));
         quantset_func(BTreeSet::from(quantset));
         quantset_func(quantset.as_slice());
+        quantset_func(GenericArray::<_, typenum::U3>::clone_from_slice(&[1, 2, 4]));
 
         let mut v = vec![];
         quantset.quant_for_each(|x| v.push(*x));
@@ -1101,6 +1151,13 @@ mod tests {
         assert!(quantset.quant_all(|x| *x <= 4));
         assert!(!quantset.quant_all(|x| *x > 2));
         assert_eq!(quantset.len(), quantset.quant_len());
+        let gnquantset = GenericArray::<_, typenum::U3>::clone_from_slice(&[1, 2, 4]);
+        assert_eq!(gnquantset.as_slice(), v.as_slice());
+        assert!(gnquantset.quant_all(|x| *x <= 4));
+        assert!(!gnquantset.quant_all(|x| *x > 2));
+        let mut v = vec![];
+        gnquantset.clause_for_each(|x| v.push(*x));
+        assert_eq!(Vec::from([1, 2, 4]), v);
     }
 
     #[test]
