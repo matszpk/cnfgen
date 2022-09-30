@@ -716,16 +716,20 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize> + Sub<U1>,
-    <N as Sub<U1>>::Output: ArrayLength<usize>,
+    N: ArrayLength<usize>,
 {
     type Output = BoolExprNode<T>;
 
     fn less_than(self, rhs: Self) -> Self::Output {
         let lhs_sign = self.bit(N::USIZE - 1);
         let rhs_sign = rhs.bit(N::USIZE - 1);
-        let lhs_num = self.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
-        let rhs_num = rhs.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        let (lhs_num, rhs_num) = {
+            let mut lhs_num = self.as_unsigned().clone();
+            let mut rhs_num = rhs.as_unsigned().clone();
+            *lhs_num.indexes.last_mut().unwrap() = 0;
+            *rhs_num.indexes.last_mut().unwrap() = 0;
+            (lhs_num, rhs_num)
+        };
         (lhs_sign.clone() & (!rhs_sign.clone()))
             | (lhs_sign.clone().equal(rhs_sign) &
             // if negative
@@ -737,8 +741,13 @@ where
     fn less_equal(self, rhs: Self) -> Self::Output {
         let lhs_sign = self.bit(N::USIZE - 1);
         let rhs_sign = rhs.bit(N::USIZE - 1);
-        let lhs_num = self.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
-        let rhs_num = rhs.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        let (lhs_num, rhs_num) = {
+            let mut lhs_num = self.as_unsigned().clone();
+            let mut rhs_num = rhs.as_unsigned().clone();
+            *lhs_num.indexes.last_mut().unwrap() = 0;
+            *rhs_num.indexes.last_mut().unwrap() = 0;
+            (lhs_num, rhs_num)
+        };
         (lhs_sign.clone() & (!rhs_sign.clone()))
             | (lhs_sign.clone().equal(rhs_sign) &
             // if negative
@@ -755,6 +764,143 @@ where
         rhs.less_equal(self)
     }
 }
+
+macro_rules! impl_int_ord_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T, $( $gparams ),* > IntOrd<$pty> for ExprNode<T, $ty, false>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn less_than(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.less_than(Self::constant(creator, rhs))
+            }
+            fn less_equal(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.less_equal(Self::constant(creator, rhs))
+            }
+            fn greater_than(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.greater_than(Self::constant(creator, rhs))
+            }
+            fn greater_equal(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.greater_equal(Self::constant(creator, rhs))
+            }
+        }
+
+        impl<T, $( $gparams ),* > IntOrd<ExprNode<T, $ty, false>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn less_than(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, false>::constant(creator, self).less_than(rhs)
+            }
+            fn less_equal(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, false>::constant(creator, self).less_equal(rhs)
+            }
+            fn greater_than(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, false>::constant(creator, self).greater_than(rhs)
+            }
+            fn greater_equal(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, false>::constant(creator, self).greater_equal(rhs)
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_ord_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T, $( $gparams ),* > IntOrd<$pty> for ExprNode<T, $ty, true>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn less_than(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.less_than(Self::constant(creator, rhs))
+            }
+            fn less_equal(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.less_equal(Self::constant(creator, rhs))
+            }
+            fn greater_than(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.greater_than(Self::constant(creator, rhs))
+            }
+            fn greater_equal(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.greater_equal(Self::constant(creator, rhs))
+            }
+        }
+
+        impl<T, $( $gparams ),* > IntOrd<ExprNode<T, $ty, true>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = BoolExprNode<T>;
+
+            fn less_than(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, true>::constant(creator, self).less_than(rhs)
+            }
+            fn less_equal(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, true>::constant(creator, self).less_equal(rhs)
+            }
+            fn greater_than(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, true>::constant(creator, self).greater_than(rhs)
+            }
+            fn greater_equal(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, true>::constant(creator, self).greater_equal(rhs)
+            }
+        }
+    }
+}
+// macro_rules! impl_int_ord_upty {
+//     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+//         impl_int_ord_pty!(false, $pty, $ty, $( $gparams ),*);
+//     }
+// }
+// macro_rules! impl_int_ord_ipty {
+//     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+//         impl_int_ord_pty!(true, $pty, $ty, $( $gparams ),*);
+//     }
+// }
+
+impl_int_upty_ty1!(impl_int_ord_upty);
+impl_int_ipty_ty1!(impl_int_ord_ipty);
 
 // macro helpers for binary operation traits.
 macro_rules! impl_int_bitop {
