@@ -25,17 +25,15 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, ShlAssign,
-    Shr, ShrAssign, Sub,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl,
+    ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{
-    bool_ite, full_adder, half_adder, BoolEqual, BoolImpl, ExprNode as BoolExprNode,
-};
+use crate::boolexpr::{bool_ite, full_adder, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
@@ -1508,23 +1506,158 @@ where
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c;
-        (output[0], c) = {
-            let (s0, c0) = half_adder(self.bit(0), rhs.bit(0));
-            (s0.index, c0)
-        };
-        for i in 1..N::USIZE {
+        let mut c = BoolExprNode::new(self.creator.clone(), 0); // false
+        for i in 0..N::USIZE - 1 {
             (output[i], c) = {
                 let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
                 (s0.index, c0)
             };
         }
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
         ExprNode {
             creator: self.creator,
             indexes: output,
         }
     }
 }
+
+macro_rules! impl_int_add_pty {
+    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T, $( $gparams ),* > Add<$pty> for ExprNode<T, $ty, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn add(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.add(Self::constant(creator, rhs))
+            }
+        }
+
+        impl<T, $( $gparams ),* > Add<ExprNode<T, $ty, $sign>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, $ty, $sign>;
+
+            fn add(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).add(rhs)
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_add_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_add_pty!(false, $pty, $ty, $( $gparams ),*);
+    }
+}
+macro_rules! impl_int_add_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_add_pty!(true, $pty, $ty, $( $gparams ),*);
+    }
+}
+
+impl_int_upty_ty1!(impl_int_add_upty);
+impl_int_ipty_ty1!(impl_int_add_ipty);
+
+impl<T, N, const SIGN: bool> Sub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
+        for i in 0..N::USIZE - 1 {
+            (output[i], c) = {
+                let (s0, c0) = full_adder(self.bit(i), !rhs.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ !rhs.bit(N::USIZE - 1) ^ c).index;
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
+
+macro_rules! impl_int_sub_pty {
+    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl<T, $( $gparams ),* > Sub<$pty> for ExprNode<T, $ty, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn sub(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.sub(Self::constant(creator, rhs))
+            }
+        }
+
+        impl<T, $( $gparams ),* > Sub<ExprNode<T, $ty, $sign>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, $ty, $sign>;
+
+            fn sub(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).sub(rhs)
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_sub_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_sub_pty!(false, $pty, $ty, $( $gparams ),*);
+    }
+}
+macro_rules! impl_int_sub_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_sub_pty!(true, $pty, $ty, $( $gparams ),*);
+    }
+}
+
+impl_int_upty_ty1!(impl_int_sub_upty);
+impl_int_ipty_ty1!(impl_int_sub_ipty);
+
+// AddAssign,  SubAssign
+impl_int_bitop_assign!($, AddAssign, add_assign, add, impl_int_add_assign_pty,
+        impl_int_add_assign_upty, impl_int_add_assign_ipty);
+impl_int_bitop_assign!($, SubAssign, sub_assign, sub, impl_int_sub_assign_pty,
+        impl_sub_add_assign_upty, impl_int_sub_assign_ipty);
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
