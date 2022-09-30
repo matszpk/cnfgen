@@ -33,7 +33,9 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
+use crate::boolexpr::{
+    bool_ite, full_adder, half_adder, BoolEqual, BoolImpl, ExprNode as BoolExprNode,
+};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
@@ -581,7 +583,7 @@ where
 
     fn equal(self, rhs: Self) -> Self::Output {
         let mut xp = BoolExprNode::single(self.creator.clone(), true);
-        for i in 0..self.indexes.len() {
+        for i in 0..N::USIZE {
             xp = xp & self.bit(i).equal(rhs.bit(i));
         }
         xp
@@ -589,7 +591,7 @@ where
 
     fn nequal(self, rhs: Self) -> Self::Output {
         let mut xp = BoolExprNode::single(self.creator.clone(), false);
-        for i in 0..self.indexes.len() {
+        for i in 0..N::USIZE {
             xp = xp | (self.bit(i) ^ rhs.bit(i));
         }
         xp
@@ -610,19 +612,13 @@ macro_rules! impl_int_equal_pty {
             type Output = BoolExprNode<T>;
 
             fn equal(self, rhs: $pty) -> Self::Output {
-                let mut xp = BoolExprNode::single(self.creator.clone(), true);
-                for i in 0..self.indexes.len() {
-                    xp = xp & self.bit(i).equal(rhs.bit(i));
-                }
-                xp
+                let creator = self.creator.clone();
+                self.equal(Self::constant(creator, rhs))
             }
 
             fn nequal(self, rhs: $pty) -> Self::Output {
-                let mut xp = BoolExprNode::single(self.creator.clone(), false);
-                for i in 0..self.indexes.len() {
-                    xp = xp | (self.bit(i) ^ rhs.bit(i));
-                }
-                xp
+                let creator = self.creator.clone();
+                self.nequal(Self::constant(creator, rhs))
             }
         }
 
@@ -638,19 +634,13 @@ macro_rules! impl_int_equal_pty {
             type Output = BoolExprNode<T>;
 
             fn equal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
-                let mut xp = BoolExprNode::single(rhs.creator.clone(), true);
-                for i in 0..rhs.indexes.len() {
-                    xp = xp & self.bit(i).equal(rhs.bit(i));
-                }
-                xp
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).equal(rhs)
             }
 
             fn nequal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
-                let mut xp = BoolExprNode::single(rhs.creator.clone(), false);
-                for i in 0..rhs.indexes.len() {
-                    xp = xp | (self.bit(i) ^ rhs.bit(i));
-                }
-                xp
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).nequal(rhs)
             }
         }
     }
@@ -1504,6 +1494,37 @@ impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
 
 //////////
 // Add/Sub implementation
+
+impl<T, N, const SIGN: bool> Add<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c;
+        (output[0], c) = {
+            let (s0, c0) = half_adder(self.bit(0), rhs.bit(0));
+            (s0.index, c0)
+        };
+        for i in 1..N::USIZE {
+            (output[i], c) = {
+                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
