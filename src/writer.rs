@@ -301,7 +301,7 @@ where
     }
 }
 
-/// An implementation for an generic-array.
+/// An implementation for a generic-array.
 impl<T, N: ArrayLength<T>> Clause<T> for GenericArray<T, N>
 where
     T: VarLit + Neg<Output = T>,
@@ -640,7 +640,7 @@ where
     }
 }
 
-/// An implementation for an array.
+/// An implementation for a generic-array.
 impl<T, N: ArrayLength<T>> QuantSet<T> for GenericArray<T, N>
 where
     T: VarLit,
@@ -658,7 +658,6 @@ where
         self.iter().for_each(f);
     }
 }
-
 
 /// Quantifier type. It can be a existential and universal.
 #[derive(Clone, Copy, PartialEq, Eq)]
