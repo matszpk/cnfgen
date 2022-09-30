@@ -22,6 +22,7 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
+use std::iter;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use std::rc::Rc;
 
@@ -134,6 +135,39 @@ impl_int_bitval_ipty!(isize);
 impl_int_bitval_ipty!(i64);
 impl_int_bitval_ipty!(i128);
 
+pub trait BitMask<T> {
+    fn bitmask(bit: T) -> Self;
+}
+
+macro_rules! impl_int_bitmask_pty {
+    ($pty:ty) => {
+        impl BitMask<bool> for $pty {
+            fn bitmask(bit: bool) -> Self {
+                // if signed: sign (MIN) and max-positive -> enable all bits
+                // if unsigned: MIN is zero
+                if bit {
+                    Self::MAX | Self::MIN
+                } else {
+                    0
+                }
+            }
+        }
+    };
+}
+
+impl_int_bitmask_pty!(u8);
+impl_int_bitmask_pty!(u16);
+impl_int_bitmask_pty!(u32);
+impl_int_bitmask_pty!(u64);
+impl_int_bitmask_pty!(usize);
+impl_int_bitmask_pty!(u128);
+impl_int_bitmask_pty!(i8);
+impl_int_bitmask_pty!(i16);
+impl_int_bitmask_pty!(i32);
+impl_int_bitmask_pty!(i64);
+impl_int_bitmask_pty!(isize);
+impl_int_bitmask_pty!(i128);
+
 // ExprNode - main node
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -150,6 +184,8 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    pub const BITS: usize = N::USIZE;
+    pub const SIGN: bool = SIGN;
     // Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
         let mut indexes = GenericArray::<usize, N>::default();
@@ -174,9 +210,26 @@ where
     N: ArrayLength<usize>,
 {
     type Output = BoolExprNode<T>;
-    
+
     fn bit(self, x: usize) -> Self::Output {
         BoolExprNode::new(self.creator.clone(), self.indexes[x])
+    }
+}
+
+impl<T, N, const SIGN: bool> BitMask<BoolExprNode<T>> for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    fn bitmask(t: BoolExprNode<T>) -> Self {
+        ExprNode {
+            creator: t.creator.clone(),
+            indexes: GenericArray::from_exact_iter(iter::repeat(t.index).take(N::USIZE)).unwrap(),
+        }
     }
 }
 
@@ -657,4 +710,21 @@ where
             .unwrap(),
         }
     }
+}
+
+/// Returns result of the If-Then-Else (ITE) - integer version.
+pub fn int_ite<C, T, E>(
+    c: C,
+    t: T,
+    e: E,
+) -> <<T as BitAnd>::Output as BitOr<<E as BitAnd>::Output>>::Output
+where
+    C: BitAnd<T> + Not + Clone,
+    T: BitAnd + BitMask<C>,
+    E: BitAnd + BitMask<<C as Not>::Output>,
+    <C as Not>::Output: BitAnd<E>,
+    <T as BitAnd<T>>::Output: BitOr<<E as BitAnd<E>>::Output>,
+{
+    (<T as BitMask<C>>::bitmask(c.clone()) & t)
+        | (<E as BitMask<<C as Not>::Output>>::bitmask(!c) & e)
 }

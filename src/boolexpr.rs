@@ -79,7 +79,7 @@ impl BoolImpl for bool {
 /// literal or value or this same expresion node (example: `v1 ^ true` => `!v1`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug> {
-    creator: Rc<RefCell<ExprCreator<T>>>,
+    pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) index: usize,
 }
 
