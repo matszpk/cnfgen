@@ -33,7 +33,9 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, full_adder, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
+use crate::boolexpr::{
+    bool_ite, full_adder, half_adder, BoolEqual, BoolImpl, ExprNode as BoolExprNode,
+};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
@@ -1658,6 +1660,35 @@ impl_int_bitop_assign!($, AddAssign, add_assign, add, impl_int_add_assign_pty,
         impl_int_add_assign_upty, impl_int_add_assign_ipty);
 impl_int_bitop_assign!($, SubAssign, sub_assign, sub, impl_int_sub_assign_pty,
         impl_sub_add_assign_upty, impl_int_sub_assign_ipty);
+
+// Neg impl
+
+impl<T, N> Neg for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
+        for i in 0..N::USIZE {
+            (output[i], c) = {
+                let (s0, c0) = half_adder(!self.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
