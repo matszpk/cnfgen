@@ -761,6 +761,33 @@ where
     (c.clone() & t) | ((!c) & e)
 }
 
+pub fn half_adder<A, B>(a: A, b: B) -> (<A as BitXor<B>>::Output, <A as BitAnd<B>>::Output)
+where
+    A: BitAnd<B> + BitXor<B> + Clone,
+    B: Clone,
+{
+    (a.clone() ^ b.clone(), a & b)
+}
+
+pub fn full_adder<A, B, C>(
+    a: A,
+    b: B,
+    c: C,
+) -> (
+    <<A as BitXor<B>>::Output as BitXor<C>>::Output,
+    <<<A as BitXor<B>>::Output as BitAnd<C>>::Output as BitOr<<A as BitAnd<B>>::Output>>::Output,
+)
+where
+    A: BitAnd<B> + BitXor<B> + Clone,
+    <A as BitXor<B>>::Output: BitAnd<C> + BitXor<C> + Clone,
+    <<A as BitXor<B>>::Output as BitAnd<C>>::Output: BitOr<<A as BitAnd<B>>::Output>,
+    B: Clone,
+    C: Clone,
+{
+    let s0 = a.clone() ^ b.clone();
+    (s0.clone() ^ c.clone(), (s0 & c) | (a & b))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
