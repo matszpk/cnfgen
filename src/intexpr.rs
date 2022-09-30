@@ -738,8 +738,8 @@ where
     fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
         let nbits = {
             let nbits = usize::BITS - N::USIZE.leading_zeros();
-            if (1 << nbits) == N::USIZE {
-                nbits + 1
+            if (1 << (nbits - 1)) == N::USIZE {
+                nbits - 1
             } else {
                 nbits
             }
