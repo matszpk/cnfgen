@@ -757,8 +757,11 @@ where
                 *out = bool_ite(
                     rhs.bit(i),
                     // if no overflow then get bit(v)
-                    x.checked_sub(1usize << i)
-                        .map_or(BoolExprNode::new(self.creator.clone(), 0), |v| self.bit(v)),
+                    if x >= (1usize << i) {
+                        self.bit(x - (1 << i))
+                    } else {
+                        BoolExprNode::new(self.creator.clone(), 0)
+                    },
                     self.bit(x),
                 )
                 .index
