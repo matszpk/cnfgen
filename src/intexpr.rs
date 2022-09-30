@@ -33,7 +33,7 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, BoolEqual, ExprNode as BoolExprNode};
+use crate::boolexpr::{bool_ite, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
@@ -52,7 +52,7 @@ pub trait IntEqual<Rhs = Self> {
     fn nequal(self, rhs: Rhs) -> Self::Output;
 }
 
-/// Equality operator for PartialEq.
+/// Equality operator for integers.
 macro_rules! int_equal_impl {
     ($t: ty) => {
         impl IntEqual for $t {
@@ -80,6 +80,50 @@ int_equal_impl!(usize);
 int_equal_impl!(isize);
 int_equal_impl!(u128);
 int_equal_impl!(i128);
+
+pub trait IntOrd<Rhs = Self> {
+    type Output;
+
+    fn less_than(self, rhs: Rhs) -> Self::Output;
+    fn less_equal(self, rhs: Rhs) -> Self::Output;
+    fn greater_than(self, rhs: Rhs) -> Self::Output;
+    fn greater_equal(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Equality operator for integers.
+macro_rules! int_ord_impl {
+    ($t: ty) => {
+        impl IntOrd for $t {
+            type Output = bool;
+
+            fn less_than(self, rhs: $t) -> bool {
+                self < rhs
+            }
+            fn less_equal(self, rhs: $t) -> bool {
+                self <= rhs
+            }
+            fn greater_than(self, rhs: $t) -> bool {
+                self > rhs
+            }
+            fn greater_equal(self, rhs: $t) -> bool {
+                self >= rhs
+            }
+        }
+    };
+}
+
+int_ord_impl!(u8);
+int_ord_impl!(i8);
+int_ord_impl!(u16);
+int_ord_impl!(i16);
+int_ord_impl!(u32);
+int_ord_impl!(i32);
+int_ord_impl!(u64);
+int_ord_impl!(i64);
+int_ord_impl!(usize);
+int_ord_impl!(isize);
+int_ord_impl!(u128);
+int_ord_impl!(i128);
 
 pub trait IntConstant<T: VarLit, U> {
     fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
@@ -521,6 +565,9 @@ macro_rules! impl_int_from {
 
 impl_int_ty1_lt_ty2!(impl_int_from);
 
+// ///////////////////
+// IntEqual
+
 impl<T, N, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -622,6 +669,92 @@ macro_rules! impl_int_equal_ipty {
 
 impl_int_upty_ty1!(impl_int_equal_upty);
 impl_int_ipty_ty1!(impl_int_equal_ipty);
+
+// ///////////////////
+// IntOrd
+
+impl<T, N> IntOrd for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = BoolExprNode<T>;
+
+    fn less_than(self, rhs: Self) -> Self::Output {
+        let mut xp = (!self.bit(0)) & rhs.bit(0);
+        for i in 1..self.indexes.len() {
+            xp = (self.bit(i).equal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+        }
+        xp
+    }
+
+    fn less_equal(self, rhs: Self) -> Self::Output {
+        let mut xp = self.bit(0).imp(rhs.bit(0));
+        for i in 1..self.indexes.len() {
+            xp = (self.bit(i).equal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+        }
+        xp
+    }
+
+    fn greater_than(self, rhs: Self) -> Self::Output {
+        rhs.less_than(self)
+    }
+
+    fn greater_equal(self, rhs: Self) -> Self::Output {
+        rhs.less_equal(self)
+    }
+}
+
+impl<T, N> IntOrd for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize> + Sub<U1>,
+    <N as Sub<U1>>::Output: ArrayLength<usize>,
+{
+    type Output = BoolExprNode<T>;
+
+    fn less_than(self, rhs: Self) -> Self::Output {
+        let lhs_sign = self.bit(N::USIZE - 1);
+        let rhs_sign = rhs.bit(N::USIZE - 1);
+        let lhs_num = self.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        let rhs_num = rhs.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        (lhs_sign.clone() & (!rhs_sign.clone()))
+            | (lhs_sign.clone().equal(rhs_sign) &
+            // if negative
+            ((lhs_sign.clone() & lhs_num.clone().greater_than(rhs_num.clone()))
+            // if positive
+            | (!lhs_sign & lhs_num.less_than(rhs_num))))
+    }
+
+    fn less_equal(self, rhs: Self) -> Self::Output {
+        let lhs_sign = self.bit(N::USIZE - 1);
+        let rhs_sign = rhs.bit(N::USIZE - 1);
+        let lhs_num = self.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        let rhs_num = rhs.as_unsigned().subvalue::<<N as Sub<U1>>::Output>(0);
+        (lhs_sign.clone() & (!rhs_sign.clone()))
+            | (lhs_sign.clone().equal(rhs_sign) &
+            // if negative
+            ((lhs_sign.clone() & lhs_num.clone().greater_equal(rhs_num.clone()))
+            // if positive
+            | (!lhs_sign & lhs_num.less_equal(rhs_num))))
+    }
+
+    fn greater_than(self, rhs: Self) -> Self::Output {
+        rhs.less_than(self)
+    }
+
+    fn greater_equal(self, rhs: Self) -> Self::Output {
+        rhs.less_equal(self)
+    }
+}
 
 // macro helpers for binary operation traits.
 macro_rules! impl_int_bitop {
@@ -1222,6 +1355,9 @@ macro_rules! impl_int_shx_assign {
 
 impl_int_shx_assign!(ShlAssign, shl, shl_assign, impl_int_shl_assign_imm);
 impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
+
+//////////
+// Add/Sub implementation
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
