@@ -25,8 +25,8 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, Neg,
-    Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, MulAssign,
+    Neg, Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
@@ -1513,57 +1513,66 @@ where
     }
 }
 
-macro_rules! impl_int_add_pty {
-    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T, $( $gparams ),* > Add<$pty> for ExprNode<T, $ty, $sign>
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            $ty: ArrayLength<usize>,
-        {
-            type Output = Self;
+macro_rules! impl_int_binary_op {
+    ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
+        
+        macro_rules! $macro_gen {
+                    ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = Self;
 
-            fn add(self, rhs: $pty) -> Self::Output {
-                let creator = self.creator.clone();
-                self.add(Self::constant(creator, rhs))
-            }
-        }
+                            fn $op(self, rhs: $pty) -> Self::Output {
+                                let creator = self.creator.clone();
+                                self.$op(Self::constant(creator, rhs))
+                            }
+                        }
 
-        impl<T, $( $gparams ),* > Add<ExprNode<T, $ty, $sign>> for $pty
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            $ty: ArrayLength<usize>,
-        {
-            type Output = ExprNode<T, $ty, $sign>;
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = ExprNode<T, $ty, $sign>;
 
-            fn add(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
-                let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, $sign>::constant(creator, self).add(rhs)
-            }
-        }
+                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                                let creator = rhs.creator.clone();
+                                ExprNode::<T, $ty, $sign>::constant(creator, self).$op(rhs)
+                            }
+                        }
+                    }
+                }
+
+        macro_rules! $macro_upty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(false, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+        macro_rules! $macro_ipty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(true, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+
+        impl_int_upty_ty1!($macro_upty);
+        impl_int_ipty_ty1!($macro_ipty);
     }
 }
 
-macro_rules! impl_int_add_upty {
-    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl_int_add_pty!(false, $pty, $ty, $( $gparams ),*);
-    }
-}
-macro_rules! impl_int_add_ipty {
-    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl_int_add_pty!(true, $pty, $ty, $( $gparams ),*);
-    }
-}
-
-impl_int_upty_ty1!(impl_int_add_upty);
-impl_int_ipty_ty1!(impl_int_add_ipty);
+impl_int_binary_op!($, Add, add, impl_int_add_pty, impl_int_add_upty, impl_int_add_ipty);
 
 impl<T, N, const SIGN: bool> Sub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
@@ -1593,57 +1602,7 @@ where
     }
 }
 
-macro_rules! impl_int_sub_pty {
-    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T, $( $gparams ),* > Sub<$pty> for ExprNode<T, $ty, $sign>
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            $ty: ArrayLength<usize>,
-        {
-            type Output = Self;
-
-            fn sub(self, rhs: $pty) -> Self::Output {
-                let creator = self.creator.clone();
-                self.sub(Self::constant(creator, rhs))
-            }
-        }
-
-        impl<T, $( $gparams ),* > Sub<ExprNode<T, $ty, $sign>> for $pty
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            $ty: ArrayLength<usize>,
-        {
-            type Output = ExprNode<T, $ty, $sign>;
-
-            fn sub(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
-                let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, $sign>::constant(creator, self).sub(rhs)
-            }
-        }
-    }
-}
-
-macro_rules! impl_int_sub_upty {
-    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl_int_sub_pty!(false, $pty, $ty, $( $gparams ),*);
-    }
-}
-macro_rules! impl_int_sub_ipty {
-    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl_int_sub_pty!(true, $pty, $ty, $( $gparams ),*);
-    }
-}
-
-impl_int_upty_ty1!(impl_int_sub_upty);
-impl_int_ipty_ty1!(impl_int_sub_ipty);
+impl_int_binary_op!($, Sub, sub, impl_int_sub_pty, impl_int_sub_upty, impl_int_sub_ipty);
 
 // AddAssign,  SubAssign
 impl_int_bitop_assign!($, AddAssign, add_assign, add, impl_int_add_assign_pty,
@@ -1814,6 +1773,9 @@ where
     }
 }
 
+impl_int_binary_op!($, Mul, mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
+impl_int_bitop_assign!($, MulAssign, mul_assign, mul, impl_int_mul_assign_pty,
+        impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
