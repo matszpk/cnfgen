@@ -97,6 +97,7 @@ where
     }
     
     /// Creates single value as expression node.
+    #[inline]
     pub fn single_value(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
         ExprNode { creator, index: v.into() }
     }
