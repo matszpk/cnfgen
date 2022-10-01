@@ -218,6 +218,12 @@ impl_int_bitmask_pty!(i64);
 impl_int_bitmask_pty!(isize);
 impl_int_bitmask_pty!(i128);
 
+pub trait FullMul<Rhs = Self> {
+    type Output;
+
+    fn fullmul(self, rhs: Rhs) -> Self::Output;
+}
+
 // ExprNode - main node
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -329,24 +335,6 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    pub fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, false>
-    where
-        N: Add,
-        <N as Add>::Output: ArrayLength<usize>,
-    {
-        let mut matrix = gen_dadda_matrix(
-            self.creator.clone(),
-            &self.indexes,
-            &rhs.indexes,
-            2 * N::USIZE,
-        );
-        let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        ExprNode {
-            creator: self.creator,
-            indexes: GenericArray::from_exact_iter(res.drain(..)).unwrap(),
-        }
-    }
-
     pub fn divmod(
         self,
         rhs: Self,
@@ -402,21 +390,6 @@ where
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
         int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
-    }
-
-    pub fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, true>
-    where
-        N: Add,
-        <N as Add>::Output: ArrayLength<usize>,
-    {
-        let ua = self.clone().abs();
-        let ub = rhs.clone().abs();
-        let res = ua.fullmul(ub);
-        int_ite(
-            self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
-            -res.clone().as_signed(),
-            res.as_signed(),
-        )
     }
 
     pub fn divmod(
@@ -1950,6 +1923,115 @@ where
 impl_int_binary_op!($, Mul, mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, MulAssign, mul_assign, mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
+
+/// Full multiplication
+
+impl<T, N> FullMul<ExprNode<T, N, false>> for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize> + Add,
+    <N as Add>::Output: ArrayLength<usize>,
+{
+    type Output = ExprNode<T, operator_aliases::Sum<N, N>, false>;
+
+    fn fullmul(self, rhs: Self) -> Self::Output {
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes,
+            2 * N::USIZE,
+        );
+        let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        ExprNode {
+            creator: self.creator,
+            indexes: GenericArray::from_exact_iter(res.drain(..)).unwrap(),
+        }
+    }
+}
+
+impl<T, N> FullMul<ExprNode<T, N, true>> for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize> + Add,
+    <N as Add>::Output: ArrayLength<usize>,
+{
+    type Output = ExprNode<T, operator_aliases::Sum<N, N>, true>;
+
+    fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, true> {
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let res = ua.fullmul(ub);
+        int_ite(
+            self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
+            -res.clone().as_signed(),
+            res.as_signed(),
+        )
+    }
+}
+
+macro_rules! impl_int_fullmul_pty {
+    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
+        /// Binary operation traits implementation.
+        impl<T, $( $gparams ),* > FullMul< $pty > for ExprNode<T, $ty, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize> + Add,
+            <$ty as Add>::Output: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, operator_aliases::Sum<$ty, $ty>, $sign>;
+
+            fn fullmul(self, rhs: $pty) -> Self::Output {
+                let creator = self.creator.clone();
+                self.fullmul(Self::constant(creator, rhs))
+            }
+        }
+
+        /// Binary operation traits implementation.
+        impl<T, $( $gparams ),* > FullMul<ExprNode<T, $ty, $sign>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize> + Add,
+            <$ty as Add>::Output: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, operator_aliases::Sum<$ty, $ty>, $sign>;
+
+            fn fullmul(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).fullmul(rhs)
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_fullmul_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_fullmul_pty!(false, $pty, $ty, $($gparams ),*);
+    }
+}
+macro_rules! impl_int_fullmul_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_fullmul_pty!(true, $pty, $ty, $($gparams ),*);
+    }
+}
+
+impl_int_upty_ty1!(impl_int_fullmul_upty);
+impl_int_ipty_ty1!(impl_int_fullmul_ipty);
 
 /// Division and remainder
 
