@@ -25,8 +25,8 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl,
-    ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, Neg,
+    Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
@@ -1682,7 +1682,7 @@ where
 
 /// Most advanced: multiplication.
 
-fn gen_dadda<T>(creator: Rc<RefCell<ExprCreator<T>>>, matrix: &mut [Vec<usize>]) -> Vec<usize>
+fn gen_dadda_mult<T>(creator: Rc<RefCell<ExprCreator<T>>>, matrix: &mut [Vec<usize>]) -> Vec<usize>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -1770,6 +1770,50 @@ where
 
     output
 }
+
+fn gen_dadda_matrix<'a, T>(creator: Rc<RefCell<ExprCreator<T>>>, avector: &'a [usize],
+            bvector: &'a [usize], col_num: usize) -> Vec<Vec<usize>>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    let mut matrix = (0..col_num).into_iter().map(|_| vec![]).collect::<Vec<_>>();
+    for (i,a) in avector.iter().enumerate() {
+        for (j,b) in bvector.iter().enumerate() {
+            if i+j < col_num {
+                matrix[i+j][i] = (BoolExprNode::new(creator.clone(), *a) &
+                        BoolExprNode::new(creator.clone(), *b)).index
+            }
+        }
+    }
+    matrix
+}
+
+impl<T, N, const SIGN: bool> Mul<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut matrix = gen_dadda_matrix(self.creator.clone(), &self.indexes,
+                &rhs.indexes.as_slice(), N::USIZE);
+        let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        ExprNode {
+            creator: self.creator,
+            indexes: GenericArray::from_exact_iter(res.drain(..)).unwrap(),
+        }
+    }
+}
+
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
