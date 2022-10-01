@@ -2253,3 +2253,50 @@ where
     (<T as BitMask<C>>::bitmask(c.clone()) & t)
         | (<E as BitMask<<C as Not>::Output>>::bitmask(!c) & e)
 }
+
+pub fn int_table<T, N, K, I, const SIGN: bool>(
+    index: ExprNode<T, K, SIGN>,
+    table_iter: I,
+) -> ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = ExprNode<T, N, SIGN>>,
+{
+    let mut ites = {
+        let mut ites = vec![];
+        let mut iter = table_iter.into_iter();
+        while let Some(v) = iter.next() {
+            if let Some(v2) = iter.next() {
+                ites.push(int_ite(index.bit(K::USIZE - 1), v, v2));
+            } else {
+                panic!("Odd number of elements");
+            }
+        }
+        ites
+    };
+
+    for step in 1..K::USIZE {
+        if (ites.len() & 1) != 0 {
+            panic!("Odd number of elements");
+        }
+        for i in 0..(ites.len() >> 1) {
+            ites[i] = int_ite(
+                index.bit(K::USIZE - step - 1),
+                ites[(i << 1)].clone(),
+                ites[(i << 1) + 1].clone(),
+            );
+        }
+        ites.resize(
+            ites.len() >> 1,
+            ExprNode::filled(index.creator.clone(), false),
+        );
+    }
+
+    ites.pop().unwrap()
+}
