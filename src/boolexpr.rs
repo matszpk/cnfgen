@@ -92,7 +92,7 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     #[inline]
-    pub fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
+    pub(super) fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
         ExprNode { creator, index }
     }
 
