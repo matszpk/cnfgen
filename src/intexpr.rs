@@ -381,13 +381,32 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    pub fn abs(self) -> ExprNode<T, N, false> {
+        // if sign then -self else self
+        expr_node_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
+    }
+
     pub fn divmod(
         self,
         rhs: Self,
         get_div: bool,
         get_mod: bool,
     ) -> (Option<Self>, Option<Self>, BoolExprNode<T>) {
-        (None, None, BoolExprNode::single_value(self.creator, false))
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let (udiv, umod, cond) = ua.divmod(ub, get_div, get_mod);
+        let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
+        (
+            udiv.map(|udiv| {
+                expr_node_ite(
+                    sign_a.clone() ^ sign_b,
+                    -(udiv.clone().as_signed()),
+                    udiv.as_signed(),
+                )
+            }),
+            umod.map(|umod| expr_node_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
+            cond,
+        )
     }
 }
 
@@ -1898,6 +1917,23 @@ where
 impl_int_binary_op!($, Mul, mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, MulAssign, mul_assign, mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
+
+fn expr_node_ite<T, N, const SIGN: bool>(
+    c: BoolExprNode<T>,
+    t: ExprNode<T, N, SIGN>,
+    e: ExprNode<T, N, SIGN>,
+) -> ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    (<ExprNode<T, N, SIGN> as BitMask<BoolExprNode<T>>>::bitmask(c.clone()) & t)
+        | (<ExprNode<T, N, SIGN> as BitMask<BoolExprNode<T>>>::bitmask(!c) & e)
+}
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
