@@ -95,6 +95,11 @@ where
     pub fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
         ExprNode { creator, index }
     }
+    
+    /// Creates single value as expression node.
+    pub fn single_value(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
+        ExprNode { creator, index: v.into() }
+    }
 
     /// Creates single literal as expression node.
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
@@ -206,7 +211,7 @@ macro_rules! new_op_impl {
                 assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
                 if self.index == rhs.index {
                     if let Some(t) = $argeqres {
-                        return ExprNode::single(self.creator, t);
+                        return ExprNode::single_value(self.creator, t);
                     } else {
                         return self;
                     }
@@ -218,7 +223,7 @@ macro_rules! new_op_impl {
                 };
                 if node2 == Node::Negated(self.index) || node1 == Node::Negated(rhs.index) {
                     if let Some(t) = $argnegres {
-                        return ExprNode::single(self.creator, t);
+                        return ExprNode::single_value(self.creator, t);
                     } else {
                         return rhs; // for implication
                     }
@@ -281,7 +286,7 @@ where
                 } else if lit1 == lit2 {
                     return self;
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(self.creator, false);
+                    return ExprNode::single_value(self.creator, false);
                 }
             }
         }
@@ -388,7 +393,7 @@ where
                 } else if lit1 == lit2 {
                     return self;
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(self.creator, true);
+                    return ExprNode::single_value(self.creator, true);
                 }
             }
         }
@@ -455,9 +460,9 @@ where
                         return v1 ^ ExprNode::single(self.creator, lit2);
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single(self.creator, false);
+                    return ExprNode::single_value(self.creator, false);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(self.creator, true);
+                    return ExprNode::single_value(self.creator, true);
                 }
             }
         }
@@ -521,9 +526,9 @@ where
                         return v1.equal(ExprNode::single(self.creator, lit2));
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single(self.creator, true);
+                    return ExprNode::single_value(self.creator, true);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(self.creator, false);
+                    return ExprNode::single_value(self.creator, false);
                 }
             }
         }
@@ -587,7 +592,7 @@ where
                         return v1.imp(ExprNode::single(self.creator, lit2));
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single(self.creator, true);
+                    return ExprNode::single_value(self.creator, true);
                 } else if lit1 == !lit2 {
                     return ExprNode::single(self.creator, lit2);
                 }
@@ -631,7 +636,7 @@ where
             let node2 = rhs.creator.borrow().nodes[rhs.index];
             if let Node::Single(lit2) = node2 {
                 if lit1 == lit2 {
-                    return ExprNode::single(rhs.creator, true);
+                    return ExprNode::single_value(rhs.creator, true);
                 } else if lit1 == !lit2 {
                     return ExprNode::single(rhs.creator, lit2);
                 }
@@ -686,7 +691,7 @@ macro_rules! new_impl_imp_impls {
                     let node2 = rhs.creator.borrow().nodes[rhs.index];
                     if let Node::Single(lit2) = node2 {
                         if lit1 == lit2 {
-                            return ExprNode::single(rhs.creator, true);
+                            return ExprNode::single_value(rhs.creator, true);
                         } else if lit1 == !lit2 {
                             return ExprNode::single(rhs.creator, lit2);
                         }

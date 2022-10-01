@@ -322,6 +322,32 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    pub fn divmod(self, rhs: Self, get_div: bool, get_mod: bool) -> (Option<Self>, Option<Self>) {
+        (None, None)
+    }
+}
+
+impl<T, N: ArrayLength<usize>> ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn divmod(self, rhs: Self, get_div: bool, get_mod: bool) -> (Option<Self>, Option<Self>) {
+        (None, None)
+    }
+}
+
+impl<T, N: ArrayLength<usize>> ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
     pub fn subvalue<N2>(&self, start: usize) -> ExprNode<T, N2, false>
     where
         N2: ArrayLength<usize>,
