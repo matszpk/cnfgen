@@ -297,7 +297,7 @@ where
                 (s0.index, c0)
             };
         }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ !rhs.bit(N::USIZE - 1) ^ c).index;
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
         ExprNode {
             creator: self.creator,
             indexes: output,
