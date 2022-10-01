@@ -25,8 +25,8 @@ use std::cmp;
 use std::fmt::Debug;
 use std::iter;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, MulAssign,
-    Neg, Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, Mul,
+    MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
@@ -1917,6 +1917,114 @@ where
 impl_int_binary_op!($, Mul, mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, MulAssign, mul_assign, mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
+
+/// Division and remainder
+
+macro_rules! impl_int_div_mod {
+    ($sign:expr) => {
+        impl<T, N> Div<ExprNode<T, N, $sign>> for ExprNode<T, N, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = (Self, BoolExprNode<T>);
+
+            fn div(self, rhs: Self) -> Self::Output {
+                let (d, _, c) = self.divmod(rhs, true, false);
+                (d.unwrap(), c)
+            }
+        }
+
+        impl<T, N> Rem<ExprNode<T, N, $sign>> for ExprNode<T, N, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = (Self, BoolExprNode<T>);
+
+            fn rem(self, rhs: Self) -> Self::Output {
+                let (_, r, c) = self.divmod(rhs, false, true);
+                (r.unwrap(), c)
+            }
+        }
+    };
+}
+
+impl_int_div_mod!(false);
+impl_int_div_mod!(true);
+
+macro_rules! impl_int_div_mod_op {
+    ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
+
+        macro_rules! $macro_gen {
+                    ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = (Self, BoolExprNode<T>);
+
+                            fn $op(self, rhs: $pty) -> Self::Output {
+                                let creator = self.creator.clone();
+                                self.$op(Self::constant(creator, rhs))
+                            }
+                        }
+
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = (ExprNode<T, $ty, $sign>, BoolExprNode<T>);
+
+                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                                let creator = rhs.creator.clone();
+                                ExprNode::<T, $ty, $sign>::constant(creator, self).$op(rhs)
+                            }
+                        }
+                    }
+                }
+
+        macro_rules! $macro_upty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(false, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+        macro_rules! $macro_ipty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(true, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+
+        impl_int_upty_ty1!($macro_upty);
+        impl_int_ipty_ty1!($macro_ipty);
+    }
+}
+
+impl_int_div_mod_op!($, Div, div, impl_int_div_pty, impl_int_div_upty, impl_int_div_ipty);
+impl_int_div_mod_op!($, Rem, rem, impl_int_rem_pty, impl_int_rem_upty, impl_int_rem_ipty);
+
+//
+//
 
 fn expr_node_ite<T, N, const SIGN: bool>(
     c: BoolExprNode<T>,
