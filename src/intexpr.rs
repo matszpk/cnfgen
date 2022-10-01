@@ -401,7 +401,7 @@ where
 {
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
-        expr_node_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
+        int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
     }
 
     pub fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, true>
@@ -412,7 +412,7 @@ where
         let ua = self.clone().abs();
         let ub = rhs.clone().abs();
         let res = ua.fullmul(ub);
-        expr_node_ite(
+        int_ite(
             self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
             -res.clone().as_signed(),
             res.as_signed(),
@@ -431,13 +431,13 @@ where
         let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
         (
             udiv.map(|udiv| {
-                expr_node_ite(
+                int_ite(
                     sign_a.clone() ^ sign_b,
                     -(udiv.clone().as_signed()),
                     udiv.as_signed(),
                 )
             }),
-            umod.map(|umod| expr_node_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
+            umod.map(|umod| int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
             cond,
         )
     }
@@ -2059,23 +2059,6 @@ impl_int_div_mod_op!($, Rem, rem, impl_int_rem_pty, impl_int_rem_upty, impl_int_
 //
 //
 
-fn expr_node_ite<T, N, const SIGN: bool>(
-    c: BoolExprNode<T>,
-    t: ExprNode<T, N, SIGN>,
-    e: ExprNode<T, N, SIGN>,
-) -> ExprNode<T, N, SIGN>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
-{
-    (<ExprNode<T, N, SIGN> as BitMask<BoolExprNode<T>>>::bitmask(c.clone()) & t)
-        | (<ExprNode<T, N, SIGN> as BitMask<BoolExprNode<T>>>::bitmask(!c) & e)
-}
-
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
     c: C,
@@ -2083,10 +2066,9 @@ pub fn int_ite<C, T, E>(
     e: E,
 ) -> <<T as BitAnd>::Output as BitOr<<E as BitAnd>::Output>>::Output
 where
-    C: BitAnd<T> + Not + Clone,
+    C: Not + Clone,
     T: BitAnd + BitMask<C>,
     E: BitAnd + BitMask<<C as Not>::Output>,
-    <C as Not>::Output: BitAnd<E>,
     <T as BitAnd<T>>::Output: BitOr<<E as BitAnd<E>>::Output>,
 {
     (<T as BitMask<C>>::bitmask(c.clone()) & t)
