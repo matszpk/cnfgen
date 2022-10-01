@@ -296,6 +296,22 @@ where
             indexes: output,
         }
     }
+
+    pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = in_carry;
+        for i in 0..N::USIZE - 1 {
+            (output[i], c) = {
+                let (s0, c0) = half_adder(self.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ c).index;
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
 }
 
 impl<T, N: ArrayLength<usize>> ExprNode<T, N, false>
@@ -1658,19 +1674,8 @@ where
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        let mut output = GenericArray::<usize, N>::default();
-        let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = half_adder(!self.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (!self.bit(N::USIZE - 1) ^ c).index;
-        ExprNode {
-            creator: self.creator,
-            indexes: output,
-        }
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
     }
 }
 
