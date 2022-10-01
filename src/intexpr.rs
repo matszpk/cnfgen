@@ -262,8 +262,8 @@ where
             indexes: self.indexes,
         }
     }
-    
-    pub fn addc_with_carry(self, rhs: Self, in_carry :BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
+
+    pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
         let mut output = GenericArray::<usize, N>::default();
         let mut c = in_carry;
         for i in 0..N::USIZE {
@@ -272,13 +272,16 @@ where
                 (s0.index, c0)
             };
         }
-        (ExprNode {
-            creator: self.creator,
-            indexes: output,
-        }, c)
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c,
+        )
     }
-    
-    pub fn addc(self, rhs: Self, in_carry :BoolExprNode<T>) -> Self {
+
+    pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
         let mut c = in_carry;
         for i in 0..N::USIZE - 1 {
@@ -1657,13 +1660,13 @@ where
     fn neg(self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
         let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
-        for i in 0..N::USIZE-1 {
+        for i in 0..N::USIZE - 1 {
             (output[i], c) = {
                 let (s0, c0) = half_adder(!self.bit(i), c);
                 (s0.index, c0)
             };
         }
-        output[N::USIZE-1] = (!self.bit(N::USIZE-1) ^ c).index;
+        output[N::USIZE - 1] = (!self.bit(N::USIZE - 1) ^ c).index;
         ExprNode {
             creator: self.creator,
             indexes: output,
