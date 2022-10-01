@@ -224,6 +224,37 @@ pub trait FullMul<Rhs = Self> {
     fn fullmul(self, rhs: Rhs) -> Self::Output;
 }
 
+macro_rules! impl_int_fullmul_pty_pty_simple {
+    ($pty:ty, $opty:ty) => {
+        impl FullMul for $pty {
+            type Output = $opty;
+
+            fn fullmul(self, rhs: Self) -> Self::Output {
+                let biga = <$opty>::try_from(self).unwrap();
+                let bigb = <$opty>::try_from(rhs).unwrap();
+                biga * bigb
+            }
+        }
+    };
+}
+
+impl_int_fullmul_pty_pty_simple!(u8, u16);
+impl_int_fullmul_pty_pty_simple!(u16, u32);
+impl_int_fullmul_pty_pty_simple!(u32, u64);
+#[cfg(target_pointer_width = "32")]
+impl_int_fullmul_pty_pty_simple!(usize, u64);
+#[cfg(target_pointer_width = "64")]
+impl_int_fullmul_pty_pty_simple!(usize, u128);
+impl_int_fullmul_pty_pty_simple!(u64, u128);
+impl_int_fullmul_pty_pty_simple!(i8, i16);
+impl_int_fullmul_pty_pty_simple!(i16, i32);
+impl_int_fullmul_pty_pty_simple!(i32, i64);
+#[cfg(target_pointer_width = "32")]
+impl_int_fullmul_pty_pty_simple!(isize, i64);
+#[cfg(target_pointer_width = "64")]
+impl_int_fullmul_pty_pty_simple!(isize, i128);
+impl_int_fullmul_pty_pty_simple!(i64, i128);
+
 pub trait DivMod<Rhs = Self> {
     type Output;
     type OutputCond;
@@ -235,6 +266,49 @@ pub trait DivMod<Rhs = Self> {
         get_mod: bool,
     ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond);
 }
+
+macro_rules! impl_int_divmod_pty_pty {
+    ($pty:ty) => {
+        impl DivMod for $pty {
+            type Output = $pty;
+            type OutputCond = bool;
+
+            fn divmod(
+                self,
+                rhs: Self,
+                get_div: bool,
+                get_mod: bool,
+            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+                if let Some(divres) = self.checked_div(rhs) {
+                    (
+                        if get_div { Some(divres) } else { None },
+                        if get_mod { Some(self % rhs) } else { None },
+                        true,
+                    )
+                } else {
+                    (
+                        if get_div { Some(0) } else { None },
+                        if get_mod { Some(0) } else { None },
+                        false,
+                    )
+                }
+            }
+        }
+    };
+}
+
+impl_int_divmod_pty_pty!(u8);
+impl_int_divmod_pty_pty!(u16);
+impl_int_divmod_pty_pty!(u32);
+impl_int_divmod_pty_pty!(usize);
+impl_int_divmod_pty_pty!(u64);
+impl_int_divmod_pty_pty!(u128);
+impl_int_divmod_pty_pty!(i8);
+impl_int_divmod_pty_pty!(i16);
+impl_int_divmod_pty_pty!(i32);
+impl_int_divmod_pty_pty!(isize);
+impl_int_divmod_pty_pty!(i64);
+impl_int_divmod_pty_pty!(i128);
 
 // ExprNode - main node
 //
