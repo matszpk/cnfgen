@@ -329,6 +329,24 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    pub fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, false>
+    where
+        N: Add,
+        <N as Add>::Output: ArrayLength<usize>,
+    {
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes,
+            2 * N::USIZE,
+        );
+        let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        ExprNode {
+            creator: self.creator,
+            indexes: GenericArray::from_exact_iter(res.drain(..)).unwrap(),
+        }
+    }
+
     pub fn divmod(
         self,
         rhs: Self,
@@ -384,6 +402,21 @@ where
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
         expr_node_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
+    }
+
+    pub fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, true>
+    where
+        N: Add,
+        <N as Add>::Output: ArrayLength<usize>,
+    {
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let res = ua.fullmul(ub);
+        expr_node_ite(
+            self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
+            -res.clone().as_signed(),
+            res.as_signed(),
+        )
     }
 
     pub fn divmod(
