@@ -2342,18 +2342,15 @@ where
     K: ArrayLength<usize>,
     I: IntoIterator<Item = ExprNode<T, N, SIGN>>,
 {
-    let mut ites = {
-        let mut ites = vec![];
-        let mut iter = table_iter.into_iter();
-        while let Some(v) = iter.next() {
-            if let Some(v2) = iter.next() {
-                ites.push(int_ite(index.bit(K::USIZE - 1), v, v2));
-            } else {
-                panic!("Odd number of elements");
-            }
+    let mut ites = vec![];
+    let mut iter = table_iter.into_iter();
+    while let Some(v) = iter.next() {
+        if let Some(v2) = iter.next() {
+            ites.push(int_ite(index.bit(K::USIZE - 1), v, v2));
+        } else {
+            panic!("Odd number of elements");
         }
-        ites
-    };
+    }
 
     for step in 1..K::USIZE {
         if (ites.len() & 1) != 0 {
