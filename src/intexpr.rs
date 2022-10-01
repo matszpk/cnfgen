@@ -224,6 +224,18 @@ pub trait FullMul<Rhs = Self> {
     fn fullmul(self, rhs: Rhs) -> Self::Output;
 }
 
+pub trait DivMod<Rhs = Self> {
+    type Output;
+    type OutputCond;
+
+    fn divmod(
+        self,
+        rhs: Rhs,
+        get_div: bool,
+        get_mod: bool,
+    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond);
+}
+
 // ExprNode - main node
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -327,58 +339,6 @@ where
     }
 }
 
-impl<T, N: ArrayLength<usize>> ExprNode<T, N, false>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
-    pub fn divmod(
-        self,
-        rhs: Self,
-        get_div: bool,
-        get_mod: bool,
-    ) -> (Option<Self>, Option<Self>, BoolExprNode<T>) {
-        let divres = ExprNode::<T, N, false>::variable(self.creator.clone());
-        let mut matrix = gen_dadda_matrix(
-            self.creator.clone(),
-            &rhs.indexes,
-            &divres.indexes,
-            N::USIZE,
-        );
-        // modv - division modulo
-        let modv = ExprNode::<T, N, false>::variable(self.creator.clone());
-        let modv_cond = modv.clone().less_than(rhs);
-
-        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        // add modulo to mulres
-        let (mulres_lo, carry) = ExprNode::<T, N, false> {
-            creator: self.creator.clone(),
-            indexes: GenericArray::clone_from_slice(&mulres[0..N::USIZE]),
-        }
-        .addc_with_carry(
-            modv.clone(),
-            BoolExprNode::single_value(self.creator.clone(), false),
-        );
-        let mulres_hi = ExprNode::<T, N, false> {
-            creator: self.creator.clone(),
-            indexes: GenericArray::clone_from_slice(&mulres[N::USIZE..]),
-        }
-        .add_same_carry(carry);
-        // condition for mulres - mulres_lo = self,  mulres_hi = 0
-        let creator = self.creator.clone();
-        let mulres_cond = mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, false));
-
-        (
-            if get_div { Some(divres) } else { None },
-            if get_mod { Some(modv) } else { None },
-            modv_cond & mulres_cond,
-        )
-    }
-}
-
 impl<T, N: ArrayLength<usize>> ExprNode<T, N, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -390,29 +350,6 @@ where
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
         int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
-    }
-
-    pub fn divmod(
-        self,
-        rhs: Self,
-        get_div: bool,
-        get_mod: bool,
-    ) -> (Option<Self>, Option<Self>, BoolExprNode<T>) {
-        let ua = self.clone().abs();
-        let ub = rhs.clone().abs();
-        let (udiv, umod, cond) = ua.divmod(ub, get_div, get_mod);
-        let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
-        (
-            udiv.map(|udiv| {
-                int_ite(
-                    sign_a.clone() ^ sign_b,
-                    -(udiv.clone().as_signed()),
-                    udiv.as_signed(),
-                )
-            }),
-            umod.map(|umod| int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
-            cond,
-        )
     }
 }
 
@@ -2032,6 +1969,166 @@ macro_rules! impl_int_fullmul_ipty {
 
 impl_int_upty_ty1!(impl_int_fullmul_upty);
 impl_int_ipty_ty1!(impl_int_fullmul_ipty);
+
+// DivMod - dividion and remainder all in one
+
+impl<T, N> DivMod<ExprNode<T, N, false>> for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn divmod(
+        self,
+        rhs: Self,
+        get_div: bool,
+        get_mod: bool,
+    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+        let divres = ExprNode::<T, N, false>::variable(self.creator.clone());
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &rhs.indexes,
+            &divres.indexes,
+            N::USIZE,
+        );
+        // modv - division modulo
+        let modv = ExprNode::<T, N, false>::variable(self.creator.clone());
+        let modv_cond = modv.clone().less_than(rhs);
+
+        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        // add modulo to mulres
+        let (mulres_lo, carry) = ExprNode::<T, N, false> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::clone_from_slice(&mulres[0..N::USIZE]),
+        }
+        .addc_with_carry(
+            modv.clone(),
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        let mulres_hi = ExprNode::<T, N, false> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::clone_from_slice(&mulres[N::USIZE..]),
+        }
+        .add_same_carry(carry);
+        // condition for mulres - mulres_lo = self,  mulres_hi = 0
+        let creator = self.creator.clone();
+        let mulres_cond = mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, false));
+
+        (
+            if get_div { Some(divres) } else { None },
+            if get_mod { Some(modv) } else { None },
+            modv_cond & mulres_cond,
+        )
+    }
+}
+
+impl<T, N> DivMod<ExprNode<T, N, true>> for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn divmod(
+        self,
+        rhs: Self,
+        get_div: bool,
+        get_mod: bool,
+    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let (udiv, umod, cond) = ua.divmod(ub, get_div, get_mod);
+        let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
+        (
+            udiv.map(|udiv| {
+                int_ite(
+                    sign_a.clone() ^ sign_b,
+                    -(udiv.clone().as_signed()),
+                    udiv.as_signed(),
+                )
+            }),
+            umod.map(|umod| int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
+            cond,
+        )
+    }
+}
+
+macro_rules! impl_int_divmodall_pty {
+    ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
+        /// Binary operation traits implementation.
+        impl<T, $( $gparams ),* > DivMod< $pty > for ExprNode<T, $ty, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, $ty, $sign>;
+            type OutputCond = BoolExprNode<T>;
+
+            fn divmod(
+                self,
+                rhs: $pty,
+                get_div: bool,
+                get_mod: bool,
+            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+                let creator = self.creator.clone();
+                self.divmod(Self::constant(creator, rhs), get_div, get_mod)
+            }
+        }
+
+        /// Binary operation traits implementation.
+        impl<T, $( $gparams ),* > DivMod<ExprNode<T, $ty, $sign>> for $pty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            $ty: ArrayLength<usize>,
+        {
+            type Output = ExprNode<T, $ty, $sign>;
+            type OutputCond = BoolExprNode<T>;
+
+            fn divmod(
+                self,
+                rhs: ExprNode<T, $ty, $sign>,
+                get_div: bool,
+                get_mod: bool,
+            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+                let creator = rhs.creator.clone();
+                ExprNode::<T, $ty, $sign>::constant(creator, self).divmod(rhs, get_div, get_mod)
+            }
+        }
+    }
+}
+
+macro_rules! impl_int_divmodall_upty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_divmodall_pty!(false, $pty, $ty, $($gparams ),*);
+    }
+}
+macro_rules! impl_int_divmodall_ipty {
+    ($pty:ty, $ty:ty, $($gparams:ident),*) => {
+        impl_int_divmodall_pty!(true, $pty, $ty, $($gparams ),*);
+    }
+}
+
+impl_int_upty_ty1!(impl_int_divmodall_upty);
+impl_int_ipty_ty1!(impl_int_divmodall_ipty);
 
 /// Division and remainder
 
