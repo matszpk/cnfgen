@@ -95,11 +95,14 @@ where
     pub fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
         ExprNode { creator, index }
     }
-    
+
     /// Creates single value as expression node.
     #[inline]
     pub fn single_value(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
-        ExprNode { creator, index: v.into() }
+        ExprNode {
+            creator,
+            index: v.into(),
+        }
     }
 
     /// Creates single literal as expression node.

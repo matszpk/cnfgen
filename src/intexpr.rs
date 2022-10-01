@@ -249,6 +249,13 @@ where
         ExprNode { creator, indexes }
     }
 
+    pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
+        ExprNode {
+            creator,
+            indexes: GenericArray::from_exact_iter(iter::repeat(v.into()).take(N::USIZE)).unwrap(),
+        }
+    }
+
     pub fn as_unsigned(self) -> ExprNode<T, N, false> {
         ExprNode {
             creator: self.creator,
@@ -322,8 +329,47 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    pub fn divmod(self, rhs: Self, get_div: bool, get_mod: bool) -> (Option<Self>, Option<Self>) {
-        (None, None)
+    pub fn divmod(
+        self,
+        rhs: Self,
+        get_div: bool,
+        get_mod: bool,
+    ) -> (Option<Self>, Option<Self>, BoolExprNode<T>) {
+        let divres = ExprNode::<T, N, false>::variable(self.creator.clone());
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &rhs.indexes,
+            &divres.indexes,
+            N::USIZE,
+        );
+        // modv - division modulo
+        let modv = ExprNode::<T, N, false>::variable(self.creator.clone());
+        let modv_cond = modv.clone().less_than(rhs);
+
+        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        // add modulo to mulres
+        let (mulres_lo, carry) = ExprNode::<T, N, false> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::clone_from_slice(&mulres[0..N::USIZE]),
+        }
+        .addc_with_carry(
+            modv.clone(),
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        let mulres_hi = ExprNode::<T, N, false> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::clone_from_slice(&mulres[N::USIZE..]),
+        }
+        .add_same_carry(carry);
+        // condition for mulres - mulres_lo = self,  mulres_hi = 0
+        let creator = self.creator.clone();
+        let mulres_cond = mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, false));
+
+        (
+            if get_div { Some(divres) } else { None },
+            if get_mod { Some(modv) } else { None },
+            modv_cond & mulres_cond,
+        )
     }
 }
 
@@ -335,8 +381,13 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    pub fn divmod(self, rhs: Self, get_div: bool, get_mod: bool) -> (Option<Self>, Option<Self>) {
-        (None, None)
+    pub fn divmod(
+        self,
+        rhs: Self,
+        get_div: bool,
+        get_mod: bool,
+    ) -> (Option<Self>, Option<Self>, BoolExprNode<T>) {
+        (None, None, BoolExprNode::single_value(self.creator, false))
     }
 }
 
@@ -1834,12 +1885,8 @@ where
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let mut matrix = gen_dadda_matrix(
-            self.creator.clone(),
-            &self.indexes,
-            &rhs.indexes.as_slice(),
-            N::USIZE,
-        );
+        let mut matrix =
+            gen_dadda_matrix(self.creator.clone(), &self.indexes, &rhs.indexes, N::USIZE);
         let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
         ExprNode {
             creator: self.creator,
