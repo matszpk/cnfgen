@@ -1515,7 +1515,7 @@ where
 
 macro_rules! impl_int_binary_op {
     ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
-        
+
         macro_rules! $macro_gen {
                     ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
                         /// Binary operation traits implementation.
@@ -1730,8 +1730,12 @@ where
     output
 }
 
-fn gen_dadda_matrix<'a, T>(creator: Rc<RefCell<ExprCreator<T>>>, avector: &'a [usize],
-            bvector: &'a [usize], col_num: usize) -> Vec<Vec<usize>>
+fn gen_dadda_matrix<'a, T>(
+    creator: Rc<RefCell<ExprCreator<T>>>,
+    avector: &'a [usize],
+    bvector: &'a [usize],
+    col_num: usize,
+) -> Vec<Vec<usize>>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -1740,11 +1744,12 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     let mut matrix = (0..col_num).into_iter().map(|_| vec![]).collect::<Vec<_>>();
-    for (i,a) in avector.iter().enumerate() {
-        for (j,b) in bvector.iter().enumerate() {
-            if i+j < col_num {
-                matrix[i+j][i] = (BoolExprNode::new(creator.clone(), *a) &
-                        BoolExprNode::new(creator.clone(), *b)).index
+    for (i, a) in avector.iter().enumerate() {
+        for (j, b) in bvector.iter().enumerate() {
+            if i + j < col_num {
+                matrix[i + j][i] = (BoolExprNode::new(creator.clone(), *a)
+                    & BoolExprNode::new(creator.clone(), *b))
+                .index
             }
         }
     }
@@ -1763,8 +1768,12 @@ where
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let mut matrix = gen_dadda_matrix(self.creator.clone(), &self.indexes,
-                &rhs.indexes.as_slice(), N::USIZE);
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes.as_slice(),
+            N::USIZE,
+        );
         let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
         ExprNode {
             creator: self.creator,
