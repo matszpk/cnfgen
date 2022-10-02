@@ -683,4 +683,38 @@ mod tests {
         assert_eq!(<i16 as BitMask<bool>>::bitmask(false), 0);
         assert_eq!(<i16 as BitMask<bool>>::bitmask(true) as u16, 0xffffu16);
     }
+
+    #[test]
+    fn test_int_fullmul_prim_types() {
+        assert_eq!(42u8.fullmul(65), 42 * 65);
+        assert_eq!(71i8.fullmul(-25), 71 * -25);
+        assert_eq!(5688u16.fullmul(6241), 5688 * 6241);
+        assert_eq!((-5688i16).fullmul(6241), -5688 * 6241);
+        assert_eq!(55812145u32.fullmul(583021521), 55812145 * 583021521);
+        assert_eq!(55812145i32.fullmul(-583021521), 55812145 * -583021521);
+    }
+
+    #[test]
+    fn test_int_divmod_prim_types() {
+        assert_eq!(
+            134u8.divmod(31, true, true),
+            (Some(134 / 31), Some(134 % 31), true)
+        );
+        assert_eq!(134u8.divmod(31, true, false), (Some(134 / 31), None, true));
+        assert_eq!(134u8.divmod(31, false, true), (None, Some(134 % 31), true));
+        assert_eq!(134u8.divmod(31, false, false), (None, None, true));
+        assert_eq!(134u8.divmod(0, true, true), (Some(0), Some(0), false));
+        assert_eq!(
+            74i8.divmod(21, true, true),
+            (Some(74 / 21), Some(74 % 21), true)
+        );
+        assert_eq!(
+            42134u16.divmod(552, true, true),
+            (Some(42134 / 552), Some(42134 % 552), true)
+        );
+        assert_eq!(
+            (-22134i16).divmod(552, true, true),
+            (Some(-22134 / 552), Some(-22134 % 552), true)
+        );
+    }
 }
