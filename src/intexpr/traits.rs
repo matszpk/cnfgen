@@ -646,12 +646,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_int_equal_ord_prim_types() {
+    fn test_int_equal_prim_types() {
         assert_eq!(4.equal(6), 4 == 6);
         assert_eq!(4.equal(4), 4 == 4);
         assert_eq!(4.nequal(6), 4 != 6);
         assert_eq!(4.nequal(4), 4 != 4);
+    }
 
+    #[test]
+    fn test_int_ord_prim_types() {
         assert_eq!(4.less_than(6), 4 < 6);
         assert_eq!(4.less_than(4), 4 < 4);
         assert_eq!(4.less_than(3), 4 < 3);
@@ -667,12 +670,15 @@ mod tests {
     }
 
     #[test]
-    fn test_int_bitval_bitmask_prim_types() {
+    fn test_int_bitval_prim_types() {
         assert_eq!(25u16.bit(1), false);
         assert_eq!(25u16.bit(4), true);
         assert_eq!(25u16.bit(19), false);
         assert_eq!(0xff00u16.bit(19), false);
+    }
 
+    #[test]
+    fn test_int_bitmask_prim_types() {
         assert_eq!(25i16.bit(1), false);
         assert_eq!(25i16.bit(4), true);
         assert_eq!(25i16.bit(19), false);
