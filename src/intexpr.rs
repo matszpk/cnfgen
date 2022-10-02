@@ -38,8 +38,8 @@ use crate::boolexpr::{
 };
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
+use crate::{impl_int_ipty, impl_int_upty};
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
-use crate::{impl_int_upty, impl_int_ipty};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {

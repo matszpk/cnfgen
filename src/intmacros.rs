@@ -1706,7 +1706,7 @@ macro_rules! impl_int_upty {
         $impl_mac!(usize);
         $impl_mac!(u64);
         $impl_mac!(u128);
-    }
+    };
 }
 
 #[macro_export]
@@ -1718,5 +1718,5 @@ macro_rules! impl_int_ipty {
         $impl_mac!(isize);
         $impl_mac!(i64);
         $impl_mac!(i128);
-    }
+    };
 }
