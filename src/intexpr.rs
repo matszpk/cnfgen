@@ -39,6 +39,7 @@ use crate::boolexpr::{
 use crate::boolexpr_creator::ExprCreator;
 use crate::VarLit;
 use crate::{impl_int_ipty_ty1, impl_int_ty1_lt_ty2, impl_int_upty_ty1};
+use crate::{impl_int_upty, impl_int_ipty};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -70,18 +71,8 @@ macro_rules! int_equal_impl {
     };
 }
 
-int_equal_impl!(u8);
-int_equal_impl!(i8);
-int_equal_impl!(u16);
-int_equal_impl!(i16);
-int_equal_impl!(u32);
-int_equal_impl!(i32);
-int_equal_impl!(u64);
-int_equal_impl!(i64);
-int_equal_impl!(usize);
-int_equal_impl!(isize);
-int_equal_impl!(u128);
-int_equal_impl!(i128);
+impl_int_upty!(int_equal_impl);
+impl_int_ipty!(int_equal_impl);
 
 pub trait IntOrd<Rhs = Self> {
     type Output;
@@ -114,18 +105,8 @@ macro_rules! int_ord_impl {
     };
 }
 
-int_ord_impl!(u8);
-int_ord_impl!(i8);
-int_ord_impl!(u16);
-int_ord_impl!(i16);
-int_ord_impl!(u32);
-int_ord_impl!(i32);
-int_ord_impl!(u64);
-int_ord_impl!(i64);
-int_ord_impl!(usize);
-int_ord_impl!(isize);
-int_ord_impl!(u128);
-int_ord_impl!(i128);
+impl_int_upty!(int_ord_impl);
+impl_int_ipty!(int_ord_impl);
 
 pub trait IntConstant<T: VarLit, U> {
     fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
@@ -154,12 +135,7 @@ macro_rules! impl_int_bitval_upty {
     };
 }
 
-impl_int_bitval_upty!(u8);
-impl_int_bitval_upty!(u16);
-impl_int_bitval_upty!(u32);
-impl_int_bitval_upty!(usize);
-impl_int_bitval_upty!(u64);
-impl_int_bitval_upty!(u128);
+impl_int_upty!(impl_int_bitval_upty);
 
 macro_rules! impl_int_bitval_ipty {
     ($pty:ty) => {
@@ -178,12 +154,7 @@ macro_rules! impl_int_bitval_ipty {
     };
 }
 
-impl_int_bitval_ipty!(i8);
-impl_int_bitval_ipty!(i16);
-impl_int_bitval_ipty!(i32);
-impl_int_bitval_ipty!(isize);
-impl_int_bitval_ipty!(i64);
-impl_int_bitval_ipty!(i128);
+impl_int_ipty!(impl_int_bitval_ipty);
 
 pub trait BitMask<T> {
     fn bitmask(bit: T) -> Self;
@@ -205,18 +176,8 @@ macro_rules! impl_int_bitmask_pty {
     };
 }
 
-impl_int_bitmask_pty!(u8);
-impl_int_bitmask_pty!(u16);
-impl_int_bitmask_pty!(u32);
-impl_int_bitmask_pty!(u64);
-impl_int_bitmask_pty!(usize);
-impl_int_bitmask_pty!(u128);
-impl_int_bitmask_pty!(i8);
-impl_int_bitmask_pty!(i16);
-impl_int_bitmask_pty!(i32);
-impl_int_bitmask_pty!(i64);
-impl_int_bitmask_pty!(isize);
-impl_int_bitmask_pty!(i128);
+impl_int_upty!(impl_int_bitmask_pty);
+impl_int_ipty!(impl_int_bitmask_pty);
 
 pub trait FullMul<Rhs = Self> {
     type Output;
@@ -297,18 +258,8 @@ macro_rules! impl_int_divmod_pty_pty {
     };
 }
 
-impl_int_divmod_pty_pty!(u8);
-impl_int_divmod_pty_pty!(u16);
-impl_int_divmod_pty_pty!(u32);
-impl_int_divmod_pty_pty!(usize);
-impl_int_divmod_pty_pty!(u64);
-impl_int_divmod_pty_pty!(u128);
-impl_int_divmod_pty_pty!(i8);
-impl_int_divmod_pty_pty!(i16);
-impl_int_divmod_pty_pty!(i32);
-impl_int_divmod_pty_pty!(isize);
-impl_int_divmod_pty_pty!(i64);
-impl_int_divmod_pty_pty!(i128);
+impl_int_upty!(impl_int_divmod_pty_pty);
+impl_int_ipty!(impl_int_divmod_pty_pty);
 
 // ExprNode - main node
 //
@@ -1314,12 +1265,7 @@ macro_rules! impl_int_shl_immu {
     };
 }
 
-impl_int_shl_immu!(u8);
-impl_int_shl_immu!(u16);
-impl_int_shl_immu!(u32);
-impl_int_shl_immu!(usize);
-impl_int_shl_immu!(u64);
-impl_int_shl_immu!(u128);
+impl_int_upty!(impl_int_shl_immu);
 
 macro_rules! impl_int_shl_immi {
     ($ty:ty) => {
@@ -1351,12 +1297,7 @@ macro_rules! impl_int_shl_immi {
     };
 }
 
-impl_int_shl_immi!(i8);
-impl_int_shl_immi!(i16);
-impl_int_shl_immi!(i32);
-impl_int_shl_immi!(isize);
-impl_int_shl_immi!(i64);
-impl_int_shl_immi!(i128);
+impl_int_ipty!(impl_int_shl_immi);
 
 macro_rules! impl_int_shl_self_imm {
     ($ty:ty, $bits:ty) => {
@@ -1497,12 +1438,7 @@ macro_rules! impl_int_shr_immu {
     };
 }
 
-impl_int_shr_immu!(u8);
-impl_int_shr_immu!(u16);
-impl_int_shr_immu!(u32);
-impl_int_shr_immu!(usize);
-impl_int_shr_immu!(u64);
-impl_int_shr_immu!(u128);
+impl_int_upty!(impl_int_shr_immu);
 
 macro_rules! impl_int_shr_immi {
     ($ty:ty) => {
@@ -1542,12 +1478,7 @@ macro_rules! impl_int_shr_immi {
     };
 }
 
-impl_int_shr_immi!(i8);
-impl_int_shr_immi!(i16);
-impl_int_shr_immi!(i32);
-impl_int_shr_immi!(isize);
-impl_int_shr_immi!(i64);
-impl_int_shr_immi!(i128);
+impl_int_ipty!(impl_int_shr_immi);
 
 macro_rules! impl_int_shr_self_imm {
     ($ty:ty, $bits:ty) => {
@@ -1627,18 +1558,8 @@ macro_rules! impl_int_shx_assign {
             };
         }
 
-        $macro!(u8);
-        $macro!(u16);
-        $macro!(u32);
-        $macro!(usize);
-        $macro!(u64);
-        $macro!(u128);
-        $macro!(i8);
-        $macro!(i16);
-        $macro!(i32);
-        $macro!(isize);
-        $macro!(i64);
-        $macro!(i128);
+        impl_int_upty!($macro);
+        impl_int_ipty!($macro);
     };
 }
 

@@ -1696,3 +1696,27 @@ macro_rules! impl_int_ipty_ty1 {
         );
     };
 }
+
+#[macro_export]
+macro_rules! impl_int_upty {
+    ($impl_mac:ident) => {
+        $impl_mac!(u8);
+        $impl_mac!(u16);
+        $impl_mac!(u32);
+        $impl_mac!(usize);
+        $impl_mac!(u64);
+        $impl_mac!(u128);
+    }
+}
+
+#[macro_export]
+macro_rules! impl_int_ipty {
+    ($impl_mac:ident) => {
+        $impl_mac!(i8);
+        $impl_mac!(i16);
+        $impl_mac!(i32);
+        $impl_mac!(isize);
+        $impl_mac!(i64);
+        $impl_mac!(i128);
+    }
+}
