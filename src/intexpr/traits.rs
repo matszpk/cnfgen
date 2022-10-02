@@ -343,7 +343,7 @@ where
     fn equal(self, rhs: Self) -> Self::Output {
         let mut xp = BoolExprNode::single(self.creator.clone(), true);
         for i in 0..N::USIZE {
-            xp &= self.bit(i).equal(rhs.bit(i));
+            xp &= self.bit(i).bequal(rhs.bit(i));
         }
         xp
     }
@@ -436,7 +436,7 @@ where
     fn less_than(self, rhs: Self) -> Self::Output {
         let mut xp = (!self.bit(0)) & rhs.bit(0);
         for i in 1..self.indexes.len() {
-            xp = (self.bit(i).equal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+            xp = (self.bit(i).bequal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
         }
         xp
     }
@@ -444,7 +444,7 @@ where
     fn less_equal(self, rhs: Self) -> Self::Output {
         let mut xp = self.bit(0).imp(rhs.bit(0));
         for i in 1..self.indexes.len() {
-            xp = (self.bit(i).equal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+            xp = (self.bit(i).bequal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
         }
         xp
     }
@@ -480,7 +480,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().equal(rhs_sign) &
+            | (lhs_sign.clone().bequal(rhs_sign) &
             // if negative
             ((lhs_sign.clone() & lhs_num.clone().greater_than(rhs_num.clone()))
             // if positive
@@ -498,7 +498,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().equal(rhs_sign) &
+            | (lhs_sign.clone().bequal(rhs_sign) &
             // if negative
             ((lhs_sign.clone() & lhs_num.clone().greater_equal(rhs_num.clone()))
             // if positive
@@ -640,3 +640,13 @@ macro_rules! impl_int_ord_ipty {
 
 impl_int_upty_ty1!(impl_int_ord_upty);
 impl_int_ipty_ty1!(impl_int_ord_ipty);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_int_equal() {
+        assert_eq!(4.equal(6), 4 == 6);
+    }
+}

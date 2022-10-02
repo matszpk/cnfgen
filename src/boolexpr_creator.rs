@@ -930,7 +930,7 @@ mod tests {
             ec,
             v,
             2,
-            { (v[1].clone().equal(v[2].clone())).index },
+            { (v[1].clone().bequal(v[2].clone())).index },
             concat!("p cnf 2 2\n", "1 -2 0\n-1 2 0\n")
         );
 
@@ -1028,7 +1028,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) | (v[2].clone().equal(v[3].clone()))).index },
+            { ((v[1].clone() ^ v[2].clone()) | (v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
@@ -1038,7 +1038,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) & (v[2].clone().equal(v[3].clone()))).index },
+            { ((v[1].clone() ^ v[2].clone()) & (v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 6\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 0\n5 0\n"
@@ -1048,7 +1048,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()).imp(v[2].clone().equal(v[3].clone()))).index },
+            { ((v[1].clone() ^ v[2].clone()).imp(v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
@@ -1058,7 +1058,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((!(v[1].clone() ^ v[2].clone())) | (v[2].clone().equal(v[3].clone()))).index },
+            { ((!(v[1].clone() ^ v[2].clone())) | (v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 -2 4 0\n-1 2 4 0\n2 -3 -5 0\n-2 3 -5 0\n-4 5 0\n"
@@ -1070,7 +1070,7 @@ mod tests {
             3,
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
-                let xp2 = v[2].clone().equal(v[3].clone());
+                let xp2 = v[2].clone().bequal(v[3].clone());
                 let mut ec = ec.borrow_mut();
                 let xp1 = ec.new_not(xp1.index);
                 let xp1 = ec.new_not(xp1);
@@ -1085,7 +1085,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((!(v[1].clone() ^ v[2].clone())).imp(v[2].clone().equal(v[3].clone()))).index },
+            { ((!(v[1].clone() ^ v[2].clone())).imp(v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 5\n",
                 "1 2 -4 0\n-1 -2 -4 0\n2 -3 -5 0\n-2 3 -5 0\n4 5 0\n"
@@ -1097,7 +1097,7 @@ mod tests {
             3,
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
-                let xp2 = v[2].clone().equal(v[3].clone());
+                let xp2 = v[2].clone().bequal(v[3].clone());
                 let mut ec = ec.borrow_mut();
                 let xp1 = ec.new_not(xp1.index);
                 let xp1 = ec.new_not(xp1);
@@ -1112,7 +1112,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() ^ v[2].clone()) ^ (v[2].clone().equal(v[3].clone()))).index },
+            { ((v[1].clone() ^ v[2].clone()) ^ (v[2].clone().bequal(v[3].clone()))).index },
             concat!(
                 "p cnf 5 10\n",
                 "1 2 -4 0\n-1 -2 -4 0\n1 -2 4 0\n-1 2 4 0\n",
@@ -1143,7 +1143,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() & v[2].clone()).equal(v[2].clone() & v[3].clone())).index },
+            { ((v[1].clone() & v[2].clone()).bequal(v[2].clone() & v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "1 -4 0\n2 -4 0\n-1 -2 4 0\n2 -5 0\n3 -5 0\n-2 -3 5 0\n4 -5 0\n-4 5 0\n"
@@ -1153,7 +1153,7 @@ mod tests {
             ec,
             v,
             3,
-            { ((v[1].clone() | v[2].clone()).equal(v[2].clone() | v[3].clone())).index },
+            { ((v[1].clone() | v[2].clone()).bequal(v[2].clone() | v[3].clone())).index },
             concat!(
                 "p cnf 5 8\n",
                 "-1 4 0\n-2 4 0\n1 2 -4 0\n-2 5 0\n-3 5 0\n2 3 -5 0\n4 -5 0\n-4 5 0\n"
@@ -1473,7 +1473,7 @@ mod tests {
                 let xp1 = v[1].clone().imp(v[2].clone());
                 let xp2 = v[3].clone().imp(v[2].clone());
                 let xp3 = (xp1.clone() ^ xp2.clone()) | v[4].clone();
-                let xp4 = (xp1.clone().equal(xp2.clone())) & v[5].clone();
+                let xp4 = (xp1.clone().bequal(xp2.clone())) & v[5].clone();
                 let xp5 = (xp1.clone() | xp3.clone()) & (xp2.clone() | xp4.clone());
                 let xp6 = (xp1.clone() & !xp3.clone()) | (!xp2.clone() & xp4.clone());
                 (xp6.clone().imp(xp5.clone())).index

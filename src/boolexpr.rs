@@ -34,14 +34,14 @@ use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 pub trait BoolEqual<Rhs = Self> {
     type Output;
 
-    fn equal(self, rhs: Rhs) -> Self::Output;
+    fn bequal(self, rhs: Rhs) -> Self::Output;
 }
 
 /// Equality operator for bool.
 impl BoolEqual for bool {
     type Output = bool;
 
-    fn equal(self, rhs: bool) -> Self::Output {
+    fn bequal(self, rhs: bool) -> Self::Output {
         self == rhs
     }
 }
@@ -261,7 +261,7 @@ macro_rules! new_op_impl {
 new_op_impl!(BitAnd, new_and, bitand, None::<bool>, Some(false));
 new_op_impl!(BitOr, new_or, bitor, None::<bool>, Some(true));
 new_op_impl!(BitXor, new_xor, bitxor, Some(false), Some(true));
-new_op_impl!(BoolEqual, new_equal, equal, Some(true), Some(false));
+new_op_impl!(BoolEqual, new_equal, bequal, Some(true), Some(false));
 new_op_impl!(BoolImpl, new_impl, imp, Some(true), None::<bool>);
 
 /// An implementation BitAnd for ExprNode where rhs is Literal.
@@ -518,16 +518,16 @@ where
 {
     type Output = ExprNode<T>;
 
-    fn equal(self, rhs: U) -> Self::Output {
+    fn bequal(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
         {
             let node1 = self.creator.borrow().nodes[self.index];
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1.equal(v2));
+                        return ExprNode::single(self.creator, v1.bequal(v2));
                     } else {
-                        return v1.equal(ExprNode::single(self.creator, lit2));
+                        return v1.bequal(ExprNode::single(self.creator, lit2));
                     }
                 } else if lit1 == lit2 {
                     return ExprNode::single_value(self.creator, true);
@@ -565,12 +565,12 @@ where
 {
     type Output = ExprNode<T>;
 
-    fn equal(self, rhs: ExprNode<T>) -> Self::Output {
-        rhs.equal(self)
+    fn bequal(self, rhs: ExprNode<T>) -> Self::Output {
+        rhs.bequal(self)
     }
 }
 
-new_all_op_l_xn_impls!(BoolEqual, equal);
+new_all_op_l_xn_impls!(BoolEqual, bequal);
 
 /// An implementation BoolImpl for ExprNode where rhs is Literal.
 impl<T, U> BoolImpl<U> for ExprNode<T>
@@ -837,7 +837,7 @@ mod tests {
             },
             *ec.borrow()
         );
-        let _ = v1.clone() ^ v2.clone().equal(v3) | !xp1;
+        let _ = v1.clone() ^ v2.clone().bequal(v3) | !xp1;
         assert_eq!(
             ExprCreator {
                 nodes: vec![
@@ -940,7 +940,7 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
         let v3 = ExprNode::variable(ec.clone());
-        let _ = v2.equal((!v1).equal(Literal::from(v2).equal(v3)));
+        let _ = v2.bequal((!v1).bequal(Literal::from(v2).bequal(v3)));
         assert_eq!(
             ExprCreator {
                 nodes: vec![
@@ -966,7 +966,7 @@ mod tests {
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let _ = v3.clone().equal(v1.imp(v2.equal(v3)));
+        let _ = v3.clone().bequal(v1.imp(v2.bequal(v3)));
         assert_eq!(
             ExprCreator {
                 nodes: vec![
@@ -991,7 +991,7 @@ mod tests {
         let _ = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
         let v3 = ExprNode::variable(ec.clone());
-        let _ = v3.clone().equal(1.imp(v2.equal(v3)));
+        let _ = v3.clone().bequal(1.imp(v2.bequal(v3)));
         assert_eq!(
             ExprCreator {
                 nodes: vec![
@@ -1183,7 +1183,7 @@ mod tests {
     #[test]
     fn test_expr_nodes_equal_simpls() {
         test_op_simpls!(
-            equal, XPTrue, XPNotVar1, XPNotVar1, XPVar1, XPVar1, XPFalse, XPFalse, XPTrue, XPTrue,
+            bequal, XPTrue, XPNotVar1, XPNotVar1, XPVar1, XPVar1, XPFalse, XPFalse, XPTrue, XPTrue,
             XPFalse, XPFalse
         );
     }
