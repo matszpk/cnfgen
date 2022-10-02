@@ -268,7 +268,7 @@ where
             });
         }
         ExprNode {
-            creator: self.creator.clone(),
+            creator: self.creator,
             indexes: output,
         }
     }
@@ -403,7 +403,7 @@ where
             });
         }
         ExprNode {
-            creator: self.creator.clone(),
+            creator: self.creator,
             indexes: output,
         }
     }

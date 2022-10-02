@@ -778,14 +778,12 @@ where
     (a.clone() ^ b.clone(), a & b)
 }
 
-pub fn full_adder<A, B, C>(
-    a: A,
-    b: B,
-    c: C,
-) -> (
+pub type FullAdderOutput<A, B, C> = (
     <<A as BitXor<B>>::Output as BitXor<C>>::Output,
     <<<A as BitXor<B>>::Output as BitAnd<C>>::Output as BitOr<<A as BitAnd<B>>::Output>>::Output,
-)
+);
+
+pub fn full_adder<A, B, C>(a: A, b: B, c: C) -> FullAdderOutput<A, B, C>
 where
     A: BitAnd<B> + BitXor<B> + Clone,
     <A as BitXor<B>>::Output: BitAnd<C> + BitXor<C> + Clone,

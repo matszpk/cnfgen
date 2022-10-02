@@ -261,9 +261,9 @@ where
     }
     let col = matrix.last().unwrap();
     output[matrix.len() - 1] = if col.len() == 2 {
-        BoolExprNode::new(creator.clone(), col[0]) ^ BoolExprNode::new(creator.clone(), col[1]) ^ c
+        BoolExprNode::new(creator.clone(), col[0]) ^ BoolExprNode::new(creator, col[1]) ^ c
     } else {
-        BoolExprNode::new(creator.clone(), col[0]) ^ c
+        BoolExprNode::new(creator, col[0]) ^ c
     }
     .index;
 

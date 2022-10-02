@@ -266,7 +266,7 @@ where
     fn write_clauses<LW: LiteralsWriter>(
         &self,
         start: usize,
-        dep_nodes: &Vec<DepNode<T>>,
+        dep_nodes: &[DepNode<T>],
         cnf: &mut LW,
     ) -> Result<(), CNFError> {
         // Joining clause - structure to holds final subexpressions to join in one clause -

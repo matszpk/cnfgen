@@ -343,7 +343,7 @@ where
     fn equal(self, rhs: Self) -> Self::Output {
         let mut xp = BoolExprNode::single(self.creator.clone(), true);
         for i in 0..N::USIZE {
-            xp = xp & self.bit(i).equal(rhs.bit(i));
+            xp &= self.bit(i).equal(rhs.bit(i));
         }
         xp
     }
@@ -351,7 +351,7 @@ where
     fn nequal(self, rhs: Self) -> Self::Output {
         let mut xp = BoolExprNode::single(self.creator.clone(), false);
         for i in 0..N::USIZE {
-            xp = xp | (self.bit(i) ^ rhs.bit(i));
+            xp |= self.bit(i) ^ rhs.bit(i);
         }
         xp
     }
@@ -473,8 +473,8 @@ where
         let lhs_sign = self.bit(N::USIZE - 1);
         let rhs_sign = rhs.bit(N::USIZE - 1);
         let (lhs_num, rhs_num) = {
-            let mut lhs_num = self.as_unsigned().clone();
-            let mut rhs_num = rhs.as_unsigned().clone();
+            let mut lhs_num = self.as_unsigned();
+            let mut rhs_num = rhs.as_unsigned();
             *lhs_num.indexes.last_mut().unwrap() = 0;
             *rhs_num.indexes.last_mut().unwrap() = 0;
             (lhs_num, rhs_num)
@@ -491,8 +491,8 @@ where
         let lhs_sign = self.bit(N::USIZE - 1);
         let rhs_sign = rhs.bit(N::USIZE - 1);
         let (lhs_num, rhs_num) = {
-            let mut lhs_num = self.as_unsigned().clone();
-            let mut rhs_num = rhs.as_unsigned().clone();
+            let mut lhs_num = self.as_unsigned();
+            let mut rhs_num = rhs.as_unsigned();
             *lhs_num.indexes.last_mut().unwrap() = 0;
             *rhs_num.indexes.last_mut().unwrap() = 0;
             (lhs_num, rhs_num)
