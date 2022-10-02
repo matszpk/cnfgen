@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The module to generate CNF clauses from boolean expressions.
+//! The module with macro helpers.
 
 /// Macro helper
 #[macro_export]
