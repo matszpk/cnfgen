@@ -29,11 +29,9 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use super::ExprNode;
-use crate::boolexpr_creator::ExprCreator;
-use crate::VarLit;
+use super::*;
 use crate::{impl_int_ipty, impl_int_ipty_ty1, impl_int_upty, impl_int_upty_ty1};
-use crate::{BoolEqual, BoolExprNode, BoolImpl};
+use crate::{BoolEqual, BoolExprNode, BoolImpl, ExprCreator, VarLit};
 
 /// Equality operator for boolean expressions and boolean words.
 pub trait IntEqual<Rhs = Self> {
