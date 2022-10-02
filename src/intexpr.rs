@@ -1235,7 +1235,7 @@ where
     }
 }
 
-macro_rules! impl_int_shl_immu {
+macro_rules! impl_int_shl_imm {
     ($ty:ty) => {
         impl<T, N, const SIGN: bool> Shl<$ty> for ExprNode<T, N, SIGN>
         where
@@ -1250,38 +1250,7 @@ macro_rules! impl_int_shl_immu {
 
             fn shl(self, rhs: $ty) -> Self::Output {
                 // check whether zeroes
-                if (rhs as usize) < N::USIZE {
-                    panic!("this arithmetic operation will overflow");
-                }
-                let usize_rhs = rhs as usize;
-                let mut output = GenericArray::default();
-                output[usize_rhs..].copy_from_slice(&self.indexes[0..(N::USIZE - usize_rhs)]);
-                ExprNode {
-                    creator: self.creator.clone(),
-                    indexes: output,
-                }
-            }
-        }
-    };
-}
-
-impl_int_upty!(impl_int_shl_immu);
-
-macro_rules! impl_int_shl_immi {
-    ($ty:ty) => {
-        impl<T, N, const SIGN: bool> Shl<$ty> for ExprNode<T, N, SIGN>
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            N: ArrayLength<usize>,
-        {
-            type Output = Self;
-
-            fn shl(self, rhs: $ty) -> Self::Output {
-                // check whether zeroes and sign in rhs
+                #[allow(unused_comparisons)]
                 if rhs < 0 || (rhs as usize) < N::USIZE {
                     panic!("this arithmetic operation will overflow");
                 }
@@ -1297,7 +1266,8 @@ macro_rules! impl_int_shl_immi {
     };
 }
 
-impl_int_ipty!(impl_int_shl_immi);
+impl_int_upty!(impl_int_shl_imm);
+impl_int_ipty!(impl_int_shl_imm);
 
 macro_rules! impl_int_shl_self_imm {
     ($ty:ty, $bits:ty) => {
@@ -1400,7 +1370,7 @@ where
     }
 }
 
-macro_rules! impl_int_shr_immu {
+macro_rules! impl_int_shr_imm {
     ($ty:ty) => {
         impl<T, N, const SIGN: bool> Shr<$ty> for ExprNode<T, N, SIGN>
         where
@@ -1415,46 +1385,7 @@ macro_rules! impl_int_shr_immu {
 
             fn shr(self, rhs: $ty) -> Self::Output {
                 // check whether zeroes
-                if (rhs as usize) < N::USIZE {
-                    panic!("this arithmetic operation will overflow");
-                }
-                let usize_rhs = rhs as usize;
-                let mut output = GenericArray::from_exact_iter(
-                    iter::repeat(if SIGN {
-                        *self.indexes.last().unwrap()
-                    } else {
-                        0
-                    })
-                    .take(N::USIZE),
-                )
-                .unwrap();
-                output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
-                ExprNode {
-                    creator: self.creator.clone(),
-                    indexes: output,
-                }
-            }
-        }
-    };
-}
-
-impl_int_upty!(impl_int_shr_immu);
-
-macro_rules! impl_int_shr_immi {
-    ($ty:ty) => {
-        impl<T, N, const SIGN: bool> Shr<$ty> for ExprNode<T, N, SIGN>
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            N: ArrayLength<usize>,
-        {
-            type Output = Self;
-
-            fn shr(self, rhs: $ty) -> Self::Output {
-                // check whether zeroes
+                #[allow(unused_comparisons)]
                 if rhs < 0 || (rhs as usize) < N::USIZE {
                     panic!("this arithmetic operation will overflow");
                 }
@@ -1478,7 +1409,8 @@ macro_rules! impl_int_shr_immi {
     };
 }
 
-impl_int_ipty!(impl_int_shr_immi);
+impl_int_upty!(impl_int_shr_imm);
+impl_int_ipty!(impl_int_shr_imm);
 
 macro_rules! impl_int_shr_self_imm {
     ($ty:ty, $bits:ty) => {
