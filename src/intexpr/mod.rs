@@ -30,7 +30,7 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, full_adder, half_adder, ExprNode as BoolExprNode};
+use crate::boolexpr::{bool_ite, full_adder, half_adder};
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
 use crate::{ExprCreator, VarLit};
 
@@ -96,56 +96,6 @@ where
         ExprNode {
             creator: self.creator,
             indexes: self.indexes,
-        }
-    }
-
-    pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
-        let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE {
-            (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        (
-            ExprNode {
-                creator: self.creator,
-                indexes: output,
-            },
-            c,
-        )
-    }
-
-    pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
-        let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
-        ExprNode {
-            creator: self.creator,
-            indexes: output,
-        }
-    }
-
-    pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
-        let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = half_adder(self.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ c).index;
-        ExprNode {
-            creator: self.creator,
-            indexes: output,
         }
     }
 }

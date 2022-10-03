@@ -35,6 +35,65 @@ use crate::{BoolExprNode, ExprCreator, VarLit};
 //////////
 // Add/Sub implementation
 
+impl<T, N: ArrayLength<usize>, const SIGN: bool> ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = in_carry;
+        for i in 0..N::USIZE {
+            (output[i], c) = {
+                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c,
+        )
+    }
+
+    pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = in_carry;
+        for i in 0..N::USIZE - 1 {
+            (output[i], c) = {
+                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+
+    pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
+        let mut output = GenericArray::<usize, N>::default();
+        let mut c = in_carry;
+        for i in 0..N::USIZE - 1 {
+            (output[i], c) = {
+                let (s0, c0) = half_adder(self.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ c).index;
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
+
 impl<T, N, const SIGN: bool> Add<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
