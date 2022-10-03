@@ -934,4 +934,69 @@ mod tests {
             assert_eq!(exp_ec, *ec.borrow());
         }
     }
+
+    #[test]
+    fn test_expr_node_int_ord() {
+        {
+            let ec = ExprCreator::new();
+            let xv = (0..8)
+                .into_iter()
+                .map(|_| ExprNode::<isize, U5, false>::variable(ec.clone()))
+                .collect::<Vec<_>>();
+            let _ = xv[0].clone().less_than(xv[1].clone());
+            let _ = xv[2].clone().less_equal(xv[3].clone());
+            let _ = xv[4].clone().greater_than(xv[5].clone());
+            let _ = xv[6].clone().greater_equal(xv[7].clone());
+
+            fn get_vnode(v: isize) -> usize {
+                (v + 1) as usize
+            }
+            fn gen_less_x_chain(
+                var_count: isize,
+                nodes: &mut Vec<Node<isize>>,
+                vara: isize,
+                varb: isize,
+                with_equal: bool,
+            ) {
+                if !with_equal {
+                    nodes.extend([
+                        Node::Single(Literal::VarLit(-vara)),
+                        Node::And(nodes.len(), get_vnode(varb)),
+                    ]);
+                } else {
+                    nodes.push(Node::Impl(get_vnode(vara), get_vnode(varb)));
+                }
+                let mut node_start = nodes.len();
+                for i in 1..var_count {
+                    nodes.extend([
+                        Node::Equal(get_vnode(vara + i), get_vnode(varb + i)),
+                        Node::And(node_start, node_start - 1),
+                        Node::Single(Literal::VarLit(-(vara + i))),
+                        Node::And(node_start + 2, get_vnode(varb + i)),
+                        Node::Or(node_start + 1, node_start + 3),
+                    ]);
+                    node_start = nodes.len();
+                }
+            }
+
+            let mut nodes = node_start(40);
+            gen_less_x_chain(5, &mut nodes, 1, 6, false);
+            gen_less_x_chain(5, &mut nodes, 11, 16, true);
+            gen_less_x_chain(5, &mut nodes, 26, 21, false);
+            gen_less_x_chain(5, &mut nodes, 36, 31, true);
+
+            assert_eq!(
+                ExprCreator {
+                    nodes,
+                    lit_to_index: vec![
+                        2, 42, 3, 46, 4, 51, 5, 56, 6, 61, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0,
+                        13, 67, 14, 72, 15, 77, 16, 82, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0,
+                        23, 0, 24, 0, 25, 0, 26, 0, 27, 85, 28, 89, 29, 94, 30, 99, 31, 104, 32, 0,
+                        33, 0, 34, 0, 35, 0, 36, 0, 37, 0, 38, 110, 39, 115, 40, 120, 41, 125
+                    ],
+                },
+                *ec.borrow()
+            );
+        }
+    }
 }
