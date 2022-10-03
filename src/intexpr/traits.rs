@@ -771,6 +771,20 @@ mod tests {
         );
     }
 
+    fn node_start(var_count: isize) -> Vec<Node<isize>> {
+        [
+            Node::Single(Literal::Value(false)),
+            Node::Single(Literal::Value(true)),
+        ]
+        .into_iter()
+        .chain(
+            (1..var_count + 1)
+                .into_iter()
+                .map(|x| Node::Single(Literal::VarLit(x))),
+        )
+        .collect::<Vec<_>>()
+    }
+
     #[test]
     fn test_expr_node_int_equal() {
         {
@@ -783,48 +797,29 @@ mod tests {
             let _ = x3.nequal(x4);
             assert_eq!(
                 ExprCreator {
-                    nodes: vec![
-                        Node::Single(Literal::Value(false)),
-                        Node::Single(Literal::Value(true)),
-                        Node::Single(Literal::VarLit(1)),
-                        Node::Single(Literal::VarLit(2)),
-                        Node::Single(Literal::VarLit(3)),
-                        Node::Single(Literal::VarLit(4)),
-                        Node::Single(Literal::VarLit(5)),
-                        Node::Single(Literal::VarLit(6)),
-                        Node::Single(Literal::VarLit(7)),
-                        Node::Single(Literal::VarLit(8)),
-                        Node::Single(Literal::VarLit(9)),
-                        Node::Single(Literal::VarLit(10)),
-                        Node::Single(Literal::VarLit(11)),
-                        Node::Single(Literal::VarLit(12)),
-                        Node::Single(Literal::VarLit(13)),
-                        Node::Single(Literal::VarLit(14)),
-                        Node::Single(Literal::VarLit(15)),
-                        Node::Single(Literal::VarLit(16)),
-                        Node::Single(Literal::VarLit(17)),
-                        Node::Single(Literal::VarLit(18)),
-                        Node::Single(Literal::VarLit(19)),
-                        Node::Single(Literal::VarLit(20)),
-                        Node::Equal(2, 7),
-                        Node::Equal(3, 8),
-                        Node::And(22, 23),
-                        Node::Equal(4, 9),
-                        Node::And(24, 25),
-                        Node::Equal(5, 10),
-                        Node::And(26, 27),
-                        Node::Equal(6, 11),
-                        Node::And(28, 29),
-                        Node::Xor(12, 17),
-                        Node::Xor(13, 18),
-                        Node::Or(31, 32),
-                        Node::Xor(14, 19),
-                        Node::Or(33, 34),
-                        Node::Xor(15, 20),
-                        Node::Or(35, 36),
-                        Node::Xor(16, 21),
-                        Node::Or(37, 38),
-                    ],
+                    nodes: node_start(20)
+                        .into_iter()
+                        .chain([
+                            Node::Equal(2, 7),
+                            Node::Equal(3, 8),
+                            Node::And(22, 23),
+                            Node::Equal(4, 9),
+                            Node::And(24, 25),
+                            Node::Equal(5, 10),
+                            Node::And(26, 27),
+                            Node::Equal(6, 11),
+                            Node::And(28, 29),
+                            Node::Xor(12, 17),
+                            Node::Xor(13, 18),
+                            Node::Or(31, 32),
+                            Node::Xor(14, 19),
+                            Node::Or(33, 34),
+                            Node::Xor(15, 20),
+                            Node::Or(35, 36),
+                            Node::Xor(16, 21),
+                            Node::Or(37, 38)
+                        ])
+                        .collect::<Vec<_>>(),
                     lit_to_index: vec![
                         2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0,
                         14, 0, 15, 0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0
@@ -835,52 +830,35 @@ mod tests {
         }
 
         let exp_ec = ExprCreator {
-            nodes: vec![
-                Node::Single(Literal::Value(false)),
-                Node::Single(Literal::Value(true)),
-                Node::Single(Literal::VarLit(1)),
-                Node::Single(Literal::VarLit(2)),
-                Node::Single(Literal::VarLit(3)),
-                Node::Single(Literal::VarLit(4)),
-                Node::Single(Literal::VarLit(5)),
-                Node::Single(Literal::VarLit(6)),
-                Node::Single(Literal::VarLit(7)),
-                Node::Single(Literal::VarLit(8)),
-                Node::Single(Literal::VarLit(9)),
-                Node::Single(Literal::VarLit(10)),
-                Node::Single(Literal::VarLit(11)),
-                Node::Single(Literal::VarLit(12)),
-                Node::Single(Literal::VarLit(13)),
-                Node::Single(Literal::VarLit(14)),
-                Node::Single(Literal::VarLit(15)),
-                Node::Single(Literal::VarLit(16)),
-                Node::Single(Literal::VarLit(17)),
-                Node::Single(Literal::VarLit(18)),
-                Node::And(2, 3),
-                Node::And(20, 4),
-                Node::Single(Literal::VarLit(-4)),
-                Node::And(21, 22),
-                Node::Single(Literal::VarLit(-5)),
-                Node::And(23, 24),
-                Node::Single(Literal::VarLit(-6)),
-                Node::And(25, 26),
-                Node::Single(Literal::VarLit(-7)),
-                Node::And(27, 28),
-                Node::And(29, 9),
-                Node::Single(Literal::VarLit(-9)),
-                Node::And(30, 31),
-                Node::Single(Literal::VarLit(-11)),
-                Node::Or(11, 33),
-                Node::Or(34, 13),
-                Node::Single(Literal::VarLit(-13)),
-                Node::Or(35, 36),
-                Node::Or(37, 15),
-                Node::Or(38, 16),
-                Node::Single(Literal::VarLit(-16)),
-                Node::Or(39, 40),
-                Node::Or(41, 18),
-                Node::Or(42, 19),
-            ],
+            nodes: node_start(18)
+                .into_iter()
+                .chain([
+                    Node::And(2, 3),
+                    Node::And(20, 4),
+                    Node::Single(Literal::VarLit(-4)),
+                    Node::And(21, 22),
+                    Node::Single(Literal::VarLit(-5)),
+                    Node::And(23, 24),
+                    Node::Single(Literal::VarLit(-6)),
+                    Node::And(25, 26),
+                    Node::Single(Literal::VarLit(-7)),
+                    Node::And(27, 28),
+                    Node::And(29, 9),
+                    Node::Single(Literal::VarLit(-9)),
+                    Node::And(30, 31),
+                    Node::Single(Literal::VarLit(-11)),
+                    Node::Or(11, 33),
+                    Node::Or(34, 13),
+                    Node::Single(Literal::VarLit(-13)),
+                    Node::Or(35, 36),
+                    Node::Or(37, 15),
+                    Node::Or(38, 16),
+                    Node::Single(Literal::VarLit(-16)),
+                    Node::Or(39, 40),
+                    Node::Or(41, 18),
+                    Node::Or(42, 19),
+                ])
+                .collect::<Vec<_>>(),
             lit_to_index: vec![
                 2, 0, 3, 0, 4, 0, 5, 22, 6, 24, 7, 26, 8, 28, 9, 0, 10, 31, 11, 0, 12, 33, 13, 0,
                 14, 36, 15, 0, 16, 0, 17, 40, 18, 0, 19, 0,
@@ -902,58 +880,41 @@ mod tests {
             let _ = 74.nequal(x2);
             assert_eq!(exp_ec, *ec.borrow());
         }
-        
+
         let exp_ec = ExprCreator {
-            nodes: vec![
-                Node::Single(Literal::Value(false)),
-                Node::Single(Literal::Value(true)),
-                Node::Single(Literal::VarLit(1)),
-                Node::Single(Literal::VarLit(2)),
-                Node::Single(Literal::VarLit(3)),
-                Node::Single(Literal::VarLit(4)),
-                Node::Single(Literal::VarLit(5)),
-                Node::Single(Literal::VarLit(6)),
-                Node::Single(Literal::VarLit(7)),
-                Node::Single(Literal::VarLit(8)),
-                Node::Single(Literal::VarLit(9)),
-                Node::Single(Literal::VarLit(10)),
-                Node::Single(Literal::VarLit(11)),
-                Node::Single(Literal::VarLit(12)),
-                Node::Single(Literal::VarLit(13)),
-                Node::Single(Literal::VarLit(14)),
-                Node::Single(Literal::VarLit(15)),
-                Node::Single(Literal::VarLit(16)),
-                Node::Single(Literal::VarLit(17)),
-                Node::Single(Literal::VarLit(18)),
-                Node::And(2, 3),
-                Node::And(20, 4),
-                Node::Single(Literal::VarLit(-4)),
-                Node::And(21, 22),
-                Node::Single(Literal::VarLit(-5)),
-                Node::And(23, 24),
-                Node::Single(Literal::VarLit(-6)),
-                Node::And(25, 26),
-                Node::Single(Literal::VarLit(-7)),
-                Node::And(27, 28),
-                Node::And(29, 9),
-                Node::And(30, 10),
-                Node::Single(Literal::VarLit(-11)),
-                Node::Or(11, 32),
-                Node::Or(33, 13),
-                Node::Single(Literal::VarLit(-13)),
-                Node::Or(34, 35),
-                Node::Or(36, 15),
-                Node::Or(37, 16),
-                Node::Single(Literal::VarLit(-16)),
-                Node::Or(38, 39),
-                Node::Single(Literal::VarLit(-17)),
-                Node::Or(40, 41),
-                Node::Single(Literal::VarLit(-18)),
-                Node::Or(42, 43),
-            ],
+            nodes: node_start(18)
+                .into_iter()
+                .chain([
+                    Node::And(2, 3),
+                    Node::And(20, 4),
+                    Node::Single(Literal::VarLit(-4)),
+                    Node::And(21, 22),
+                    Node::Single(Literal::VarLit(-5)),
+                    Node::And(23, 24),
+                    Node::Single(Literal::VarLit(-6)),
+                    Node::And(25, 26),
+                    Node::Single(Literal::VarLit(-7)),
+                    Node::And(27, 28),
+                    Node::And(29, 9),
+                    Node::And(30, 10),
+                    Node::Single(Literal::VarLit(-11)),
+                    Node::Or(11, 32),
+                    Node::Or(33, 13),
+                    Node::Single(Literal::VarLit(-13)),
+                    Node::Or(34, 35),
+                    Node::Or(36, 15),
+                    Node::Or(37, 16),
+                    Node::Single(Literal::VarLit(-16)),
+                    Node::Or(38, 39),
+                    Node::Single(Literal::VarLit(-17)),
+                    Node::Or(40, 41),
+                    Node::Single(Literal::VarLit(-18)),
+                    Node::Or(42, 43),
+                ])
+                .collect::<Vec<_>>(),
             lit_to_index: vec![
-                2, 0, 3, 0, 4, 0, 5, 22, 6, 24, 7, 26, 8, 28, 9, 0, 10, 0, 11, 0, 12, 32, 13, 0, 14,
-                35, 15, 0, 16, 0, 17, 39, 18, 41, 19, 43
+                2, 0, 3, 0, 4, 0, 5, 22, 6, 24, 7, 26, 8, 28, 9, 0, 10, 0, 11, 0, 12, 32, 13, 0,
+                14, 35, 15, 0, 16, 0, 17, 39, 18, 41, 19, 43,
             ],
         };
         {
