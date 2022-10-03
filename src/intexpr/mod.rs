@@ -100,20 +100,6 @@ where
     }
 }
 
-impl<T, N: ArrayLength<usize>> ExprNode<T, N, true>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
-    pub fn abs(self) -> ExprNode<T, N, false> {
-        // if sign then -self else self
-        int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
-    }
-}
-
 impl<T, N: ArrayLength<usize>> ExprNode<T, N, false>
 where
     T: VarLit + Neg<Output = T> + Debug,

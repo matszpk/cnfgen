@@ -32,6 +32,20 @@ use super::*;
 use crate::{impl_int_ipty_ty1, impl_int_upty_ty1};
 use crate::{BoolExprNode, ExprCreator, VarLit};
 
+impl<T, N: ArrayLength<usize>> ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn abs(self) -> ExprNode<T, N, false> {
+        // if sign then -self else self
+        int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
+    }
+}
+
 //////////
 // Add/Sub implementation
 
