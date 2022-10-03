@@ -393,9 +393,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::BoolExprNode;
 
     #[test]
-    fn test_int_exprnode() {
+    fn test_int_expr_node() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *x1.indexes);
@@ -408,5 +409,9 @@ mod tests {
             *(x2.clone().as_unsigned()).indexes
         );
         assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.as_signed()).indexes);
+        
+        let b1 = BoolExprNode::variable(ec.clone());
+        let x3 = ExprNode::<isize, U4, false>::filled(ec.clone(), b1.varlit().unwrap());
+        assert_eq!([18, 18, 18, 18], *x3.indexes);
     }
 }
