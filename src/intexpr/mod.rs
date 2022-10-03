@@ -38,6 +38,8 @@ use crate::{ExprCreator, Literal, VarLit};
 pub enum IntError {
     #[error("Bit overflow")]
     BitOverflow,
+    #[error("Value can be negative")]
+    CanBeNegative,
 }
 
 pub mod traits;
@@ -244,7 +246,7 @@ macro_rules! impl_int_try_from {
 
             fn try_from(v: ExprNode<T, $ty1, true>) -> Result<Self, Self::Error> {
                 if *v.indexes.last().unwrap() != 0 {
-                    return Err(IntError::BitOverflow); // if minus
+                    return Err(IntError::CanBeNegative); // if minus
                 }
                 // default is zero - then is false - zero bit value
                 let mut new_v = ExprNode::<T, $ty2, false>{ creator: v.creator.clone(),
@@ -279,7 +281,7 @@ impl<T: VarLit, N: ArrayLength<usize>> TryFrom<ExprNode<T, N, true>> for ExprNod
     fn try_from(v: ExprNode<T, N, true>) -> Result<Self, Self::Error> {
         if *v.indexes.last().unwrap() != 0 {
             // if input is lower than 0
-            return Err(IntError::BitOverflow);
+            return Err(IntError::CanBeNegative);
         }
         Ok(ExprNode {
             creator: v.creator,
@@ -482,6 +484,89 @@ mod tests {
         assert_eq!(
             [10, 11, 12, 13, 14, 15, 16, 17, 17, 17, 17, 17],
             *ix2.indexes
+        );
+    }
+
+    #[test]
+    fn test_int_expr_node_try_from() {
+        let ec = ExprCreator::new();
+        let ix1 =
+            ExprNode::<isize, U8, true>::from(ExprNode::<isize, U7, false>::variable(ec.clone()));
+        let x1 = ExprNode::<isize, U8, false>::try_from(ix1.clone()).unwrap();
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U9, false>::try_from(ix1).unwrap();
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 0, 0], *x1.indexes);
+
+        let ix1 =
+            ExprNode::<isize, U8, true>::from(ExprNode::<isize, U7, true>::variable(ec.clone()));
+        assert_eq!(
+            Err("Value can be negative".to_string()),
+            ExprNode::<isize, U8, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Value can be negative".to_string()),
+            ExprNode::<isize, U9, false>::try_from(ix1).map_err(|x| x.to_string())
+        );
+
+        let x1 =
+            ExprNode::<isize, U8, false>::from(ExprNode::<isize, U7, false>::variable(ec.clone()));
+        let ix1 = ExprNode::<isize, U8, true>::try_from(x1.clone()).unwrap();
+        assert_eq!([16, 17, 18, 19, 20, 21, 22, 0], *ix1.indexes);
+
+        let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+        let ix1 = ExprNode::<isize, U9, true>::try_from(x1.clone()).unwrap();
+        assert_eq!([23, 24, 25, 26, 27, 28, 29, 30, 0], *ix1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U8, true>::try_from(x1.clone()).map_err(|x| x.to_string())
+        );
+
+        //
+        let ux1 =
+            ExprNode::<isize, U8, false>::from(ExprNode::<isize, U6, false>::variable(ec.clone()));
+        let x1 = ExprNode::<isize, U6, false>::try_from(ux1.clone()).unwrap();
+        assert_eq!([31, 32, 33, 34, 35, 36], *x1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, false>::try_from(ux1.clone()).map_err(|x| x.to_string())
+        );
+        let ix1 = ExprNode::<isize, U7, true>::try_from(ux1.clone()).unwrap();
+        assert_eq!([31, 32, 33, 34, 35, 36, 0], *ix1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U6, true>::try_from(ux1.clone()).map_err(|x| x.to_string())
+        );
+
+        let ix1 =
+            ExprNode::<isize, U8, true>::from(ExprNode::<isize, U6, false>::variable(ec.clone()));
+        let x1 = ExprNode::<isize, U6, false>::try_from(ix1.clone()).unwrap();
+        assert_eq!([37, 38, 39, 40, 41, 42], *x1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        let iix1 = ExprNode::<isize, U7, true>::try_from(ix1.clone()).unwrap();
+        assert_eq!([37, 38, 39, 40, 41, 42, 0], *iix1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U6, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+
+        let ix1 =
+            ExprNode::<isize, U8, true>::from(ExprNode::<isize, U6, true>::variable(ec.clone()));
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U6, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U7, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        let iix1 = ExprNode::<isize, U6, true>::try_from(ix1.clone()).unwrap();
+        assert_eq!([43, 44, 45, 46, 47, 48], *iix1.indexes);
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
     }
 }
