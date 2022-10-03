@@ -733,4 +733,40 @@ mod tests {
         let x1 = ExprNode::<isize, U7, true>::variable(ec.clone());
         assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
     }
+
+    #[test]
+    fn test_expr_node_bitmask() {
+        let ec = ExprCreator::new();
+        let bx1 = BoolExprNode::variable(ec.clone());
+        let bx2 = BoolExprNode::variable(ec.clone());
+        let bxp1 = bx1 ^ bx2;
+        assert_eq!(
+            ExprNode::filled_expr(bxp1.clone()),
+            <ExprNode<isize, U8, false> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
+        );
+        assert_eq!(
+            ExprNode::filled_expr(bxp1.clone()),
+            <ExprNode<isize, U8, true> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
+        );
+    }
+
+    #[test]
+    fn test_expr_node_int_constant() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U9, false>::constant(ec.clone(), 0b11011001);
+        assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U8, true>::constant(ec.clone(), 0b00111001);
+        assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U10, true>::constant(ec.clone(), -15);
+        assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
+        let x1 = ExprNode::<isize, U64, false>::constant(ec.clone(), 1848549293434211u64);
+        assert_eq!(
+            (0..64)
+                .into_iter()
+                .map(|x| ((1848549293434211u64 >> x) & 1) as usize)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            x1.indexes.as_slice()
+        );
+    }
 }
