@@ -44,8 +44,8 @@ pub mod boolexpr_creator;
 pub use boolexpr_creator::ExprCreator;
 pub mod intexpr;
 pub use intexpr::{
-    U8ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U128ExprNode,
-    I8ExprNode, I16ExprNode, I32ExprNode, I64ExprNode, I128ExprNode,
-    BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, IntConstant, IntEqual, IntOrd,
+    BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode, I16ExprNode,
+    I32ExprNode, I64ExprNode, I8ExprNode, IntConstant, IntEqual, IntOrd, U128ExprNode, U16ExprNode,
+    U32ExprNode, U64ExprNode, U8ExprNode,
 };
 mod intmacros;

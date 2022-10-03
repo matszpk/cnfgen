@@ -468,4 +468,20 @@ mod tests {
             xt2.indexes.as_slice()
         );
     }
+
+    #[test]
+    fn test_int_expr_node_from() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+        let x2 = ExprNode::<isize, U14, false>::from(x1.clone());
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *x2.indexes);
+        let ix2 = ExprNode::<isize, U14, true>::from(x1.clone());
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *ix2.indexes);
+        let ix1 = ExprNode::<isize, U8, true>::variable(ec.clone());
+        let ix2 = ExprNode::<isize, U12, true>::from(ix1.clone());
+        assert_eq!(
+            [10, 11, 12, 13, 14, 15, 16, 17, 17, 17, 17, 17],
+            *ix2.indexes
+        );
+    }
 }
