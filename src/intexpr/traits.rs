@@ -644,6 +644,7 @@ impl_int_ipty_ty1!(impl_int_ord_ipty);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::boolexpr_creator::Node;
 
     #[test]
     fn test_int_equal_prim_types() {
@@ -767,6 +768,68 @@ mod tests {
                 .collect::<Vec<_>>()
                 .as_slice(),
             x1.indexes.as_slice()
+        );
+    }
+
+    #[test]
+    fn test_expr_node_int_equal() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let x2 = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let x3 = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let x4 = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let _ = x1.equal(x2);
+        let _ = x3.nequal(x4);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Single(Literal::VarLit(4)),
+                    Node::Single(Literal::VarLit(5)),
+                    Node::Single(Literal::VarLit(6)),
+                    Node::Single(Literal::VarLit(7)),
+                    Node::Single(Literal::VarLit(8)),
+                    Node::Single(Literal::VarLit(9)),
+                    Node::Single(Literal::VarLit(10)),
+                    Node::Single(Literal::VarLit(11)),
+                    Node::Single(Literal::VarLit(12)),
+                    Node::Single(Literal::VarLit(13)),
+                    Node::Single(Literal::VarLit(14)),
+                    Node::Single(Literal::VarLit(15)),
+                    Node::Single(Literal::VarLit(16)),
+                    Node::Single(Literal::VarLit(17)),
+                    Node::Single(Literal::VarLit(18)),
+                    Node::Single(Literal::VarLit(19)),
+                    Node::Single(Literal::VarLit(20)),
+                    Node::Equal(2, 7),
+                    Node::Equal(3, 8),
+                    Node::And(22, 23),
+                    Node::Equal(4, 9),
+                    Node::And(24, 25),
+                    Node::Equal(5, 10),
+                    Node::And(26, 27),
+                    Node::Equal(6, 11),
+                    Node::And(28, 29),
+                    Node::Xor(12, 17),
+                    Node::Xor(13, 18),
+                    Node::Or(31, 32),
+                    Node::Xor(14, 19),
+                    Node::Or(33, 34),
+                    Node::Xor(15, 20),
+                    Node::Or(35, 36),
+                    Node::Xor(16, 21),
+                    Node::Or(37, 38),
+                ],
+                lit_to_index: vec![
+                    2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0, 14,
+                    0, 15, 0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0
+                ],
+            },
+            *ec.borrow()
         );
     }
 }
