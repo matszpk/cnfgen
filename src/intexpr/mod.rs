@@ -409,9 +409,52 @@ mod tests {
             *(x2.clone().as_unsigned()).indexes
         );
         assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.as_signed()).indexes);
-        
+
         let b1 = BoolExprNode::variable(ec.clone());
         let x3 = ExprNode::<isize, U4, false>::filled(ec.clone(), b1.varlit().unwrap());
         assert_eq!([18, 18, 18, 18], *x3.indexes);
+    }
+
+    #[test]
+    fn test_int_expr_node_manip() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U16, false>::variable(ec.clone());
+        let x2 = x1.subvalue::<U6>(7);
+        assert_eq!([9, 10, 11, 12, 13, 14], *x2.indexes);
+        let x3 = x1
+            .select_bits::<U9, _>([3, 8, 9, 0, 3, 4, 12, 14, 15])
+            .unwrap();
+        assert_eq!([5, 10, 11, 2, 5, 6, 14, 16, 17], *x3.indexes);
+        assert_eq!(None, x1.select_bits::<U9, _>([3, 8, 9, 0, 3, 4, 12, 14]));
+        assert_eq!(
+            None,
+            x1.select_bits::<U9, _>([3, 8, 9, 0, 3, 4, 12, 14, 15, 0])
+        );
+
+        let y1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+        let z1 = x1.clone().concat(y1.clone());
+        assert_eq!(
+            (2..(2 + 24)).into_iter().collect::<Vec<usize>>().as_slice(),
+            z1.indexes.as_slice()
+        );
+        let z1 = y1.concat(x1);
+        assert_eq!(
+            ((2 + 16)..(2 + 24))
+                .into_iter()
+                .chain((2..18).into_iter())
+                .collect::<Vec<usize>>()
+                .as_slice(),
+            z1.indexes.as_slice()
+        );
+        let (xt1, xt2) = z1.split::<U5>();
+        assert_eq!([18, 19, 20, 21, 22], *xt1.indexes);
+        assert_eq!(
+            ((2 + 16 + 5)..(2 + 24))
+                .into_iter()
+                .chain((2..18).into_iter())
+                .collect::<Vec<usize>>()
+                .as_slice(),
+            xt2.indexes.as_slice()
+        );
     }
 }
