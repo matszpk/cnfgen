@@ -474,12 +474,15 @@ mod tests {
     #[test]
     fn test_int_expr_node_from() {
         let ec = ExprCreator::new();
+        // Unsigned N -> Unsigned N+X
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
         let x2 = ExprNode::<isize, U14, false>::from(x1.clone());
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *x2.indexes);
+        // Unsigned N -> Signed N+X
         let ix2 = ExprNode::<isize, U14, true>::from(x1.clone());
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *ix2.indexes);
         let ix1 = ExprNode::<isize, U8, true>::variable(ec.clone());
+        // Signed N, where SIGN=var -> Signed N+X
         let ix2 = ExprNode::<isize, U12, true>::from(ix1.clone());
         assert_eq!(
             [10, 11, 12, 13, 14, 15, 16, 17, 17, 17, 17, 17],
@@ -492,81 +495,128 @@ mod tests {
         let ec = ExprCreator::new();
         let ix1 =
             ExprNode::<isize, U8, true>::from(ExprNode::<isize, U7, false>::variable(ec.clone()));
+        // Signed N, SIGN=0 -> Unsigned N
         let x1 = ExprNode::<isize, U8, false>::try_from(ix1.clone()).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, U9, false>::try_from(ix1).unwrap();
+        // Signed N, SIGN=0 -> Unsigned N+X
+        let x1 = ExprNode::<isize, U9, false>::try_from(ix1.clone()).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 0, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U10, false>::try_from(ix1).unwrap();
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 0, 0, 0], *x1.indexes);
 
         let ix1 =
             ExprNode::<isize, U8, true>::from(ExprNode::<isize, U7, true>::variable(ec.clone()));
+        // Signed N, SIGN=var -> Unsigned N
         assert_eq!(
             Err("Value can be negative".to_string()),
             ExprNode::<isize, U8, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
+        // Signed N, SIGN=var -> Unsigned N+X
         assert_eq!(
             Err("Value can be negative".to_string()),
-            ExprNode::<isize, U9, false>::try_from(ix1).map_err(|x| x.to_string())
+            ExprNode::<isize, U9, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Value can be negative".to_string()),
+            ExprNode::<isize, U10, false>::try_from(ix1).map_err(|x| x.to_string())
         );
 
         let x1 =
             ExprNode::<isize, U8, false>::from(ExprNode::<isize, U7, false>::variable(ec.clone()));
+        // Unsigned N, LAST=0 -> Signed N
         let ix1 = ExprNode::<isize, U8, true>::try_from(x1.clone()).unwrap();
         assert_eq!([16, 17, 18, 19, 20, 21, 22, 0], *ix1.indexes);
 
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+        // Unsinged N, LAST=var -> Signed N+X
         let ix1 = ExprNode::<isize, U9, true>::try_from(x1.clone()).unwrap();
         assert_eq!([23, 24, 25, 26, 27, 28, 29, 30, 0], *ix1.indexes);
+        // Unsinged N, LAST=var -> Signed N
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U8, true>::try_from(x1.clone()).map_err(|x| x.to_string())
         );
 
         //
+        // V[N-X..] = 0, LASTS = 0
         let ux1 =
             ExprNode::<isize, U8, false>::from(ExprNode::<isize, U6, false>::variable(ec.clone()));
+        // Unsigned N, LASTS=0 -> Unsigned N-X
         let x1 = ExprNode::<isize, U6, false>::try_from(ux1.clone()).unwrap();
         assert_eq!([31, 32, 33, 34, 35, 36], *x1.indexes);
+        // Unsigned N, LASTS=0, V[N-X-1]=var -> Unsigned N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U5, false>::try_from(ux1.clone()).map_err(|x| x.to_string())
         );
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U4, false>::try_from(ux1.clone()).map_err(|x| x.to_string())
+        );
         let ix1 = ExprNode::<isize, U7, true>::try_from(ux1.clone()).unwrap();
+        // Unsigned N, LASTS=0 -> Signed N-X+1
         assert_eq!([31, 32, 33, 34, 35, 36, 0], *ix1.indexes);
+        // Unsigned N, LASTS=0 -> Signed N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U6, true>::try_from(ux1.clone()).map_err(|x| x.to_string())
         );
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, true>::try_from(ux1.clone()).map_err(|x| x.to_string())
+        );
 
         let ix1 =
             ExprNode::<isize, U8, true>::from(ExprNode::<isize, U6, false>::variable(ec.clone()));
+        // Signed N, LASTS=0 -> Unsigned N-X
         let x1 = ExprNode::<isize, U6, false>::try_from(ix1.clone()).unwrap();
         assert_eq!([37, 38, 39, 40, 41, 42], *x1.indexes);
+        // Signed N, LASTS=0 -> Unsigned N-X-1
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U5, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
+        // Signed N, LASTS=0 -> Signed N-X+1
         let iix1 = ExprNode::<isize, U7, true>::try_from(ix1.clone()).unwrap();
         assert_eq!([37, 38, 39, 40, 41, 42, 0], *iix1.indexes);
+        // Signed N, LASTS=0 -> Signed N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U6, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
 
+        // constvar - this same var for all LASTS bits
         let ix1 =
             ExprNode::<isize, U8, true>::from(ExprNode::<isize, U6, true>::variable(ec.clone()));
+        // Signed N, LASTS=constvar -> Unsigned N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U6, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
+            ExprNode::<isize, U5, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        // Signed N, LASTS=constvar -> Unsigned N-X+1
+        assert_eq!(
+            Err("Bit overflow".to_string()),
             ExprNode::<isize, U7, false>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
         let iix1 = ExprNode::<isize, U6, true>::try_from(ix1.clone()).unwrap();
+        // Signed N, LASTS=constvar -> Signed N-X
         assert_eq!([43, 44, 45, 46, 47, 48], *iix1.indexes);
+        // Signed N, LASTS=constvar -> Signed N-X-1
         assert_eq!(
             Err("Bit overflow".to_string()),
             ExprNode::<isize, U5, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
+        );
+        assert_eq!(
+            Err("Bit overflow".to_string()),
+            ExprNode::<isize, U4, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
     }
 }
