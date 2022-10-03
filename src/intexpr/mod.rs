@@ -32,7 +32,7 @@ use generic_array::*;
 
 use crate::boolexpr::{bool_ite, full_adder, half_adder};
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
-use crate::{ExprCreator, Literal, VarLit};
+use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -80,6 +80,23 @@ where
         ExprNode { creator, indexes }
     }
 
+    pub fn from_boolexprs(iter: impl IntoIterator<Item = BoolExprNode<T>>) -> Option<Self> {
+        let mut creator = None;
+        GenericArray::from_exact_iter(iter.into_iter().map(|x| {
+            // check creator - whether this same
+            if let Some(c) = creator.clone() {
+                assert_eq!(c, x.creator.clone());
+            } else {
+                creator = Some(x.creator.clone());
+            }
+            x.index
+        }))
+        .map(|indexes| ExprNode {
+            creator: creator.unwrap(),
+            indexes,
+        })
+    }
+
     pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: impl Into<Literal<T>>) -> Self {
         ExprNode {
             creator: creator.clone(),
@@ -87,6 +104,13 @@ where
                 iter::repeat(creator.borrow_mut().single(v)).take(N::USIZE),
             )
             .unwrap(),
+        }
+    }
+
+    pub fn filled_expr(v: BoolExprNode<T>) -> Self {
+        ExprNode {
+            creator: v.creator.clone(),
+            indexes: GenericArray::from_exact_iter(iter::repeat(v.index).take(N::USIZE)).unwrap(),
         }
     }
 
@@ -426,6 +450,37 @@ mod tests {
         let b1 = BoolExprNode::variable(ec.clone());
         let x3 = ExprNode::<isize, U4, false>::filled(ec.clone(), b1.varlit().unwrap());
         assert_eq!([18, 18, 18, 18], *x3.indexes);
+        let b1 = BoolExprNode::variable(ec.clone());
+        let b2 = BoolExprNode::variable(ec.clone());
+        let bxp = b1.clone() ^ b2.clone();
+        let x4 = ExprNode::<isize, U4, false>::filled_expr(bxp.clone());
+        assert_eq!(
+            iter::repeat(bxp.index)
+                .take(4)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            x4.indexes.as_slice()
+        );
+
+        //
+        let b3 = BoolExprNode::variable(ec.clone());
+        let b4 = BoolExprNode::variable(ec.clone());
+        let bxps = [
+            b1.clone() & b2.clone(),
+            b1.clone() | b2.clone(),
+            b1.clone() ^ b2.clone(),
+            b1 | b2.clone() | b3.clone(),
+            b3.clone() & b4.clone(),
+            b3.clone() | b4.clone(),
+            b3.clone() ^ b4.clone(),
+            b2 | b3 | b4,
+        ];
+
+        let x5 = ExprNode::<isize, U8, false>::from_boolexprs(bxps.clone()).unwrap();
+        assert_eq!(
+            bxps.iter().map(|x| x.index).collect::<Vec<_>>().as_slice(),
+            x5.indexes.as_slice()
+        );
     }
 
     #[test]

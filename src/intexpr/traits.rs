@@ -723,4 +723,14 @@ mod tests {
             (Some(-22134 / 552), Some(-22134 % 552), true)
         );
     }
+
+    #[test]
+    fn test_expr_node_bitval() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U7, false>::variable(ec.clone());
+        assert_eq!(x1.bit(2), BoolExprNode::single(ec.clone(), 3));
+        assert_eq!(x1.bit(6), BoolExprNode::single(ec.clone(), 7));
+        let x1 = ExprNode::<isize, U7, true>::variable(ec.clone());
+        assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
+    }
 }
