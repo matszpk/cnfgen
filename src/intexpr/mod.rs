@@ -327,8 +327,19 @@ macro_rules! impl_int_from {
 
 impl_int_ty1_lt_ty2!(impl_int_from);
 
-//
-//
+// types
+
+pub type U8ExprNode<T> = ExprNode<T, U8, false>;
+pub type U16ExprNode<T> = ExprNode<T, U16, false>;
+pub type U32ExprNode<T> = ExprNode<T, U32, false>;
+pub type U64ExprNode<T> = ExprNode<T, U64, false>;
+pub type U128ExprNode<T> = ExprNode<T, U128, false>;
+
+pub type I8ExprNode<T> = ExprNode<T, U8, true>;
+pub type I16ExprNode<T> = ExprNode<T, U16, true>;
+pub type I32ExprNode<T> = ExprNode<T, U32, true>;
+pub type I64ExprNode<T> = ExprNode<T, U64, true>;
+pub type I128ExprNode<T> = ExprNode<T, U128, true>;
 
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn int_ite<C, T, E>(
