@@ -32,7 +32,7 @@ use generic_array::*;
 
 use crate::boolexpr::{bool_ite, full_adder, half_adder};
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
-use crate::{ExprCreator, VarLit};
+use crate::{ExprCreator, Literal, VarLit};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -78,10 +78,13 @@ where
         ExprNode { creator, indexes }
     }
 
-    pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
+    pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: impl Into<Literal<T>>) -> Self {
         ExprNode {
-            creator,
-            indexes: GenericArray::from_exact_iter(iter::repeat(v.into()).take(N::USIZE)).unwrap(),
+            creator: creator.clone(),
+            indexes: GenericArray::from_exact_iter(
+                iter::repeat(creator.borrow_mut().single(v)).take(N::USIZE),
+            )
+            .unwrap(),
         }
     }
 
@@ -390,7 +393,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_int_exprnode() {
         let ec = ExprCreator::new();
@@ -400,7 +403,10 @@ mod tests {
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *(x1.as_unsigned()).indexes);
         let x2 = ExprNode::<isize, U8, true>::variable(ec.clone());
         assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *x2.indexes);
-        assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.clone().as_unsigned()).indexes);
+        assert_eq!(
+            [10, 11, 12, 13, 14, 15, 16, 17],
+            *(x2.clone().as_unsigned()).indexes
+        );
         assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.as_signed()).indexes);
     }
 }
