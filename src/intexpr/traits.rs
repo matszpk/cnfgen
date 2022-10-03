@@ -644,7 +644,6 @@ impl_int_ipty_ty1!(impl_int_ord_ipty);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::boolexpr_creator::Node;
 
     #[test]
     fn test_int_equal_prim_types() {
@@ -771,18 +770,14 @@ mod tests {
         );
     }
 
-    fn node_start(var_count: isize) -> Vec<Node<isize>> {
-        [
-            Node::Single(Literal::Value(false)),
-            Node::Single(Literal::Value(true)),
-        ]
-        .into_iter()
-        .chain(
-            (1..var_count + 1)
-                .into_iter()
-                .map(|x| Node::Single(Literal::VarLit(x))),
-        )
-        .collect::<Vec<_>>()
+    fn alloc_boolvars(
+        ec: Rc<RefCell<ExprCreator<isize>>>,
+        var_count: isize,
+    ) -> Vec<BoolExprNode<isize>> {
+        (0..var_count)
+            .into_iter()
+            .map(|_| BoolExprNode::variable(ec.clone()))
+            .collect::<Vec<_>>()
     }
 
     #[test]
@@ -795,82 +790,51 @@ mod tests {
             let x4 = ExprNode::<isize, U5, false>::variable(ec.clone());
             let _ = x1.equal(x2);
             let _ = x3.nequal(x4);
-            assert_eq!(
-                ExprCreator {
-                    nodes: node_start(20)
-                        .into_iter()
-                        .chain([
-                            Node::Equal(2, 7),
-                            Node::Equal(3, 8),
-                            Node::And(22, 23),
-                            Node::Equal(4, 9),
-                            Node::And(24, 25),
-                            Node::Equal(5, 10),
-                            Node::And(26, 27),
-                            Node::Equal(6, 11),
-                            Node::And(28, 29),
-                            Node::Xor(12, 17),
-                            Node::Xor(13, 18),
-                            Node::Or(31, 32),
-                            Node::Xor(14, 19),
-                            Node::Or(33, 34),
-                            Node::Xor(15, 20),
-                            Node::Or(35, 36),
-                            Node::Xor(16, 21),
-                            Node::Or(37, 38)
-                        ])
-                        .collect::<Vec<_>>(),
-                    lit_to_index: vec![
-                        2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0, 13, 0,
-                        14, 0, 15, 0, 16, 0, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0
-                    ],
-                },
-                *ec.borrow()
-            );
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 20);
+            let _ = bvs[0].clone().bequal(bvs[5].clone())
+                & bvs[1].clone().bequal(bvs[6].clone())
+                & bvs[2].clone().bequal(bvs[7].clone())
+                & bvs[3].clone().bequal(bvs[8].clone())
+                & bvs[4].clone().bequal(bvs[9].clone());
+            let _ = (bvs[10].clone() ^ bvs[15].clone())
+                | (bvs[11].clone() ^ bvs[16].clone())
+                | (bvs[12].clone() ^ bvs[17].clone())
+                | (bvs[13].clone() ^ bvs[18].clone())
+                | (bvs[14].clone() ^ bvs[19].clone());
+
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        let exp_ec = ExprCreator {
-            nodes: node_start(18)
-                .into_iter()
-                .chain([
-                    Node::And(2, 3),
-                    Node::And(20, 4),
-                    Node::Single(Literal::VarLit(-4)),
-                    Node::And(21, 22),
-                    Node::Single(Literal::VarLit(-5)),
-                    Node::And(23, 24),
-                    Node::Single(Literal::VarLit(-6)),
-                    Node::And(25, 26),
-                    Node::Single(Literal::VarLit(-7)),
-                    Node::And(27, 28),
-                    Node::And(29, 9),
-                    Node::Single(Literal::VarLit(-9)),
-                    Node::And(30, 31),
-                    Node::Single(Literal::VarLit(-11)),
-                    Node::Or(11, 33),
-                    Node::Or(34, 13),
-                    Node::Single(Literal::VarLit(-13)),
-                    Node::Or(35, 36),
-                    Node::Or(37, 15),
-                    Node::Or(38, 16),
-                    Node::Single(Literal::VarLit(-16)),
-                    Node::Or(39, 40),
-                    Node::Or(41, 18),
-                    Node::Or(42, 19),
-                ])
-                .collect::<Vec<_>>(),
-            lit_to_index: vec![
-                2, 0, 3, 0, 4, 0, 5, 22, 6, 24, 7, 26, 8, 28, 9, 0, 10, 31, 11, 0, 12, 33, 13, 0,
-                14, 36, 15, 0, 16, 0, 17, 40, 18, 0, 19, 0,
-            ],
-        };
+        let exp_ec = ExprCreator::new();
+        let bvs = alloc_boolvars(exp_ec.clone(), 18);
+        let _ = bvs[0].clone()
+            & bvs[1].clone()
+            & bvs[2].clone()
+            & !bvs[3].clone()
+            & !bvs[4].clone()
+            & !bvs[5].clone()
+            & !bvs[6].clone()
+            & bvs[7].clone()
+            & !bvs[8].clone();
+        let _ = bvs[9].clone()
+            | !bvs[10].clone()
+            | bvs[11].clone()
+            | !bvs[12].clone()
+            | bvs[13].clone()
+            | bvs[14].clone()
+            | !bvs[15].clone()
+            | bvs[16].clone()
+            | bvs[17].clone();
+
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
             let _ = x1.equal(135);
             let _ = x2.nequal(74);
-            assert_eq!(exp_ec, *ec.borrow());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
@@ -878,52 +842,36 @@ mod tests {
             let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
             let _ = 135.equal(x1);
             let _ = 74.nequal(x2);
-            assert_eq!(exp_ec, *ec.borrow());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        let exp_ec = ExprCreator {
-            nodes: node_start(18)
-                .into_iter()
-                .chain([
-                    Node::And(2, 3),
-                    Node::And(20, 4),
-                    Node::Single(Literal::VarLit(-4)),
-                    Node::And(21, 22),
-                    Node::Single(Literal::VarLit(-5)),
-                    Node::And(23, 24),
-                    Node::Single(Literal::VarLit(-6)),
-                    Node::And(25, 26),
-                    Node::Single(Literal::VarLit(-7)),
-                    Node::And(27, 28),
-                    Node::And(29, 9),
-                    Node::And(30, 10),
-                    Node::Single(Literal::VarLit(-11)),
-                    Node::Or(11, 32),
-                    Node::Or(33, 13),
-                    Node::Single(Literal::VarLit(-13)),
-                    Node::Or(34, 35),
-                    Node::Or(36, 15),
-                    Node::Or(37, 16),
-                    Node::Single(Literal::VarLit(-16)),
-                    Node::Or(38, 39),
-                    Node::Single(Literal::VarLit(-17)),
-                    Node::Or(40, 41),
-                    Node::Single(Literal::VarLit(-18)),
-                    Node::Or(42, 43),
-                ])
-                .collect::<Vec<_>>(),
-            lit_to_index: vec![
-                2, 0, 3, 0, 4, 0, 5, 22, 6, 24, 7, 26, 8, 28, 9, 0, 10, 0, 11, 0, 12, 32, 13, 0,
-                14, 35, 15, 0, 16, 0, 17, 39, 18, 41, 19, 43,
-            ],
-        };
+        let exp_ec = ExprCreator::new();
+        let bvs = alloc_boolvars(exp_ec.clone(), 18);
+        let _ = bvs[0].clone()
+            & bvs[1].clone()
+            & bvs[2].clone()
+            & !bvs[3].clone()
+            & !bvs[4].clone()
+            & !bvs[5].clone()
+            & !bvs[6].clone()
+            & bvs[7].clone()
+            & bvs[8].clone();
+        let _ = bvs[9].clone()
+            | !bvs[10].clone()
+            | bvs[11].clone()
+            | !bvs[12].clone()
+            | bvs[13].clone()
+            | bvs[14].clone()
+            | !bvs[15].clone()
+            | !bvs[16].clone()
+            | !bvs[17].clone();
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, true>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
             let _ = x1.equal(-121);
             let _ = x2.nequal(-54);
-            assert_eq!(exp_ec, *ec.borrow());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
@@ -931,7 +879,7 @@ mod tests {
             let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
             let _ = (-121).equal(x1);
             let _ = (-54).nequal(x2);
-            assert_eq!(exp_ec, *ec.borrow());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
 
@@ -948,55 +896,33 @@ mod tests {
             let _ = xv[4].clone().greater_than(xv[5].clone());
             let _ = xv[6].clone().greater_equal(xv[7].clone());
 
-            fn get_vnode(v: isize) -> usize {
-                (v + 1) as usize
-            }
-            fn gen_less_x_chain(
-                var_count: isize,
-                nodes: &mut Vec<Node<isize>>,
-                vara: isize,
-                varb: isize,
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 40);
+            fn gen_less_5_chain(
+                bva: &[BoolExprNode<isize>],
+                bvb: &[BoolExprNode<isize>],
                 with_equal: bool,
             ) {
-                if !with_equal {
-                    nodes.extend([
-                        Node::Single(Literal::VarLit(-vara)),
-                        Node::And(nodes.len(), get_vnode(varb)),
-                    ]);
+                let s0 = if with_equal {
+                    bva[0].clone().imp(bvb[0].clone())
                 } else {
-                    nodes.push(Node::Impl(get_vnode(vara), get_vnode(varb)));
-                }
-                let mut node_start = nodes.len();
-                for i in 1..var_count {
-                    nodes.extend([
-                        Node::Equal(get_vnode(vara + i), get_vnode(varb + i)),
-                        Node::And(node_start, node_start - 1),
-                        Node::Single(Literal::VarLit(-(vara + i))),
-                        Node::And(node_start + 2, get_vnode(varb + i)),
-                        Node::Or(node_start + 1, node_start + 3),
-                    ]);
-                    node_start = nodes.len();
-                }
+                    !bva[0].clone() & bvb[0].clone()
+                };
+                let s1 = (bva[1].clone().bequal(bvb[1].clone()) & s0)
+                    | (!bva[1].clone() & bvb[1].clone());
+                let s2 = (bva[2].clone().bequal(bvb[2].clone()) & s1)
+                    | (!bva[2].clone() & bvb[2].clone());
+                let s3 = (bva[3].clone().bequal(bvb[3].clone()) & s2)
+                    | (!bva[3].clone() & bvb[3].clone());
+                let _ = (bva[4].clone().bequal(bvb[4].clone()) & s3)
+                    | (!bva[4].clone() & bvb[4].clone());
             }
+            gen_less_5_chain(&bvs[0..5], &bvs[5..10], false);
+            gen_less_5_chain(&bvs[10..15], &bvs[15..20], true);
+            gen_less_5_chain(&bvs[25..30], &bvs[20..25], false);
+            gen_less_5_chain(&bvs[35..40], &bvs[30..35], true);
 
-            let mut nodes = node_start(40);
-            gen_less_x_chain(5, &mut nodes, 1, 6, false);
-            gen_less_x_chain(5, &mut nodes, 11, 16, true);
-            gen_less_x_chain(5, &mut nodes, 26, 21, false);
-            gen_less_x_chain(5, &mut nodes, 36, 31, true);
-
-            assert_eq!(
-                ExprCreator {
-                    nodes,
-                    lit_to_index: vec![
-                        2, 42, 3, 46, 4, 51, 5, 56, 6, 61, 7, 0, 8, 0, 9, 0, 10, 0, 11, 0, 12, 0,
-                        13, 67, 14, 72, 15, 77, 16, 82, 17, 0, 18, 0, 19, 0, 20, 0, 21, 0, 22, 0,
-                        23, 0, 24, 0, 25, 0, 26, 0, 27, 85, 28, 89, 29, 94, 30, 99, 31, 104, 32, 0,
-                        33, 0, 34, 0, 35, 0, 36, 0, 37, 0, 38, 110, 39, 115, 40, 120, 41, 125
-                    ],
-                },
-                *ec.borrow()
-            );
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
 }
