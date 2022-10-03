@@ -386,3 +386,21 @@ where
 
     ites.pop().unwrap()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_int_exprnode() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *x1.indexes);
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *(x1.clone().as_signed()).indexes);
+        assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *(x1.as_unsigned()).indexes);
+        let x2 = ExprNode::<isize, U8, true>::variable(ec.clone());
+        assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *x2.indexes);
+        assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.clone().as_unsigned()).indexes);
+        assert_eq!([10, 11, 12, 13, 14, 15, 16, 17], *(x2.as_signed()).indexes);
+    }
+}
