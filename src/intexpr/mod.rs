@@ -409,7 +409,7 @@ mod tests {
     use crate::BoolExprNode;
 
     #[test]
-    fn test_int_expr_node() {
+    fn test_expr_node() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9], *x1.indexes);
@@ -429,7 +429,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_expr_node_manip() {
+    fn test_expr_node_manip() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U16, false>::variable(ec.clone());
         let x2 = x1.subvalue::<U6>(7);
@@ -472,7 +472,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_expr_node_from() {
+    fn test_expr_node_from() {
         let ec = ExprCreator::new();
         // Unsigned N -> Unsigned N+X
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
@@ -491,7 +491,7 @@ mod tests {
     }
 
     #[test]
-    fn test_int_expr_node_try_from() {
+    fn test_expr_node_try_from() {
         let ec = ExprCreator::new();
         let ix1 =
             ExprNode::<isize, U8, true>::from(ExprNode::<isize, U7, false>::variable(ec.clone()));
