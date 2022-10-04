@@ -724,7 +724,7 @@ mod tests {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, $signrhs>::variable(ec.clone()),
+                ExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
@@ -746,7 +746,7 @@ mod tests {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
             let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, $signrhs>::variable(ec.clone()),
+                ExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
@@ -773,7 +773,7 @@ mod tests {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, $signrhs>::variable(ec.clone()),
+                ExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
@@ -797,7 +797,7 @@ mod tests {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
             let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, $signrhs>::variable(ec.clone()),
+                ExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
@@ -831,12 +831,20 @@ mod tests {
         test_expr_node_shl_3!(true, false, U8, U3, 8);
         test_expr_node_shl_3!(true, false, U6, U5, 6);
         test_expr_node_shl_3!(true, false, U8, U5, 8);
+        
+        test_expr_node_shl_3!(false, true, U6, U4, 6);
+        test_expr_node_shl_3!(false, true, U8, U4, 8);
+        test_expr_node_shl_3!(true, true, U6, U4, 6);
+        test_expr_node_shl_3!(true, true, U8, U4, 8);
 
         test_expr_node_shl_imm_3!(false, false, U8, u8, U3, 8, 172);
         test_expr_node_shl_imm_3!(false, false, U8, u8, U5, 8, 217);
         test_expr_node_shl_imm_3!(true, false, U8, i8, U3, 8, 72);
         test_expr_node_shl_imm_3!(true, false, U8, i8, U5, 8, 99);
 
+        test_expr_node_shl_imm_3!(false, true, U8, u8, U4, 8, 172);
+        test_expr_node_shl_imm_3!(true, true, U8, i8, U4, 8, 72);
+        
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
@@ -859,13 +867,24 @@ mod tests {
         test_expr_node_shl_5!(false, false, U32, U5, 32);
         test_expr_node_shl_5!(false, false, U27, U8, 27);
         test_expr_node_shl_5!(false, false, U32, U8, 32);
-        test_expr_node_shl_imm_5!(false, false, U32, u32, U7, 32, 2016568312);
 
         test_expr_node_shl_5!(true, false, U27, U5, 27);
         test_expr_node_shl_5!(true, false, U32, U5, 32);
         test_expr_node_shl_5!(true, false, U27, U8, 27);
         test_expr_node_shl_5!(true, false, U32, U8, 32);
+        
+        test_expr_node_shl_5!(false, true, U27, U6, 27);
+        test_expr_node_shl_5!(false, true, U32, U6, 32);
+        test_expr_node_shl_5!(true, true, U27, U6, 27);
+        test_expr_node_shl_5!(true, true, U32, U6, 32);
+        
+        test_expr_node_shl_imm_5!(false, false, U32, u32, U5, 32, 2016568312);
+        test_expr_node_shl_imm_5!(true, false, U32, i32, U5, 32, 1016068072);
+        test_expr_node_shl_imm_5!(false, false, U32, u32, U7, 32, 2016568312);
         test_expr_node_shl_imm_5!(true, false, U32, i32, U7, 32, 1016068072);
+        
+        test_expr_node_shl_imm_5!(false, true, U32, u32, U6, 32, 2016568312);
+        test_expr_node_shl_imm_5!(true, true, U32, i32, U6, 32, 1016068072);
 
         {
             let ec = ExprCreator::new();
