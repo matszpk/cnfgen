@@ -674,4 +674,22 @@ mod tests {
             ExprNode::<isize, U4, true>::try_from(ix1.clone()).map_err(|x| x.to_string())
         );
     }
+
+    #[test]
+    fn test_int_ite() {
+        let ec = ExprCreator::new();
+        let c1 = BoolExprNode::<isize>::variable(ec.clone());
+        let x1 = ExprNode::<isize, U7, false>::variable(ec.clone());
+        let x2 = ExprNode::<isize, U7, false>::variable(ec.clone());
+        let res = int_ite(c1, x1, x2);
+
+        let exp_ec = ExprCreator::new();
+        let c1 = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let x1 = ExprNode::<isize, U7, false>::variable(exp_ec.clone());
+        let x2 = ExprNode::<isize, U7, false>::variable(exp_ec.clone());
+        let exp = (ExprNode::filled_expr(c1.clone()) & x1) | (ExprNode::filled_expr(!c1) & x2);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
 }
