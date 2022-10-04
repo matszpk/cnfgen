@@ -251,26 +251,27 @@ where
             panic!("this arithmetic operation will overflow");
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
-        let mut output = GenericArray::default();
+        
+        let mut input = ExprNode{ creator: self.creator.clone(),
+                indexes: GenericArray::default() };
+        let mut output = self.clone();
         for i in 0..nbits {
-            output.iter_mut().enumerate().for_each(|(x, out)| {
+            std::mem::swap(&mut input, &mut output);
+            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
                 *out = bool_ite(
                     rhs.bit(i),
                     // if no overflow then get bit(v)
                     if x >= (1usize << i) {
-                        self.bit(x - (1 << i))
+                        input.bit(x - (1 << i))
                     } else {
-                        BoolExprNode::new(self.creator.clone(), 0)
+                        BoolExprNode::new(input.creator.clone(), 0)
                     },
-                    self.bit(x),
+                    input.bit(x),
                 )
                 .index
             });
         }
-        ExprNode {
-            creator: self.creator,
-            indexes: output,
-        }
+        output
     }
 }
 
@@ -379,33 +380,34 @@ where
             panic!("this arithmetic operation will overflow");
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
-        let mut output = GenericArray::default();
+        
+        let mut input = ExprNode{ creator: self.creator.clone(),
+                indexes: GenericArray::default() };
+        let mut output = self.clone();
         for i in 0..nbits {
-            output.iter_mut().enumerate().for_each(|(x, out)| {
+            std::mem::swap(&mut input, &mut output);
+            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
                 *out = bool_ite(
                     rhs.bit(i),
                     // if no overflow then get bit(v)
                     if x + (1usize << i) < N::USIZE {
-                        self.bit(x + (1 << i))
+                        input.bit(x + (1 << i))
                     } else {
                         BoolExprNode::new(
                             self.creator.clone(),
                             if SIGN {
-                                *self.indexes.last().unwrap()
+                                *input.indexes.last().unwrap()
                             } else {
                                 0
                             },
                         )
                     },
-                    self.bit(x),
+                    input.bit(x),
                 )
                 .index
             });
         }
-        ExprNode {
-            creator: self.creator,
-            indexes: output,
-        }
+        output
     }
 }
 
@@ -683,6 +685,48 @@ mod tests {
         let exp = (0..5).into_iter().map(|i|
                 (!bvs[i].clone()).index
         ).collect::<Vec<_>>();
+        
+        assert_eq!(exp.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+    
+    #[test]
+    fn test_expr_node_shl() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
+        let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
+        let res = x1 << x2;
+        
+        let exp_ec = ExprCreator::new();
+        let bvs = alloc_boolvars(exp_ec.clone(), 9);
+        let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
+        let stage1 = (0..6).into_iter().map(|i|
+                bool_ite(bvs[6].clone(),
+                        if i >= 1 {
+                            bvs[i-1].clone()
+                        } else {
+                            bnfalse.clone()
+                        },
+                        bvs[i].clone()))
+                .collect::<Vec<_>>();
+        let stage2 = (0..6).into_iter().map(|i|
+                bool_ite(bvs[7].clone(),
+                        if i >= 2 {
+                            stage1[i-2].clone()
+                        } else {
+                            bnfalse.clone()
+                        },
+                        stage1[i].clone()))
+                .collect::<Vec<_>>();
+        let exp = (0..6).into_iter().map(|i|
+                bool_ite(bvs[8].clone(),
+                        if i >= 4 {
+                            stage2[i-4].clone()
+                        } else {
+                            bnfalse.clone()
+                        },
+                        stage2[i].clone()).index)
+                .collect::<Vec<_>>();
         
         assert_eq!(exp.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
