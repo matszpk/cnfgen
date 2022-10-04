@@ -312,7 +312,7 @@ impl_int_upty!(impl_int_shl_imm);
 impl_int_ipty!(impl_int_shl_imm);
 
 macro_rules! impl_int_shl_self_imm {
-    ($ty:ty, $bits:ty) => {
+    ($sign:expr, $ty:ty, $bits:ty) => {
         impl<T, N, const SIGN: bool> Shl<ExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -321,36 +321,36 @@ macro_rules! impl_int_shl_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, SIGN>: IntConstant<T, $ty>,
+            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
         {
-            type Output = ExprNode<T, $bits, SIGN>;
+            type Output = ExprNode<T, $bits, $sign>;
 
             fn shl(self, rhs: ExprNode<T, N, SIGN>) -> Self::Output {
-                ExprNode::<T, $bits, SIGN>::constant(rhs.creator.clone(), self) << rhs
+                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) << rhs
             }
         }
     };
 }
 
-impl_int_shl_self_imm!(u8, U8);
-impl_int_shl_self_imm!(u16, U16);
-impl_int_shl_self_imm!(u32, U32);
+impl_int_shl_self_imm!(false, u8, U8);
+impl_int_shl_self_imm!(false, u16, U16);
+impl_int_shl_self_imm!(false, u32, U32);
 #[cfg(target_pointer_width = "32")]
-impl_int_shl_self_imm!(usize, U32);
+impl_int_shl_self_imm!(false, usize, U32);
 #[cfg(target_pointer_width = "64")]
-impl_int_shl_self_imm!(usize, U64);
-impl_int_shl_self_imm!(u64, U64);
-impl_int_shl_self_imm!(u128, U128);
+impl_int_shl_self_imm!(false, usize, U64);
+impl_int_shl_self_imm!(false, u64, U64);
+impl_int_shl_self_imm!(false, u128, U128);
 
-impl_int_shl_self_imm!(i8, U8);
-impl_int_shl_self_imm!(i16, U16);
-impl_int_shl_self_imm!(i32, U32);
+impl_int_shl_self_imm!(true, i8, U8);
+impl_int_shl_self_imm!(true, i16, U16);
+impl_int_shl_self_imm!(true, i32, U32);
 #[cfg(target_pointer_width = "32")]
-impl_int_shl_self_imm!(isize, U32);
+impl_int_shl_self_imm!(true, isize, U32);
 #[cfg(target_pointer_width = "64")]
-impl_int_shl_self_imm!(isize, U64);
-impl_int_shl_self_imm!(i64, U64);
-impl_int_shl_self_imm!(i128, U128);
+impl_int_shl_self_imm!(true, isize, U64);
+impl_int_shl_self_imm!(true, i64, U64);
+impl_int_shl_self_imm!(true, i128, U128);
 
 /// Shift right implementation.
 impl<T, N, const SIGN: bool, N2, const SIGN2: bool> Shr<ExprNode<T, N2, SIGN2>>
@@ -458,7 +458,7 @@ impl_int_upty!(impl_int_shr_imm);
 impl_int_ipty!(impl_int_shr_imm);
 
 macro_rules! impl_int_shr_self_imm {
-    ($ty:ty, $bits:ty) => {
+    ($sign:expr, $ty:ty, $bits:ty) => {
         impl<T, N, const SIGN: bool> Shr<ExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
@@ -467,36 +467,36 @@ macro_rules! impl_int_shr_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, SIGN>: IntConstant<T, $ty>,
+            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
         {
-            type Output = ExprNode<T, $bits, SIGN>;
+            type Output = ExprNode<T, $bits, $sign>;
 
             fn shr(self, rhs: ExprNode<T, N, SIGN>) -> Self::Output {
-                ExprNode::<T, $bits, SIGN>::constant(rhs.creator.clone(), self) >> rhs
+                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) >> rhs
             }
         }
     };
 }
 
-impl_int_shr_self_imm!(u8, U8);
-impl_int_shr_self_imm!(u16, U16);
-impl_int_shr_self_imm!(u32, U32);
+impl_int_shr_self_imm!(false, u8, U8);
+impl_int_shr_self_imm!(false, u16, U16);
+impl_int_shr_self_imm!(false, u32, U32);
 #[cfg(target_pointer_width = "32")]
-impl_int_shr_self_imm!(usize, U32);
+impl_int_shr_self_imm!(false, usize, U32);
 #[cfg(target_pointer_width = "64")]
-impl_int_shr_self_imm!(usize, U64);
-impl_int_shr_self_imm!(u64, U64);
-impl_int_shr_self_imm!(u128, U128);
+impl_int_shr_self_imm!(false, usize, U64);
+impl_int_shr_self_imm!(false, u64, U64);
+impl_int_shr_self_imm!(false, u128, U128);
 
-impl_int_shr_self_imm!(i8, U8);
-impl_int_shr_self_imm!(i16, U16);
-impl_int_shr_self_imm!(i32, U32);
+impl_int_shr_self_imm!(true, i8, U8);
+impl_int_shr_self_imm!(true, i16, U16);
+impl_int_shr_self_imm!(true, i32, U32);
 #[cfg(target_pointer_width = "32")]
-impl_int_shr_self_imm!(isize, U32);
+impl_int_shr_self_imm!(true, isize, U32);
 #[cfg(target_pointer_width = "64")]
-impl_int_shr_self_imm!(isize, U64);
-impl_int_shr_self_imm!(i64, U64);
-impl_int_shr_self_imm!(i128, U128);
+impl_int_shr_self_imm!(true, isize, U64);
+impl_int_shr_self_imm!(true, i64, U64);
+impl_int_shr_self_imm!(true, i128, U128);
 
 // ShlAssign
 macro_rules! impl_int_shx_assign {
@@ -720,11 +720,11 @@ mod tests {
     }
 
     macro_rules! test_expr_node_shl_3 {
-        ($ty:ty, $toidx:ty, $bits:expr) => {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $toidx, false>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U3, $signrhs>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
@@ -743,12 +743,12 @@ mod tests {
     }
 
     macro_rules! test_expr_node_shl_imm_3 {
-        ($ty:ty, $toidx:ty, $bits:expr, $imm:expr) => {
+        ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $toidx, false>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U3, $signrhs>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, false> = ($imm as u8) << x2;
+            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 3);
@@ -769,11 +769,11 @@ mod tests {
     }
 
     macro_rules! test_expr_node_shl_5 {
-        ($ty:ty, $toidx:ty, $bits:expr) => {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $toidx, false>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U5, $signrhs>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
@@ -794,12 +794,12 @@ mod tests {
     }
 
     macro_rules! test_expr_node_shl_imm_5 {
-        ($ty:ty, $pty:ty, $toidx:ty, $bits:expr, $imm:expr) => {
+        ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $toidx, false>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U5, $signrhs>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, false> = ($imm as $pty) << x2;
+            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 5);
@@ -823,13 +823,19 @@ mod tests {
 
     #[test]
     fn test_expr_node_shl() {
-        test_expr_node_shl_3!(U6, U3, 6);
-        test_expr_node_shl_3!(U8, U3, 8);
-        test_expr_node_shl_3!(U6, U5, 6);
-        test_expr_node_shl_3!(U8, U5, 8);
+        test_expr_node_shl_3!(false, false, U6, U3, 6);
+        test_expr_node_shl_3!(false, false, U8, U3, 8);
+        test_expr_node_shl_3!(false, false, U6, U5, 6);
+        test_expr_node_shl_3!(false, false, U8, U5, 8);
+        test_expr_node_shl_3!(true, false, U6, U3, 6);
+        test_expr_node_shl_3!(true, false, U8, U3, 8);
+        test_expr_node_shl_3!(true, false, U6, U5, 6);
+        test_expr_node_shl_3!(true, false, U8, U5, 8);
 
-        test_expr_node_shl_imm_3!(U8, U3, 8, 172);
-        test_expr_node_shl_imm_3!(U8, U5, 8, 217);
+        test_expr_node_shl_imm_3!(false, false, U8, u8, U3, 8, 172);
+        test_expr_node_shl_imm_3!(false, false, U8, u8, U5, 8, 217);
+        test_expr_node_shl_imm_3!(true, false, U8, i8, U3, 8, 72);
+        test_expr_node_shl_imm_3!(true, false, U8, i8, U5, 8, 99);
 
         {
             let ec = ExprCreator::new();
@@ -849,11 +855,17 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        test_expr_node_shl_5!(U27, U5, 27);
-        test_expr_node_shl_5!(U32, U5, 32);
-        test_expr_node_shl_5!(U27, U8, 27);
-        test_expr_node_shl_5!(U32, U8, 32);
-        test_expr_node_shl_imm_5!(U32, u32, U7, 32, 2016568312);
+        test_expr_node_shl_5!(false, false, U27, U5, 27);
+        test_expr_node_shl_5!(false, false, U32, U5, 32);
+        test_expr_node_shl_5!(false, false, U27, U8, 27);
+        test_expr_node_shl_5!(false, false, U32, U8, 32);
+        test_expr_node_shl_imm_5!(false, false, U32, u32, U7, 32, 2016568312);
+
+        test_expr_node_shl_5!(true, false, U27, U5, 27);
+        test_expr_node_shl_5!(true, false, U32, U5, 32);
+        test_expr_node_shl_5!(true, false, U27, U8, 27);
+        test_expr_node_shl_5!(true, false, U32, U8, 32);
+        test_expr_node_shl_imm_5!(true, false, U32, i32, U7, 32, 1016068072);
 
         {
             let ec = ExprCreator::new();
