@@ -719,7 +719,7 @@ mod tests {
             .collect::<Vec<_>>()
     }
 
-    macro_rules! test_expr_node_shl_3 {
+    macro_rules! test_expr_node_shl_assign_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
@@ -727,6 +727,13 @@ mod tests {
                 ExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U3, false>::variable(ec2.clone()),
+            );
+            x1_out <<= x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits + 3);
@@ -739,6 +746,9 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
@@ -768,11 +778,15 @@ mod tests {
         };
     }
 
-    macro_rules! test_expr_node_shl_rhs_imm {
+    macro_rules! test_expr_node_shl_assign_rhs_imm {
         ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let res = x1 << (($shift) as $rhs_pty);
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            x1_out <<= (($shift) as $rhs_pty);
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits);
@@ -785,10 +799,13 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
-    macro_rules! test_expr_node_shl_5 {
+    macro_rules! test_expr_node_shl_assign_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
@@ -796,6 +813,13 @@ mod tests {
                 ExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U5, false>::variable(ec2.clone()),
+            );
+            x1_out <<= x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits + 5);
@@ -810,6 +834,9 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
@@ -842,20 +869,20 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_shl() {
-        test_expr_node_shl_3!(false, false, U6, U3, 6);
-        test_expr_node_shl_3!(false, false, U8, U3, 8);
-        test_expr_node_shl_3!(false, false, U6, U5, 6);
-        test_expr_node_shl_3!(false, false, U8, U5, 8);
-        test_expr_node_shl_3!(true, false, U6, U3, 6);
-        test_expr_node_shl_3!(true, false, U8, U3, 8);
-        test_expr_node_shl_3!(true, false, U6, U5, 6);
-        test_expr_node_shl_3!(true, false, U8, U5, 8);
+    fn test_expr_node_shl_and_shl_assign() {
+        test_expr_node_shl_assign_3!(false, false, U6, U3, 6);
+        test_expr_node_shl_assign_3!(false, false, U8, U3, 8);
+        test_expr_node_shl_assign_3!(false, false, U6, U5, 6);
+        test_expr_node_shl_assign_3!(false, false, U8, U5, 8);
+        test_expr_node_shl_assign_3!(true, false, U6, U3, 6);
+        test_expr_node_shl_assign_3!(true, false, U8, U3, 8);
+        test_expr_node_shl_assign_3!(true, false, U6, U5, 6);
+        test_expr_node_shl_assign_3!(true, false, U8, U5, 8);
 
-        test_expr_node_shl_3!(false, true, U6, U4, 6);
-        test_expr_node_shl_3!(false, true, U8, U4, 8);
-        test_expr_node_shl_3!(true, true, U6, U4, 6);
-        test_expr_node_shl_3!(true, true, U8, U4, 8);
+        test_expr_node_shl_assign_3!(false, true, U6, U4, 6);
+        test_expr_node_shl_assign_3!(false, true, U8, U4, 8);
+        test_expr_node_shl_assign_3!(true, true, U6, U4, 6);
+        test_expr_node_shl_assign_3!(true, true, U8, U4, 8);
 
         // lhs is immediate - constant
         test_expr_node_shl_imm_3!(false, false, U8, u8, U3, 8, 172);
@@ -885,20 +912,20 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        test_expr_node_shl_5!(false, false, U27, U5, 27);
-        test_expr_node_shl_5!(false, false, U32, U5, 32);
-        test_expr_node_shl_5!(false, false, U27, U8, 27);
-        test_expr_node_shl_5!(false, false, U32, U8, 32);
+        test_expr_node_shl_assign_5!(false, false, U27, U5, 27);
+        test_expr_node_shl_assign_5!(false, false, U32, U5, 32);
+        test_expr_node_shl_assign_5!(false, false, U27, U8, 27);
+        test_expr_node_shl_assign_5!(false, false, U32, U8, 32);
 
-        test_expr_node_shl_5!(true, false, U27, U5, 27);
-        test_expr_node_shl_5!(true, false, U32, U5, 32);
-        test_expr_node_shl_5!(true, false, U27, U8, 27);
-        test_expr_node_shl_5!(true, false, U32, U8, 32);
+        test_expr_node_shl_assign_5!(true, false, U27, U5, 27);
+        test_expr_node_shl_assign_5!(true, false, U32, U5, 32);
+        test_expr_node_shl_assign_5!(true, false, U27, U8, 27);
+        test_expr_node_shl_assign_5!(true, false, U32, U8, 32);
 
-        test_expr_node_shl_5!(false, true, U27, U6, 27);
-        test_expr_node_shl_5!(false, true, U32, U6, 32);
-        test_expr_node_shl_5!(true, true, U27, U6, 27);
-        test_expr_node_shl_5!(true, true, U32, U6, 32);
+        test_expr_node_shl_assign_5!(false, true, U27, U6, 27);
+        test_expr_node_shl_assign_5!(false, true, U32, U6, 32);
+        test_expr_node_shl_assign_5!(true, true, U27, U6, 27);
+        test_expr_node_shl_assign_5!(true, true, U32, U6, 32);
 
         // lhs is immediate - constant
         test_expr_node_shl_imm_5!(false, false, U32, u32, U5, 32, 2016568312);
@@ -930,12 +957,12 @@ mod tests {
         }
 
         // rhs is constant - immediate
-        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, u8);
-        test_expr_node_shl_rhs_imm!(true, U8, 8, 5, u8);
-        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, i8);
-        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, u16);
-        test_expr_node_shl_rhs_imm!(false, U32, 32, 19, u8);
-        test_expr_node_shl_rhs_imm!(true, U32, 32, 19, u8);
+        test_expr_node_shl_assign_rhs_imm!(false, U8, 8, 5, u8);
+        test_expr_node_shl_assign_rhs_imm!(true, U8, 8, 5, u8);
+        test_expr_node_shl_assign_rhs_imm!(false, U8, 8, 5, i8);
+        test_expr_node_shl_assign_rhs_imm!(false, U8, 8, 5, u16);
+        test_expr_node_shl_assign_rhs_imm!(false, U32, 32, 19, u8);
+        test_expr_node_shl_assign_rhs_imm!(true, U32, 32, 19, u8);
     }
 
     fn shift_right_bits(
@@ -965,7 +992,7 @@ mod tests {
             .collect::<Vec<_>>()
     }
 
-    macro_rules! test_expr_node_shr_3 {
+    macro_rules! test_expr_node_shr_assign_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
@@ -973,6 +1000,13 @@ mod tests {
                 ExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res = x1 >> x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U3, false>::variable(ec2.clone()),
+            );
+            x1_out >>= x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits + 3);
@@ -986,6 +1020,9 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
@@ -1015,11 +1052,15 @@ mod tests {
         };
     }
 
-    macro_rules! test_expr_node_shr_rhs_imm {
+    macro_rules! test_expr_node_shr_assign_rhs_imm {
         ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let res = x1 >> (($shift) as $rhs_pty);
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            x1_out >>= (($shift) as $rhs_pty);
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits);
@@ -1036,10 +1077,13 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
-    macro_rules! test_expr_node_shr_5 {
+    macro_rules! test_expr_node_shr_assign_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
@@ -1047,6 +1091,13 @@ mod tests {
                 ExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res = x1 >> x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
+                ExprNode::<isize, U5, false>::variable(ec2.clone()),
+            );
+            x1_out >>= x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits + 5);
@@ -1064,6 +1115,9 @@ mod tests {
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         };
     }
 
@@ -1096,20 +1150,20 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_shr() {
-        test_expr_node_shr_3!(false, false, U6, U3, 6);
-        test_expr_node_shr_3!(false, false, U8, U3, 8);
-        test_expr_node_shr_3!(false, false, U6, U5, 6);
-        test_expr_node_shr_3!(false, false, U8, U5, 8);
-        test_expr_node_shr_3!(true, false, U6, U3, 6);
-        test_expr_node_shr_3!(true, false, U8, U3, 8);
-        test_expr_node_shr_3!(true, false, U6, U5, 6);
-        test_expr_node_shr_3!(true, false, U8, U5, 8);
+    fn test_expr_node_shr_and_shr_assign() {
+        test_expr_node_shr_assign_3!(false, false, U6, U3, 6);
+        test_expr_node_shr_assign_3!(false, false, U8, U3, 8);
+        test_expr_node_shr_assign_3!(false, false, U6, U5, 6);
+        test_expr_node_shr_assign_3!(false, false, U8, U5, 8);
+        test_expr_node_shr_assign_3!(true, false, U6, U3, 6);
+        test_expr_node_shr_assign_3!(true, false, U8, U3, 8);
+        test_expr_node_shr_assign_3!(true, false, U6, U5, 6);
+        test_expr_node_shr_assign_3!(true, false, U8, U5, 8);
 
-        test_expr_node_shr_3!(false, true, U6, U4, 6);
-        test_expr_node_shr_3!(false, true, U8, U4, 8);
-        test_expr_node_shr_3!(true, true, U6, U4, 6);
-        test_expr_node_shr_3!(true, true, U8, U4, 8);
+        test_expr_node_shr_assign_3!(false, true, U6, U4, 6);
+        test_expr_node_shr_assign_3!(false, true, U8, U4, 8);
+        test_expr_node_shr_assign_3!(true, true, U6, U4, 6);
+        test_expr_node_shr_assign_3!(true, true, U8, U4, 8);
 
         // lhs is immediate - constant
         test_expr_node_shr_imm_3!(false, false, U8, u8, U3, 8, 172);
@@ -1140,20 +1194,20 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        test_expr_node_shr_5!(false, false, U27, U5, 27);
-        test_expr_node_shr_5!(false, false, U32, U5, 32);
-        test_expr_node_shr_5!(false, false, U27, U8, 27);
-        test_expr_node_shr_5!(false, false, U32, U8, 32);
+        test_expr_node_shr_assign_5!(false, false, U27, U5, 27);
+        test_expr_node_shr_assign_5!(false, false, U32, U5, 32);
+        test_expr_node_shr_assign_5!(false, false, U27, U8, 27);
+        test_expr_node_shr_assign_5!(false, false, U32, U8, 32);
 
-        test_expr_node_shr_5!(true, false, U27, U5, 27);
-        test_expr_node_shr_5!(true, false, U32, U5, 32);
-        test_expr_node_shr_5!(true, false, U27, U8, 27);
-        test_expr_node_shr_5!(true, false, U32, U8, 32);
+        test_expr_node_shr_assign_5!(true, false, U27, U5, 27);
+        test_expr_node_shr_assign_5!(true, false, U32, U5, 32);
+        test_expr_node_shr_assign_5!(true, false, U27, U8, 27);
+        test_expr_node_shr_assign_5!(true, false, U32, U8, 32);
 
-        test_expr_node_shr_5!(false, true, U27, U6, 27);
-        test_expr_node_shr_5!(false, true, U32, U6, 32);
-        test_expr_node_shr_5!(true, true, U27, U6, 27);
-        test_expr_node_shr_5!(true, true, U32, U6, 32);
+        test_expr_node_shr_assign_5!(false, true, U27, U6, 27);
+        test_expr_node_shr_assign_5!(false, true, U32, U6, 32);
+        test_expr_node_shr_assign_5!(true, true, U27, U6, 27);
+        test_expr_node_shr_assign_5!(true, true, U32, U6, 32);
 
         // lhs is immediate - constant
         test_expr_node_shr_imm_5!(false, false, U32, u32, U5, 32, 2016568312);
@@ -1187,11 +1241,11 @@ mod tests {
         }
 
         // rhs is constant - immediate
-        test_expr_node_shr_rhs_imm!(false, U8, 8, 5, u8);
-        test_expr_node_shr_rhs_imm!(true, U8, 8, 5, u8);
-        test_expr_node_shr_rhs_imm!(false, U8, 8, 5, i8);
-        test_expr_node_shr_rhs_imm!(false, U8, 8, 5, u16);
-        test_expr_node_shr_rhs_imm!(false, U32, 32, 19, u8);
-        test_expr_node_shr_rhs_imm!(true, U32, 32, 19, u8);
+        test_expr_node_shr_assign_rhs_imm!(false, U8, 8, 5, u8);
+        test_expr_node_shr_assign_rhs_imm!(true, U8, 8, 5, u8);
+        test_expr_node_shr_assign_rhs_imm!(false, U8, 8, 5, i8);
+        test_expr_node_shr_assign_rhs_imm!(false, U8, 8, 5, u16);
+        test_expr_node_shr_assign_rhs_imm!(false, U32, 32, 19, u8);
+        test_expr_node_shr_assign_rhs_imm!(true, U32, 32, 19, u8);
     }
 }
