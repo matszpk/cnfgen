@@ -293,7 +293,7 @@ macro_rules! impl_int_shl_imm {
             fn shl(self, rhs: $ty) -> Self::Output {
                 // check whether zeroes
                 #[allow(unused_comparisons)]
-                if rhs < 0 || (rhs as usize) < N::USIZE {
+                if rhs < 0 || (rhs as usize) >= N::USIZE {
                     panic!("this arithmetic operation will overflow");
                 }
                 let usize_rhs = rhs as usize;
@@ -431,7 +431,7 @@ macro_rules! impl_int_shr_imm {
             fn shr(self, rhs: $ty) -> Self::Output {
                 // check whether zeroes
                 #[allow(unused_comparisons)]
-                if rhs < 0 || (rhs as usize) < N::USIZE {
+                if rhs < 0 || (rhs as usize) >= N::USIZE {
                     panic!("this arithmetic operation will overflow");
                 }
                 let usize_rhs = rhs as usize;
@@ -768,6 +768,26 @@ mod tests {
         };
     }
 
+    macro_rules! test_expr_node_shl_rhs_imm {
+        ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let res = x1 << (($shift) as $rhs_pty);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits);
+            let exp = (0..$bits).into_iter().map(|x|
+                            if x >= $shift {
+                                bvs[x - $shift].clone()
+                            } else {
+                                BoolExprNode::single_value(exp_ec.clone(), false)
+                            }.index).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
     macro_rules! test_expr_node_shl_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
@@ -831,12 +851,13 @@ mod tests {
         test_expr_node_shl_3!(true, false, U8, U3, 8);
         test_expr_node_shl_3!(true, false, U6, U5, 6);
         test_expr_node_shl_3!(true, false, U8, U5, 8);
-        
+
         test_expr_node_shl_3!(false, true, U6, U4, 6);
         test_expr_node_shl_3!(false, true, U8, U4, 8);
         test_expr_node_shl_3!(true, true, U6, U4, 6);
         test_expr_node_shl_3!(true, true, U8, U4, 8);
 
+        // lhs is immediate - constant
         test_expr_node_shl_imm_3!(false, false, U8, u8, U3, 8, 172);
         test_expr_node_shl_imm_3!(false, false, U8, u8, U5, 8, 217);
         test_expr_node_shl_imm_3!(true, false, U8, i8, U3, 8, 72);
@@ -844,8 +865,9 @@ mod tests {
 
         test_expr_node_shl_imm_3!(false, true, U8, u8, U4, 8, 172);
         test_expr_node_shl_imm_3!(true, true, U8, i8, U4, 8, 72);
-        
+
         {
+            // check if rhs have lower number of bits
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U2, false>::variable(ec.clone());
@@ -872,21 +894,23 @@ mod tests {
         test_expr_node_shl_5!(true, false, U32, U5, 32);
         test_expr_node_shl_5!(true, false, U27, U8, 27);
         test_expr_node_shl_5!(true, false, U32, U8, 32);
-        
+
         test_expr_node_shl_5!(false, true, U27, U6, 27);
         test_expr_node_shl_5!(false, true, U32, U6, 32);
         test_expr_node_shl_5!(true, true, U27, U6, 27);
         test_expr_node_shl_5!(true, true, U32, U6, 32);
-        
+
+        // lhs is immediate - constant
         test_expr_node_shl_imm_5!(false, false, U32, u32, U5, 32, 2016568312);
         test_expr_node_shl_imm_5!(true, false, U32, i32, U5, 32, 1016068072);
         test_expr_node_shl_imm_5!(false, false, U32, u32, U7, 32, 2016568312);
         test_expr_node_shl_imm_5!(true, false, U32, i32, U7, 32, 1016068072);
-        
+
         test_expr_node_shl_imm_5!(false, true, U32, u32, U6, 32, 2016568312);
         test_expr_node_shl_imm_5!(true, true, U32, i32, U6, 32, 1016068072);
 
         {
+            // check if rhs have lower number of bits
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U32, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
@@ -904,5 +928,13 @@ mod tests {
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+
+        // rhs is constant - immediate
+        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, u8);
+        test_expr_node_shl_rhs_imm!(true, U8, 8, 5, u8);
+        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, i8);
+        test_expr_node_shl_rhs_imm!(false, U8, 8, 5, u16);
+        test_expr_node_shl_rhs_imm!(false, U32, 32, 19, u8);
+        test_expr_node_shl_rhs_imm!(true, U32, 32, 19, u8);
     }
 }
