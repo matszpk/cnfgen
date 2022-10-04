@@ -536,3 +536,71 @@ macro_rules! impl_int_shx_assign {
 
 impl_int_shx_assign!(ShlAssign, shl, shl_assign, impl_int_shl_assign_imm);
 impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::boolexpr::test_utils::*;
+    
+    macro_rules! test_expr_node_bitop {
+        ($op:ident) => {
+            {
+                let ec = ExprCreator::new();
+                let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
+                let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
+                let _ = x1.$op(x2);
+                
+                let exp_ec = ExprCreator::new();
+                let bvs = alloc_boolvars(exp_ec.clone(), 12);
+                for i in 0..6 {
+                    let _ = bvs[i].clone().$op(bvs[i+6].clone());
+                }
+                
+                assert_eq!(*exp_ec.borrow(), *ec.borrow());
+            }
+            
+            {
+                let ec = ExprCreator::new();
+                let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+                let _ = x1.$op(141);
+                
+                let exp_ec = ExprCreator::new();
+                let bvs = alloc_boolvars(exp_ec.clone(), 10);
+                for i in 0..10 {
+                    let _ = bvs[i].clone().$op((141 & (1<<i)) != 0);
+                }
+                
+                assert_eq!(*exp_ec.borrow(), *ec.borrow());
+            }
+            
+            {
+                let ec = ExprCreator::new();
+                let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+                let _ = (-46).$op(x1);
+                
+                let exp_ec = ExprCreator::new();
+                let bvs = alloc_boolvars(exp_ec.clone(), 10);
+                for i in 0..10 {
+                    let _ = bvs[i].clone().$op(((-46) & (1<<i)) != 0);
+                }
+                
+                assert_eq!(*exp_ec.borrow(), *ec.borrow());
+            }
+        }
+    }
+    
+    #[test]
+    fn test_expr_node_bitand() {
+        test_expr_node_bitop!(bitand);
+    }
+    
+    #[test]
+    fn test_expr_node_bitor() {
+        test_expr_node_bitop!(bitor);
+    }
+    
+    #[test]
+    fn test_expr_node_bitxor() {
+        test_expr_node_bitop!(bitxor);
+    }
+}

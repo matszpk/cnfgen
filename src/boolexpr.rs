@@ -1470,3 +1470,18 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use super::*;
+    
+    pub(crate) fn alloc_boolvars(
+        ec: Rc<RefCell<ExprCreator<isize>>>,
+        var_count: isize,
+    ) -> Vec<ExprNode<isize>> {
+        (0..var_count)
+            .into_iter()
+            .map(|_| ExprNode::variable(ec.clone()))
+            .collect::<Vec<_>>()
+    }
+}

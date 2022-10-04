@@ -636,6 +636,7 @@ impl_int_ipty_ty1!(impl_int_ord_ipty);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::boolexpr::test_utils::*;
 
     #[test]
     fn test_int_equal_prim_types() {
@@ -760,16 +761,6 @@ mod tests {
                 .as_slice(),
             x1.indexes.as_slice()
         );
-    }
-
-    fn alloc_boolvars(
-        ec: Rc<RefCell<ExprCreator<isize>>>,
-        var_count: isize,
-    ) -> Vec<BoolExprNode<isize>> {
-        (0..var_count)
-            .into_iter()
-            .map(|_| BoolExprNode::variable(ec.clone()))
-            .collect::<Vec<_>>()
     }
 
     #[test]
