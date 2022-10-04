@@ -251,9 +251,11 @@ where
             panic!("this arithmetic operation will overflow");
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
-        
-        let mut input = ExprNode{ creator: self.creator.clone(),
-                indexes: GenericArray::default() };
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
@@ -380,9 +382,11 @@ where
             panic!("this arithmetic operation will overflow");
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
-        
-        let mut input = ExprNode{ creator: self.creator.clone(),
-                indexes: GenericArray::default() };
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
@@ -543,192 +547,331 @@ impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
 mod tests {
     use super::*;
     use crate::boolexpr::test_utils::*;
-    
+
     macro_rules! test_expr_node_bitop {
-        ($op:ident) => {
-            {
-                let ec = ExprCreator::new();
-                let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
-                let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
-                let res = x1.$op(x2);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 12);
-                let exp = (0..6).into_iter().map(|i|
-                        (bvs[i].clone().$op(bvs[i+6].clone())).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), res.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
-            
-            {
-                let ec = ExprCreator::new();
-                let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-                let res = x1.$op(141);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 10);
-                let exp = (0..10).into_iter().map(|i|
-                    (bvs[i].clone().$op((141 & (1<<i)) != 0)).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), res.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
-            
-            {
-                let ec = ExprCreator::new();
-                let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
-                let res = (-46).$op(x1);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 10);
-                let exp = (0..10).into_iter().map(|i|
-                    (bvs[i].clone().$op(((-46) & (1<<i)) != 0)).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), res.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
+        ($op:ident) => {{
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            let res = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 12);
+            let exp = (0..6)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op(bvs[i + 6].clone())).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let res = x1.$op(141);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 10);
+            let exp = (0..10)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op((141 & (1 << i)) != 0)).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let res = (-46).$op(x1);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 10);
+            let exp = (0..10)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op(((-46) & (1 << i)) != 0)).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
     }
-    
+
     #[test]
     fn test_expr_node_bitand() {
         test_expr_node_bitop!(bitand);
     }
-    
+
     #[test]
     fn test_expr_node_bitor() {
         test_expr_node_bitop!(bitor);
     }
-    
+
     #[test]
     fn test_expr_node_bitxor() {
         test_expr_node_bitop!(bitxor);
     }
-    
+
     macro_rules! test_expr_node_bitop_assign {
-        ($op:ident, $op_assign:ident) => {
-            {
-                let ec = ExprCreator::new();
-                let mut x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
-                let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
-                x1.$op_assign(x2);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 12);
-                let exp = (0..6).into_iter().map(|i|
-                        (bvs[i].clone().$op(bvs[i+6].clone())).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), x1.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
-            
-            {
-                let ec = ExprCreator::new();
-                let mut x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-                x1.$op_assign(141);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 10);
-                let exp = (0..10).into_iter().map(|i|
-                    (bvs[i].clone().$op((141 & (1<<i)) != 0)).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), x1.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
-            
-            {
-                let ec = ExprCreator::new();
-                let mut x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
-                x1.$op_assign(-43);
-                
-                let exp_ec = ExprCreator::new();
-                let bvs = alloc_boolvars(exp_ec.clone(), 10);
-                let exp = (0..10).into_iter().map(|i|
-                    (bvs[i].clone().$op(((-43) & (1<<i)) != 0)).index
-                ).collect::<Vec<_>>();
-                
-                assert_eq!(exp.as_slice(), x1.indexes.as_slice());
-                assert_eq!(*exp_ec.borrow(), *ec.borrow());
-            }
+        ($op:ident, $op_assign:ident) => {{
+            let ec = ExprCreator::new();
+            let mut x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            x1.$op_assign(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 12);
+            let exp = (0..6)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op(bvs[i + 6].clone())).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), x1.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+
+        {
+            let ec = ExprCreator::new();
+            let mut x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            x1.$op_assign(141);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 10);
+            let exp = (0..10)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op((141 & (1 << i)) != 0)).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), x1.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let mut x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            x1.$op_assign(-43);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 10);
+            let exp = (0..10)
+                .into_iter()
+                .map(|i| (bvs[i].clone().$op(((-43) & (1 << i)) != 0)).index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), x1.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
     }
-    
+
     #[test]
     fn test_expr_node_bitand_assign() {
         test_expr_node_bitop_assign!(bitand, bitand_assign);
     }
-    
+
     #[test]
     fn test_expr_node_bitor_assign() {
         test_expr_node_bitop_assign!(bitor, bitor_assign);
     }
-    
+
     #[test]
     fn test_expr_node_bitxor_assign() {
         test_expr_node_bitop_assign!(bitxor, bitxor_assign);
     }
-    
+
     #[test]
     fn test_expr_node_not() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
         let res = !x1;
-        
+
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 5);
-        let exp = (0..5).into_iter().map(|i|
-                (!bvs[i].clone()).index
-        ).collect::<Vec<_>>();
-        
+        let exp = (0..5)
+            .into_iter()
+            .map(|i| (!bvs[i].clone()).index)
+            .collect::<Vec<_>>();
+
         assert_eq!(exp.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
-    
+
+    fn shift_left_bits(
+        bits: usize,
+        bvs: &[BoolExprNode<isize>],
+        cond: BoolExprNode<isize>,
+        shift: usize,
+    ) -> Vec<BoolExprNode<isize>> {
+        (0..bits)
+            .into_iter()
+            .map(|i| {
+                bool_ite(
+                    cond.clone(),
+                    if i >= shift {
+                        bvs[i - shift].clone()
+                    } else {
+                        BoolExprNode::single_value(cond.creator.clone(), false)
+                    },
+                    bvs[i].clone(),
+                )
+            })
+            .collect::<Vec<_>>()
+    }
+
+    macro_rules! test_expr_node_shl_3 {
+        ($ty:ty, $toidx:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $ty, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, $toidx, false>::from(
+                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            );
+            let res = x1 << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 3);
+            let stage1 = shift_left_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = shift_left_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let exp = shift_left_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_shl_imm_3 {
+        ($ty:ty, $toidx:ty, $bits:expr, $imm:expr) => {
+            let ec = ExprCreator::new();
+            let x2 = ExprNode::<isize, $toidx, false>::from(
+                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            );
+            let res: ExprNode<isize, $ty, false> = ($imm as u8) << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 3);
+            let immnodes = (0..$bits)
+                .into_iter()
+                .map(|i| BoolExprNode::single_value(exp_ec.clone(), (($imm & (1 << i)) != 0)))
+                .collect::<Vec<_>>();
+            let stage1 = shift_left_bits($bits, &immnodes, bvs[0].clone(), 1);
+            let stage2 = shift_left_bits($bits, &stage1[0..$bits], bvs[1].clone(), 2);
+            let exp = shift_left_bits($bits, &stage2[0..$bits], bvs[2].clone(), 4)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_shl_5 {
+        ($ty:ty, $toidx:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $ty, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, $toidx, false>::from(
+                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            );
+            let res = x1 << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 5);
+            let stage1 = shift_left_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = shift_left_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let stage3 = shift_left_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4);
+            let stage4 = shift_left_bits($bits, &stage3[0..$bits], bvs[$bits + 3].clone(), 8);
+            let exp = shift_left_bits($bits, &stage4[0..$bits], bvs[$bits + 4].clone(), 16)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_shl_imm_5 {
+        ($ty:ty, $pty:ty, $toidx:ty, $bits:expr, $imm:expr) => {
+            let ec = ExprCreator::new();
+            let x2 = ExprNode::<isize, $toidx, false>::from(
+                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            );
+            let res: ExprNode<isize, $ty, false> = ($imm as $pty) << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 5);
+            let immnodes = (0..$bits)
+                .into_iter()
+                .map(|i| BoolExprNode::single_value(exp_ec.clone(), (($imm & (1 << i)) != 0)))
+                .collect::<Vec<_>>();
+            let stage1 = shift_left_bits($bits, &immnodes, bvs[0].clone(), 1);
+            let stage2 = shift_left_bits($bits, &stage1[0..$bits], bvs[1].clone(), 2);
+            let stage3 = shift_left_bits($bits, &stage2[0..$bits], bvs[2].clone(), 4);
+            let stage4 = shift_left_bits($bits, &stage3[0..$bits], bvs[3].clone(), 8);
+            let exp = shift_left_bits($bits, &stage4[0..$bits], bvs[4].clone(), 16)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
     #[test]
     fn test_expr_node_shl() {
-        let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
-        let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
-        let res = x1 << x2;
-        
-        let exp_ec = ExprCreator::new();
-        let bvs = alloc_boolvars(exp_ec.clone(), 9);
-        let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
-        let stage1 = (0..6).into_iter().map(|i|
-                bool_ite(bvs[6].clone(),
-                        if i >= 1 {
-                            bvs[i-1].clone()
-                        } else {
-                            bnfalse.clone()
-                        },
-                        bvs[i].clone()))
+        test_expr_node_shl_3!(U6, U3, 6);
+        test_expr_node_shl_3!(U8, U3, 8);
+        test_expr_node_shl_3!(U6, U5, 6);
+        test_expr_node_shl_3!(U8, U5, 8);
+
+        test_expr_node_shl_imm_3!(U8, U3, 8, 172);
+        test_expr_node_shl_imm_3!(U8, U5, 8, 217);
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U2, false>::variable(ec.clone());
+            let res = x1 << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 8 + 2);
+            let stage1 = shift_left_bits(8, &bvs[0..8], bvs[8].clone(), 1);
+            let exp = shift_left_bits(8, &stage1[0..8], bvs[8 + 1].clone(), 2)
+                .into_iter()
+                .map(|x| x.index)
                 .collect::<Vec<_>>();
-        let stage2 = (0..6).into_iter().map(|i|
-                bool_ite(bvs[7].clone(),
-                        if i >= 2 {
-                            stage1[i-2].clone()
-                        } else {
-                            bnfalse.clone()
-                        },
-                        stage1[i].clone()))
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        test_expr_node_shl_5!(U27, U5, 27);
+        test_expr_node_shl_5!(U32, U5, 32);
+        test_expr_node_shl_5!(U27, U8, 27);
+        test_expr_node_shl_5!(U32, U8, 32);
+        test_expr_node_shl_imm_5!(U32, u32, U7, 32, 2016568312);
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U32, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
+            let res = x1 << x2;
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 32 + 3);
+            let stage1 = shift_left_bits(32, &bvs[0..32], bvs[32].clone(), 1);
+            let stage2 = shift_left_bits(32, &stage1[0..32], bvs[32 + 1].clone(), 2);
+            let exp = shift_left_bits(32, &stage2[0..32], bvs[32 + 2].clone(), 4)
+                .into_iter()
+                .map(|x| x.index)
                 .collect::<Vec<_>>();
-        let exp = (0..6).into_iter().map(|i|
-                bool_ite(bvs[8].clone(),
-                        if i >= 4 {
-                            stage2[i-4].clone()
-                        } else {
-                            bnfalse.clone()
-                        },
-                        stage2[i].clone()).index)
-                .collect::<Vec<_>>();
-        
-        assert_eq!(exp.as_slice(), res.indexes.as_slice());
-        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
     }
 }

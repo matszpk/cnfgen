@@ -1474,7 +1474,7 @@ mod tests {
 #[cfg(test)]
 pub(crate) mod test_utils {
     use super::*;
-    
+
     pub(crate) fn alloc_boolvars(
         ec: Rc<RefCell<ExprCreator<isize>>>,
         var_count: isize,
