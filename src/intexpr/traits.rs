@@ -1092,5 +1092,19 @@ mod tests {
 
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x3 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x4 = ExprNode::<isize, U10, true>::variable(ec.clone());
+
+            let _ = (-42).greater_than(x1.clone());
+            let _ = 75.greater_equal(x2.clone());
+            let _ = (-89).less_than(x3.clone());
+            let _ = 52.less_equal(x4.clone());
+
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
     }
 }
