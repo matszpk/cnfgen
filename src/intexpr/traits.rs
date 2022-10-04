@@ -480,11 +480,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) &
-            // if negative
-            ((lhs_sign.clone() & lhs_num.clone().greater_than(rhs_num.clone()))
-            // if positive
-            | (!lhs_sign & lhs_num.less_than(rhs_num))))
+            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_than(rhs_num))
     }
 
     fn less_equal(self, rhs: Self) -> Self::Output {
@@ -498,11 +494,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) &
-            // if negative
-            ((lhs_sign.clone() & lhs_num.clone().greater_equal(rhs_num.clone()))
-            // if positive
-            | (!lhs_sign & lhs_num.less_equal(rhs_num))))
+            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
     }
 
     fn greater_than(self, rhs: Self) -> Self::Output {
@@ -900,7 +892,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_int_ord() {
+    fn test_expr_node_unsigned_int_ord() {
         {
             let ec = ExprCreator::new();
             let xv = (0..8)
@@ -921,7 +913,7 @@ mod tests {
 
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
-        
+
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 40);
         gen_less_x_chain(
