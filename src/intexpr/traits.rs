@@ -997,17 +997,6 @@ mod tests {
             let _ = xv[4].clone().greater_than(xv[5].clone());
             let _ = xv[6].clone().greater_equal(xv[7].clone());
 
-            println!(
-                "Debug nodes:\n{}",
-                ec.borrow()
-                    .nodes
-                    .iter()
-                    .enumerate()
-                    .map(|(i, x)| format!("  {}: {:?}", i, x))
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            );
-
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 40);
             let _ = (bvs[4].clone() & !bvs[9].clone())
