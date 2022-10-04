@@ -771,28 +771,30 @@ mod tests {
             let x2 = ExprNode::<isize, U5, false>::variable(ec.clone());
             let x3 = ExprNode::<isize, U5, false>::variable(ec.clone());
             let x4 = ExprNode::<isize, U5, false>::variable(ec.clone());
-            let _ = x1.equal(x2);
-            let _ = x3.nequal(x4);
+            let reseq = x1.equal(x2);
+            let resne = x3.nequal(x4);
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 20);
-            let _ = bvs[0].clone().bequal(bvs[5].clone())
+            let expeq = bvs[0].clone().bequal(bvs[5].clone())
                 & bvs[1].clone().bequal(bvs[6].clone())
                 & bvs[2].clone().bequal(bvs[7].clone())
                 & bvs[3].clone().bequal(bvs[8].clone())
                 & bvs[4].clone().bequal(bvs[9].clone());
-            let _ = (bvs[10].clone() ^ bvs[15].clone())
+            let expne = (bvs[10].clone() ^ bvs[15].clone())
                 | (bvs[11].clone() ^ bvs[16].clone())
                 | (bvs[12].clone() ^ bvs[17].clone())
                 | (bvs[13].clone() ^ bvs[18].clone())
                 | (bvs[14].clone() ^ bvs[19].clone());
 
+            assert_eq!(expeq, reseq);
+            assert_eq!(expne, resne);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 18);
-        let _ = bvs[0].clone()
+        let expeq = bvs[0].clone()
             & bvs[1].clone()
             & bvs[2].clone()
             & !bvs[3].clone()
@@ -801,7 +803,7 @@ mod tests {
             & !bvs[6].clone()
             & bvs[7].clone()
             & !bvs[8].clone();
-        let _ = bvs[9].clone()
+        let expne = bvs[9].clone()
             | !bvs[10].clone()
             | bvs[11].clone()
             | !bvs[12].clone()
@@ -815,22 +817,26 @@ mod tests {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
-            let _ = x1.equal(135);
-            let _ = x2.nequal(74);
+            let reseq = x1.equal(135);
+            let resne = x2.nequal(74);
+            assert_eq!(expeq, reseq);
+            assert_eq!(expne, resne);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
-            let _ = 135.equal(x1);
-            let _ = 74.nequal(x2);
+            let reseq = 135.equal(x1);
+            let resne = 74.nequal(x2);
+            assert_eq!(expeq, reseq);
+            assert_eq!(expne, resne);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 18);
-        let _ = bvs[0].clone()
+        let expeq = bvs[0].clone()
             & bvs[1].clone()
             & bvs[2].clone()
             & !bvs[3].clone()
@@ -839,7 +845,7 @@ mod tests {
             & !bvs[6].clone()
             & bvs[7].clone()
             & bvs[8].clone();
-        let _ = bvs[9].clone()
+        let expne = bvs[9].clone()
             | !bvs[10].clone()
             | bvs[11].clone()
             | !bvs[12].clone()
@@ -852,16 +858,20 @@ mod tests {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, true>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
-            let _ = x1.equal(-121);
-            let _ = x2.nequal(-54);
+            let reseq = x1.equal(-121);
+            let resne = x2.nequal(-54);
+            assert_eq!(expeq, reseq);
+            assert_eq!(expne, resne);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U9, true>::variable(ec.clone());
             let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
-            let _ = (-121).equal(x1);
-            let _ = (-54).nequal(x2);
+            let reseq = (-121).equal(x1);
+            let resne = (-54).nequal(x2);
+            assert_eq!(expeq, reseq);
+            assert_eq!(expne, resne);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
@@ -891,24 +901,28 @@ mod tests {
                 .into_iter()
                 .map(|_| ExprNode::<isize, U5, false>::variable(ec.clone()))
                 .collect::<Vec<_>>();
-            let _ = xv[0].clone().less_than(xv[1].clone());
-            let _ = xv[2].clone().less_equal(xv[3].clone());
-            let _ = xv[4].clone().greater_than(xv[5].clone());
-            let _ = xv[6].clone().greater_equal(xv[7].clone());
+            let reslt = xv[0].clone().less_than(xv[1].clone());
+            let resle = xv[2].clone().less_equal(xv[3].clone());
+            let resgt = xv[4].clone().greater_than(xv[5].clone());
+            let resge = xv[6].clone().greater_equal(xv[7].clone());
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 40);
-            gen_less_x_chain(&bvs[0..5], &bvs[5..10], false);
-            gen_less_x_chain(&bvs[10..15], &bvs[15..20], true);
-            gen_less_x_chain(&bvs[25..30], &bvs[20..25], false);
-            gen_less_x_chain(&bvs[35..40], &bvs[30..35], true);
+            let explt = gen_less_x_chain(&bvs[0..5], &bvs[5..10], false);
+            let exple = gen_less_x_chain(&bvs[10..15], &bvs[15..20], true);
+            let expgt = gen_less_x_chain(&bvs[25..30], &bvs[20..25], false);
+            let expge = gen_less_x_chain(&bvs[35..40], &bvs[30..35], true);
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 40);
-        gen_less_x_chain(
+        let explt = gen_less_x_chain(
             &bvs[0..10],
             (0..10)
                 .into_iter()
@@ -917,7 +931,7 @@ mod tests {
                 .as_slice(),
             false,
         );
-        gen_less_x_chain(
+        let exple = gen_less_x_chain(
             &bvs[10..20],
             (0..10)
                 .into_iter()
@@ -926,7 +940,7 @@ mod tests {
                 .as_slice(),
             true,
         );
-        gen_less_x_chain(
+        let expgt = gen_less_x_chain(
             (0..10)
                 .into_iter()
                 .map(|i| BoolExprNode::single_value(exp_ec.clone(), (79 & (1 << i)) != 0))
@@ -935,7 +949,7 @@ mod tests {
             &bvs[20..30],
             false,
         );
-        gen_less_x_chain(
+        let expge = gen_less_x_chain(
             (0..10)
                 .into_iter()
                 .map(|i| BoolExprNode::single_value(exp_ec.clone(), (210 & (1 << i)) != 0))
@@ -952,11 +966,15 @@ mod tests {
             let x3 = ExprNode::<isize, U10, false>::variable(ec.clone());
             let x4 = ExprNode::<isize, U10, false>::variable(ec.clone());
 
-            let _ = x1.clone().less_than(155);
-            let _ = x2.clone().less_equal(51);
-            let _ = x3.clone().greater_than(79);
-            let _ = x4.clone().greater_equal(210);
+            let reslt = x1.clone().less_than(155);
+            let resle = x2.clone().less_equal(51);
+            let resgt = x3.clone().greater_than(79);
+            let resge = x4.clone().greater_equal(210);
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
@@ -966,11 +984,15 @@ mod tests {
             let x3 = ExprNode::<isize, U10, false>::variable(ec.clone());
             let x4 = ExprNode::<isize, U10, false>::variable(ec.clone());
 
-            let _ = 155.greater_than(x1.clone());
-            let _ = 51.greater_equal(x2.clone());
-            let _ = 79.less_than(x3.clone());
-            let _ = 210.less_equal(x4.clone());
+            let reslt = 155.greater_than(x1.clone());
+            let resle = 51.greater_equal(x2.clone());
+            let resgt = 79.less_than(x3.clone());
+            let resge = 210.less_equal(x4.clone());
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
@@ -983,29 +1005,33 @@ mod tests {
                 .into_iter()
                 .map(|_| ExprNode::<isize, U5, true>::variable(ec.clone()))
                 .collect::<Vec<_>>();
-            let _ = xv[0].clone().less_than(xv[1].clone());
-            let _ = xv[2].clone().less_equal(xv[3].clone());
-            let _ = xv[4].clone().greater_than(xv[5].clone());
-            let _ = xv[6].clone().greater_equal(xv[7].clone());
+            let reslt = xv[0].clone().less_than(xv[1].clone());
+            let resle = xv[2].clone().less_equal(xv[3].clone());
+            let resgt = xv[4].clone().greater_than(xv[5].clone());
+            let resge = xv[6].clone().greater_equal(xv[7].clone());
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 40);
-            let _ = (bvs[4].clone() & !bvs[9].clone())
+            let explt = (bvs[4].clone() & !bvs[9].clone())
                 | (bvs[4].clone().bequal(bvs[9].clone())
                     & gen_less_x_chain(&bvs[0..4], &bvs[5..9], false));
 
-            let _ = (bvs[14].clone() & !bvs[19].clone())
+            let exple = (bvs[14].clone() & !bvs[19].clone())
                 | (bvs[14].clone().bequal(bvs[19].clone())
                     & gen_less_x_chain(&bvs[10..14], &bvs[15..19], true));
 
-            let _ = (bvs[29].clone() & !bvs[24].clone())
+            let expgt = (bvs[29].clone() & !bvs[24].clone())
                 | (bvs[29].clone().bequal(bvs[24].clone())
                     & gen_less_x_chain(&bvs[25..29], &bvs[20..24], false));
 
-            let _ = (bvs[39].clone() & !bvs[34].clone())
+            let expge = (bvs[39].clone() & !bvs[34].clone())
                 | (bvs[39].clone().bequal(bvs[34].clone())
                     & gen_less_x_chain(&bvs[35..39], &bvs[30..34], true));
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
@@ -1013,7 +1039,7 @@ mod tests {
         let bvs = alloc_boolvars(exp_ec.clone(), 40);
         let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
         let bntrue = BoolExprNode::single_value(exp_ec.clone(), true);
-        let _ = (bvs[9].clone() & !bntrue.clone())
+        let explt = (bvs[9].clone() & !bntrue.clone())
             | (bvs[9].clone().bequal(bntrue.clone())
                 & gen_less_x_chain(
                     &bvs[0..9],
@@ -1024,7 +1050,7 @@ mod tests {
                         .as_slice(),
                     false,
                 ));
-        let _ = (bvs[19].clone() & !bnfalse.clone())
+        let exple = (bvs[19].clone() & !bnfalse.clone())
             | (bvs[19].clone().bequal(bnfalse.clone())
                 & gen_less_x_chain(
                     &bvs[10..19],
@@ -1035,7 +1061,7 @@ mod tests {
                         .as_slice(),
                     true,
                 ));
-        let _ = (bntrue.clone() & !bvs[29].clone())
+        let expgt = (bntrue.clone() & !bvs[29].clone())
             | (bntrue.clone().bequal(bvs[29].clone())
                 & gen_less_x_chain(
                     (0..9)
@@ -1046,7 +1072,7 @@ mod tests {
                     &bvs[20..29],
                     false,
                 ));
-        let _ = (bnfalse.clone() & !bvs[39].clone())
+        let expge = (bnfalse.clone() & !bvs[39].clone())
             | (bnfalse.clone().bequal(bvs[39].clone())
                 & gen_less_x_chain(
                     (0..9)
@@ -1065,11 +1091,15 @@ mod tests {
             let x3 = ExprNode::<isize, U10, true>::variable(ec.clone());
             let x4 = ExprNode::<isize, U10, true>::variable(ec.clone());
 
-            let _ = x1.clone().less_than(-42);
-            let _ = x2.clone().less_equal(75);
-            let _ = x3.clone().greater_than(-89);
-            let _ = x4.clone().greater_equal(52);
+            let reslt = x1.clone().less_than(-42);
+            let resle = x2.clone().less_equal(75);
+            let resgt = x3.clone().greater_than(-89);
+            let resge = x4.clone().greater_equal(52);
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
@@ -1079,11 +1109,15 @@ mod tests {
             let x3 = ExprNode::<isize, U10, true>::variable(ec.clone());
             let x4 = ExprNode::<isize, U10, true>::variable(ec.clone());
 
-            let _ = (-42).greater_than(x1.clone());
-            let _ = 75.greater_equal(x2.clone());
-            let _ = (-89).less_than(x3.clone());
-            let _ = 52.less_equal(x4.clone());
+            let reslt = (-42).greater_than(x1.clone());
+            let resle = 75.greater_equal(x2.clone());
+            let resgt = (-89).less_than(x3.clone());
+            let resge = 52.less_equal(x4.clone());
 
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
