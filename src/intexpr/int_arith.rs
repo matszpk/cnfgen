@@ -62,7 +62,7 @@ where
         let mut c = in_carry;
         for i in 0..N::USIZE {
             (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
                 (s0.index, c0)
             };
         }
@@ -80,7 +80,7 @@ where
         let mut c = in_carry;
         for i in 0..N::USIZE - 1 {
             (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
                 (s0.index, c0)
             };
         }
@@ -124,7 +124,7 @@ where
         let mut c = BoolExprNode::new(self.creator.clone(), 0); // false
         for i in 0..N::USIZE - 1 {
             (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), rhs.bit(i), c);
+                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
                 (s0.index, c0)
             };
         }
@@ -213,7 +213,7 @@ where
         let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
         for i in 0..N::USIZE - 1 {
             (output[i], c) = {
-                let (s0, c0) = full_adder(self.bit(i), !rhs.bit(i), c);
+                let (s0, c0) = opt_full_adder(self.bit(i), !rhs.bit(i), c);
                 (s0.index, c0)
             };
         }
@@ -288,7 +288,7 @@ where
                     if coli + 1 < matrixlen {
                         let (s, c) = if src + 2 < col.len() {
                             // full adder
-                            full_adder(a, b, BoolExprNode::new(creator.clone(), col[src + 2]))
+                            opt_full_adder(a, b, BoolExprNode::new(creator.clone(), col[src + 2]))
                         } else {
                             // half adder
                             half_adder(a, b)
@@ -321,7 +321,7 @@ where
     let mut c = BoolExprNode::new(creator.clone(), 0); // false
     for (i, col) in matrix.iter().enumerate() {
         (output[i], c) = if col.len() == 2 {
-            let (s0, c0) = full_adder(
+            let (s0, c0) = opt_full_adder(
                 BoolExprNode::new(creator.clone(), col[0]),
                 BoolExprNode::new(creator.clone(), col[1]),
                 c,

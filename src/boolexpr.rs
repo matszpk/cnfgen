@@ -795,6 +795,24 @@ where
     (s0.clone() ^ c.clone(), (s0 & c) | (a & b))
 }
 
+pub fn opt_full_adder<T>(a: ExprNode<T>, b: ExprNode<T>, c: ExprNode<T>) ->
+        (ExprNode<T>, ExprNode<T>)
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    if a.value().is_some() {
+        full_adder(b, c, a)
+    } else if b.value().is_some() {
+        full_adder(a, c, b)
+    } else {
+        full_adder(a, b, c)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
