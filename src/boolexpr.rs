@@ -795,8 +795,11 @@ where
     (s0.clone() ^ c.clone(), (s0 & c) | (a & b))
 }
 
-pub fn opt_full_adder<T>(a: ExprNode<T>, b: ExprNode<T>, c: ExprNode<T>) ->
-        (ExprNode<T>, ExprNode<T>)
+pub fn opt_full_adder<T>(
+    a: ExprNode<T>,
+    b: ExprNode<T>,
+    c: ExprNode<T>,
+) -> (ExprNode<T>, ExprNode<T>)
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -1279,7 +1282,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_ite() {
+    fn test_expr_bool_ite() {
         let ec = ExprCreator::<isize>::new();
         let v1 = ExprNode::variable(ec.clone());
         let v2 = ExprNode::variable(ec.clone());
@@ -1302,6 +1305,141 @@ mod tests {
             },
             *ec.borrow()
         );
+    }
+
+    #[test]
+    fn test_expr_half_adder() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let (s, c) = half_adder(v1, v2);
+        assert_eq!(4, s.index);
+        assert_eq!(5, c.index);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Xor(2, 3),
+                    Node::And(2, 3),
+                ],
+                lit_to_index: vec![2, 0, 3, 0],
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_full_adder() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = ExprNode::variable(ec.clone());
+        let v2 = ExprNode::variable(ec.clone());
+        let v3 = ExprNode::variable(ec.clone());
+        let (s, c) = full_adder(v1, v2, v3);
+        assert_eq!(6, s.index);
+        assert_eq!(9, c.index);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::Xor(2, 3),
+                    Node::Xor(5, 4),
+                    Node::And(5, 4),
+                    Node::And(2, 3),
+                    Node::Or(7, 8),
+                ],
+                lit_to_index: vec![2, 0, 3, 0, 4, 0],
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_opt_full_adder() {
+        let exp_ec = ExprCreator {
+            nodes: vec![
+                Node::Single(Literal::Value(false)),
+                Node::Single(Literal::Value(true)),
+                Node::Single(Literal::VarLit(1)),
+                Node::Single(Literal::VarLit(2)),
+                Node::Xor(2, 3),
+                Node::And(2, 3),
+            ],
+            lit_to_index: vec![2, 0, 3, 0],
+        };
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, v2, ExprNode::single_value(ec.clone(), false));
+            assert_eq!(4, s.index);
+            assert_eq!(5, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, ExprNode::single_value(ec.clone(), false), v2);
+            assert_eq!(4, s.index);
+            assert_eq!(5, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(ExprNode::single_value(ec.clone(), false), v1, v2);
+            assert_eq!(4, s.index);
+            assert_eq!(5, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
+        let exp_ec = ExprCreator {
+            nodes: vec![
+                Node::Single(Literal::Value(false)),
+                Node::Single(Literal::Value(true)),
+                Node::Single(Literal::VarLit(1)),
+                Node::Single(Literal::VarLit(2)),
+                Node::Xor(2, 3),
+                Node::Negated(4),
+                Node::And(2, 3),
+                Node::Or(4, 6),
+            ],
+            lit_to_index: vec![2, 0, 3, 0],
+        };
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, v2, ExprNode::single_value(ec.clone(), true));
+            assert_eq!(5, s.index);
+            assert_eq!(7, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, ExprNode::single_value(ec.clone(), true), v2);
+            assert_eq!(5, s.index);
+            assert_eq!(7, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::<isize>::new();
+            let v1 = ExprNode::variable(ec.clone());
+            let v2 = ExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(ExprNode::single_value(ec.clone(), true), v1, v2);
+            assert_eq!(5, s.index);
+            assert_eq!(7, c.index);
+            assert_eq!(exp_ec, *ec.borrow());
+        }
     }
 
     #[test]

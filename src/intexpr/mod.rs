@@ -30,7 +30,7 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, opt_full_adder, half_adder};
+use crate::boolexpr::{bool_ite, half_adder, opt_full_adder};
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
 use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
 
