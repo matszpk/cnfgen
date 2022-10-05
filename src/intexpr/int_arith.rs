@@ -301,18 +301,18 @@ where
                 while src < col.len() {
                     let a = BoolExprNode::new(creator.clone(), col[src]);
                     let b = BoolExprNode::new(creator.clone(), col[src + 1]);
-                    if src + 2 < col.len() {
-                        println!(
-                            "cell: {}: {}: {} {} {}",
-                            new_column_size,
-                            coli,
-                            src,
-                            src + 1,
-                            src + 2
-                        );
-                    } else {
-                        println!("cell: {}: {}: {} {}", new_column_size, coli, src, src + 1);
-                    }
+                    // if src + 2 < col.len() {
+                    //     println!(
+                    //         "cell: {}: {}: {} {} {}",
+                    //         new_column_size,
+                    //         coli,
+                    //         src,
+                    //         src + 1,
+                    //         src + 2
+                    //     );
+                    // } else {
+                    //     println!("cell: {}: {}: {} {}", new_column_size, coli, src, src + 1);
+                    // }
                     if coli + 1 < matrixlen {
                         let (s, c) = if src + 2 < col.len() {
                             // full adder
@@ -1284,6 +1284,95 @@ mod tests {
             };
             let exp = a + b;
 
+            assert_eq!(exp.indexes.as_slice(), res.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let bvs = alloc_boolvars(ec.clone(), 5 * 7);
+            let mut matrix = vec![
+                vec![bvs[0].index],
+                vec![bvs[1].index, bvs[2].index],
+                vec![bvs[3].index, bvs[4].index, bvs[5].index],
+                vec![bvs[6].index, bvs[7].index, bvs[8].index, bvs[9].index],
+                vec![bvs[10].index, bvs[11].index, bvs[12].index, bvs[13].index, bvs[14].index],
+                vec![bvs[15].index, bvs[16].index, bvs[17].index, bvs[18].index, bvs[19].index],
+                vec![bvs[20].index, bvs[21].index, bvs[22].index, bvs[23].index, bvs[24].index],
+                vec![bvs[25].index, bvs[26].index, bvs[27].index, bvs[28].index],
+                vec![bvs[29].index, bvs[30].index, bvs[31].index],
+                vec![bvs[32].index, bvs[33].index],
+                vec![bvs[34].index],
+            ];
+            let res = gen_dadda_mult(ec.clone(), &mut matrix);
+            
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 5 * 7);
+            //            14 19 24
+            //          9 13 18 23 28
+            //       5  8 12 17 22 27 31
+            //    2  4  7 11 16 21 26 30 33
+            // 0  1  3  6 10 15 20 25 29 32 34
+            let (s0, c0) = half_adder(bvs[13].clone(), bvs[14].clone());
+            let (s1, c1) = opt_full_adder(bvs[17].clone(), bvs[18].clone(), bvs[19].clone());
+            let (s2, c2) = opt_full_adder(bvs[22].clone(), bvs[23].clone(), bvs[24].clone());
+            let (s3, c3) = half_adder(bvs[27].clone(), bvs[28].clone());
+            //          9 s0 c0 c1 c2 c3
+            //       5  8 12 s1 s2 s3 31
+            //    2  4  7 11 16 21 26 30 33
+            // 0  1  3  6 10 15 20 25 29 32 34
+            let (s0_2, c0_2) = half_adder(bvs[8].clone(), bvs[9].clone());
+            let (s1_2, c1_2) = opt_full_adder(bvs[11].clone(), bvs[12].clone(), s0);
+            let (s2_2, c2_2) = opt_full_adder(bvs[16].clone(), s1, c0);
+            let (s3_2, c3_2) = opt_full_adder(bvs[21].clone(), s2, c1);
+            let (s4_2, c4_2) = opt_full_adder(bvs[26].clone(), s3, c2);
+            let (s5_2, c5_2) = opt_full_adder(bvs[30].clone(), bvs[31].clone(), c3);
+            //       5 s0 c0 c1 c2 c3 c4 c5
+            //    2  4  7 s1 s2 s3 s4 s5 33
+            // 0  1  3  6 10 15 20 25 29 32 34
+            let (s0_3, c0_3) = half_adder(bvs[4].clone(), bvs[5].clone());
+            let (s1_3, c1_3) = opt_full_adder(bvs[6].clone(), bvs[7].clone(), s0_2);
+            let (s2_3, c2_3) = opt_full_adder(bvs[10].clone(), s1_2, c0_2);
+            let (s3_3, c3_3) = opt_full_adder(bvs[15].clone(), s2_2, c1_2);
+            let (s4_3, c4_3) = opt_full_adder(bvs[20].clone(), s3_2, c2_2);
+            let (s5_3, c5_3) = opt_full_adder(bvs[25].clone(), s4_2, c3_2);
+            let (s6_3, c6_3) = opt_full_adder(bvs[29].clone(), s5_2, c4_2);
+            let (s7_3, c7_3) = opt_full_adder(bvs[32].clone(), bvs[33].clone(), c5_2);
+            //    2 s0 c0 c1 c2 c3 c4 c5 c6 c7
+            // 0  1  3 s1 s2 s3 s4 s5 s6 s7 34
+            let a = ExprNode::<isize, U11, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    bvs[0].index,
+                    bvs[1].index,
+                    bvs[3].index,
+                    s1_3.index,
+                    s2_3.index,
+                    s3_3.index,
+                    s4_3.index,
+                    s5_3.index,
+                    s6_3.index,
+                    s7_3.index,
+                    bvs[34].index,
+                ]),
+            };
+            let b = ExprNode::<isize, U11, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    0,
+                    bvs[2].index,
+                    s0_3.index,
+                    c0_3.index,
+                    c1_3.index,
+                    c2_3.index,
+                    c3_3.index,
+                    c4_3.index,
+                    c5_3.index,
+                    c6_3.index,
+                    c7_3.index,
+                ]),
+            };
+            let exp = a + b;
+            
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
