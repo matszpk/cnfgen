@@ -798,18 +798,121 @@ mod tests {
         assert_eq!(exp.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
-    
+
     #[test]
     fn test_expr_node_abs() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
         let res = x1.abs();
-        
+
         let exp_ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
         let exp = int_ite(x1.bit(9), -x1.clone(), x1.clone());
-        
+
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_add_primitives() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U5, false>::variable(ec.clone());
+            let c1 = BoolExprNode::variable(ec.clone());
+            let res = x1.addc_with_carry(x2, c1);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 11);
+            let mut temp = vec![];
+            temp.push(opt_full_adder(
+                bvs[0].clone(),
+                bvs[5].clone(),
+                bvs[10].clone(),
+            ));
+            temp.push(opt_full_adder(
+                bvs[1].clone(),
+                bvs[6].clone(),
+                temp[0].clone().1,
+            ));
+            temp.push(opt_full_adder(
+                bvs[2].clone(),
+                bvs[7].clone(),
+                temp[1].clone().1,
+            ));
+            temp.push(opt_full_adder(
+                bvs[3].clone(),
+                bvs[8].clone(),
+                temp[2].clone().1,
+            ));
+            temp.push(opt_full_adder(
+                bvs[4].clone(),
+                bvs[9].clone(),
+                temp[3].clone().1,
+            ));
+            let exp = temp.iter().map(|x| x.0.index).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.0.indexes.as_slice());
+            assert_eq!(temp[4].1.index, res.1.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U5, false>::variable(ec.clone());
+            let c1 = BoolExprNode::variable(ec.clone());
+            let res = x1.addc(x2, c1);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 11);
+            let mut temp = vec![];
+
+            let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
+            temp.push(opt_full_adder(
+                bvs[0].clone(),
+                bvs[5].clone(),
+                bvs[10].clone(),
+            ));
+            temp.push(opt_full_adder(
+                bvs[1].clone(),
+                bvs[6].clone(),
+                temp[0].clone().1,
+            ));
+            temp.push(opt_full_adder(
+                bvs[2].clone(),
+                bvs[7].clone(),
+                temp[1].clone().1,
+            ));
+            temp.push(opt_full_adder(
+                bvs[3].clone(),
+                bvs[8].clone(),
+                temp[2].clone().1,
+            ));
+            temp.push((bvs[4].clone() ^ bvs[9].clone() ^ temp[3].clone().1, bnfalse));
+            let exp = temp.iter().map(|x| x.0.index).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U5, true>::variable(ec.clone());
+            let c1 = BoolExprNode::variable(ec.clone());
+            let res = x1.add_same_carry(c1);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 6);
+            let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
+            let mut temp = vec![];
+            temp.push(half_adder(bvs[0].clone(), bvs[5].clone()));
+            temp.push(half_adder(bvs[1].clone(), temp[0].clone().1));
+            temp.push(half_adder(bvs[2].clone(), temp[1].clone().1));
+            temp.push(half_adder(bvs[3].clone(), temp[2].clone().1));
+            temp.push((bvs[4].clone() ^ temp[3].clone().1, bnfalse));
+            let exp = temp.iter().map(|x| x.0.index).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
     }
 }
