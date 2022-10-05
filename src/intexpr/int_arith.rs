@@ -561,10 +561,10 @@ where
             self.creator.clone(),
             &rhs.indexes,
             &divres.indexes,
-            2*N::USIZE,
+            2 * N::USIZE,
         );
         let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        
+
         // modv - division modulo
         let modv = ExprNode::<T, N, false>::variable(self.creator.clone());
         let modv_cond = modv.clone().less_than(rhs);
@@ -1711,22 +1711,25 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
-    
+
     fn divmod_u10_unsigned(
         x1: ExprNode<isize, U10, false>,
-        x2: ExprNode<isize, U10, false>
-    ) -> (ExprNode<isize, U10, false>, ExprNode<isize, U10, false>, BoolExprNode<isize>) {
+        x2: ExprNode<isize, U10, false>,
+    ) -> (
+        ExprNode<isize, U10, false>,
+        ExprNode<isize, U10, false>,
+        BoolExprNode<isize>,
+    ) {
         let exp_ec = x1.creator.clone();
         let res = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
         let mul = x2.clone().fullmul(res.clone());
         let modv = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
         let modv_cond = modv.clone().less_than(x2.clone());
         let mulsum = mul + ExprNode::<isize, U20, false>::from(modv.clone());
-        let mul_cond = mulsum.subvalue::<U10>(0).equal(x1) &
-                mulsum.subvalue::<U10>(10).equal(0);
+        let mul_cond = mulsum.subvalue::<U10>(0).equal(x1) & mulsum.subvalue::<U10>(10).equal(0);
         (res, modv, modv_cond & mul_cond)
     }
-    
+
     #[test]
     fn test_expr_node_divmod_unsigned() {
         {
@@ -1740,9 +1743,57 @@ mod tests {
             let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
             let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
 
-            assert_eq!(exp_divr.indexes.as_slice(), divr.unwrap().indexes.as_slice());
-            assert_eq!(exp_modr.indexes.as_slice(), modr.unwrap().indexes.as_slice());
-            //assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(
+                exp_divr.indexes.as_slice(),
+                divr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(
+                exp_modr.indexes.as_slice(),
+                modr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let (divr, modr, cond) = x1.divmod(57, true, true);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 57);
+            let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
+
+            assert_eq!(
+                exp_divr.indexes.as_slice(),
+                divr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(
+                exp_modr.indexes.as_slice(),
+                modr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let (divr, modr, cond) = (97).divmod(x1, true, true);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 97);
+            let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x2, x1);
+
+            assert_eq!(
+                exp_divr.indexes.as_slice(),
+                divr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(
+                exp_modr.indexes.as_slice(),
+                modr.unwrap().indexes.as_slice()
+            );
+            assert_eq!(exp_cond.index, cond.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
