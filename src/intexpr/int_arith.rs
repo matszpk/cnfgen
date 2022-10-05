@@ -1483,4 +1483,72 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
+
+    macro_rules! test_expr_node_mul_and_assign_xx {
+        ($sign:expr, $imm1:expr, $imm2:expr) => {{
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let res = x1 * x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out *= x2;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let mut matrix = gen_dadda_matrix(exp_ec.clone(), &x1.indexes, &x2.indexes, 10);
+            let exp = gen_dadda_mult(exp_ec.clone(), &mut matrix);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let res = x1 * ($imm1);
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out *= ($imm1);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm1);
+            let mut matrix = gen_dadda_matrix(exp_ec.clone(), &x1.indexes, &x2.indexes, 10);
+            let exp = gen_dadda_mult(exp_ec.clone(), &mut matrix);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let res = ($imm2) * x1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm2);
+            let mut matrix = gen_dadda_matrix(exp_ec.clone(), &x2.indexes, &x1.indexes, 10);
+            let exp = gen_dadda_mult(exp_ec.clone(), &mut matrix);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    #[test]
+    fn test_expr_node_mul_and_assign() {
+        test_expr_node_mul_and_assign_xx!(false, 167, 116);
+        test_expr_node_mul_and_assign_xx!(true, 83, 38);
+        test_expr_node_mul_and_assign_xx!(true, -69, -121);
+    }
 }
