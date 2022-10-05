@@ -363,8 +363,10 @@ where
     let col = matrix.last().unwrap();
     output[matrix.len() - 1] = if col.len() == 2 {
         BoolExprNode::new(creator.clone(), col[0]) ^ BoolExprNode::new(creator, col[1]) ^ c
-    } else {
+    } else if col.len() == 1 {
         BoolExprNode::new(creator, col[0]) ^ c
+    } else {
+        c
     }
     .index;
 
@@ -1254,6 +1256,57 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
+            let bvs = alloc_boolvars(ec.clone(), 4 * 3);
+            let mut matrix = vec![
+                vec![bvs[0].index],
+                vec![bvs[1].index, bvs[2].index],
+                vec![bvs[3].index, bvs[4].index, bvs[5].index],
+                vec![bvs[6].index, bvs[7].index, bvs[8].index],
+                vec![bvs[9].index, bvs[10].index],
+                vec![bvs[11].index],
+                vec![],
+            ];
+            let res = gen_dadda_mult(ec.clone(), &mut matrix);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 4 * 3);
+            //       5  8
+            //    2  4  7 10
+            // 0  1  3  6  9 11
+            let (s0, c0) = half_adder(bvs[4].clone(), bvs[5].clone());
+            let (s1, c1) = opt_full_adder(bvs[6].clone(), bvs[7].clone(), bvs[8].clone());
+            let (s2, c2) = half_adder(bvs[9].clone(), bvs[10].clone());
+            let a = ExprNode::<isize, U7, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    bvs[0].index,
+                    bvs[1].index,
+                    bvs[3].index,
+                    s1.index,
+                    s2.index,
+                    bvs[11].index,
+                    0,
+                ]),
+            };
+            let b = ExprNode::<isize, U7, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    0,
+                    bvs[2].index,
+                    s0.index,
+                    c0.index,
+                    c1.index,
+                    c2.index,
+                    0,
+                ]),
+            };
+            let exp = a + b;
+
+            assert_eq!(exp.indexes.as_slice(), res.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
             let bvs = alloc_boolvars(ec.clone(), 4 * 5);
             let mut matrix = vec![
                 vec![bvs[0].index],
@@ -1550,5 +1603,22 @@ mod tests {
         test_expr_node_mul_and_assign_xx!(false, 167, 116);
         test_expr_node_mul_and_assign_xx!(true, 83, 38);
         test_expr_node_mul_and_assign_xx!(true, -69, -121);
+    }
+    
+    #[test]
+    fn test_expr_node_fullmul_unsigned() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+        let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+        let res = x1.fullmul(x2);
+        
+        let exp_ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let mut matrix = gen_dadda_matrix(exp_ec.clone(), &x1.indexes, &x2.indexes, 20);
+        let exp = gen_dadda_mult(exp_ec.clone(), &mut matrix);
+
+        assert_eq!(exp.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 }
