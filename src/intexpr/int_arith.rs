@@ -293,7 +293,7 @@ where
     let matrixlen = matrix.len();
     for new_column_size in step_sizes.iter().rev() {
         for (coli, col) in matrix.iter_mut().enumerate() {
-            extracol.clear();
+            next_extracol.clear();
             if col.len() + extracol.len() > *new_column_size {
                 let cells_to_reduce = extracol.len() + col.len() - *new_column_size;
                 let mut src = col.len() - cells_to_reduce - ((cells_to_reduce + 1) >> 1);
@@ -301,6 +301,18 @@ where
                 while src < col.len() {
                     let a = BoolExprNode::new(creator.clone(), col[src]);
                     let b = BoolExprNode::new(creator.clone(), col[src + 1]);
+                    if src + 2 < col.len() {
+                        println!(
+                            "cell: {}: {}: {} {} {}",
+                            new_column_size,
+                            coli,
+                            src,
+                            src + 1,
+                            src + 2
+                        );
+                    } else {
+                        println!("cell: {}: {}: {} {}", new_column_size, coli, src, src + 1);
+                    }
                     if coli + 1 < matrixlen {
                         let (s, c) = if src + 2 < col.len() {
                             // full adder
@@ -335,7 +347,7 @@ where
     // last phase
     let mut output = vec![0; matrix.len()];
     let mut c = BoolExprNode::new(creator.clone(), 0); // false
-    for (i, col) in matrix.iter().enumerate() {
+    for (i, col) in matrix.iter().enumerate().take(matrix.len() - 1) {
         (output[i], c) = if col.len() == 2 {
             let (s0, c0) = opt_full_adder(
                 BoolExprNode::new(creator.clone(), col[0]),
@@ -1158,5 +1170,58 @@ mod tests {
             assert_eq!(exp, res);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+    }
+
+    #[test]
+    fn test_gen_dadda_mult() {
+        let ec = ExprCreator::new();
+        let bvs = alloc_boolvars(ec.clone(), 4 * 3);
+        let mut matrix = vec![
+            vec![bvs[0].index],
+            vec![bvs[1].index, bvs[2].index],
+            vec![bvs[3].index, bvs[4].index, bvs[5].index],
+            vec![bvs[6].index, bvs[7].index, bvs[8].index],
+            vec![bvs[9].index, bvs[10].index],
+            vec![bvs[11].index],
+        ];
+        let res = gen_dadda_mult(ec.clone(), &mut matrix);
+
+        println!("{:?}", res);
+        println!("{:?}", *ec.borrow());
+
+        let exp_ec = ExprCreator::new();
+        let bvs = alloc_boolvars(exp_ec.clone(), 4 * 3);
+        //       5  8
+        //    2  4  7 10
+        // 0  1  3  6  9 11
+        let (s0, c0) = half_adder(bvs[4].clone(), bvs[5].clone());
+        let (s1, c1) = opt_full_adder(bvs[6].clone(), bvs[7].clone(), bvs[8].clone());
+        let (s2, c2) = half_adder(bvs[9].clone(), bvs[10].clone());
+        let a = ExprNode::<isize, U6, false> {
+            creator: exp_ec.clone(),
+            indexes: GenericArray::clone_from_slice(&[
+                bvs[0].index,
+                bvs[1].index,
+                bvs[3].index,
+                s1.index,
+                s2.index,
+                bvs[11].index,
+            ]),
+        };
+        let b = ExprNode::<isize, U6, false> {
+            creator: exp_ec.clone(),
+            indexes: GenericArray::clone_from_slice(&[
+                0,
+                bvs[2].index,
+                s0.index,
+                c0.index,
+                c1.index,
+                c2.index,
+            ]),
+        };
+        let exp = a + b;
+
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        assert_eq!(exp.indexes.as_slice(), res.as_slice());
     }
 }
