@@ -1295,16 +1295,34 @@ mod tests {
                 vec![bvs[1].index, bvs[2].index],
                 vec![bvs[3].index, bvs[4].index, bvs[5].index],
                 vec![bvs[6].index, bvs[7].index, bvs[8].index, bvs[9].index],
-                vec![bvs[10].index, bvs[11].index, bvs[12].index, bvs[13].index, bvs[14].index],
-                vec![bvs[15].index, bvs[16].index, bvs[17].index, bvs[18].index, bvs[19].index],
-                vec![bvs[20].index, bvs[21].index, bvs[22].index, bvs[23].index, bvs[24].index],
+                vec![
+                    bvs[10].index,
+                    bvs[11].index,
+                    bvs[12].index,
+                    bvs[13].index,
+                    bvs[14].index,
+                ],
+                vec![
+                    bvs[15].index,
+                    bvs[16].index,
+                    bvs[17].index,
+                    bvs[18].index,
+                    bvs[19].index,
+                ],
+                vec![
+                    bvs[20].index,
+                    bvs[21].index,
+                    bvs[22].index,
+                    bvs[23].index,
+                    bvs[24].index,
+                ],
                 vec![bvs[25].index, bvs[26].index, bvs[27].index, bvs[28].index],
                 vec![bvs[29].index, bvs[30].index, bvs[31].index],
                 vec![bvs[32].index, bvs[33].index],
                 vec![bvs[34].index],
             ];
             let res = gen_dadda_mult(ec.clone(), &mut matrix);
-            
+
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 5 * 7);
             //            14 19 24
@@ -1372,7 +1390,7 @@ mod tests {
                 ]),
             };
             let exp = a + b;
-            
+
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
