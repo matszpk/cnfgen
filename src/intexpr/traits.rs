@@ -206,12 +206,7 @@ pub trait DivMod<Rhs = Self> {
     type Output;
     type OutputCond;
 
-    fn divmod(
-        self,
-        rhs: Rhs,
-        get_div: bool,
-        get_mod: bool,
-    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond);
+    fn divmod(self, rhs: Rhs) -> (Self::Output, Self::Output, Self::OutputCond);
 }
 
 macro_rules! impl_int_divmod_pty_pty {
@@ -220,24 +215,11 @@ macro_rules! impl_int_divmod_pty_pty {
             type Output = $pty;
             type OutputCond = bool;
 
-            fn divmod(
-                self,
-                rhs: Self,
-                get_div: bool,
-                get_mod: bool,
-            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+            fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
                 if let Some(divres) = self.checked_div(rhs) {
-                    (
-                        if get_div { Some(divres) } else { None },
-                        if get_mod { Some(self % rhs) } else { None },
-                        true,
-                    )
+                    (divres, self % rhs, true)
                 } else {
-                    (
-                        if get_div { Some(0) } else { None },
-                        if get_mod { Some(0) } else { None },
-                        false,
-                    )
+                    (0, 0, false)
                 }
             }
         }
@@ -695,26 +677,11 @@ mod tests {
 
     #[test]
     fn test_int_divmod_prim_types() {
-        assert_eq!(
-            134u8.divmod(31, true, true),
-            (Some(134 / 31), Some(134 % 31), true)
-        );
-        assert_eq!(134u8.divmod(31, true, false), (Some(134 / 31), None, true));
-        assert_eq!(134u8.divmod(31, false, true), (None, Some(134 % 31), true));
-        assert_eq!(134u8.divmod(31, false, false), (None, None, true));
-        assert_eq!(134u8.divmod(0, true, true), (Some(0), Some(0), false));
-        assert_eq!(
-            74i8.divmod(21, true, true),
-            (Some(74 / 21), Some(74 % 21), true)
-        );
-        assert_eq!(
-            42134u16.divmod(552, true, true),
-            (Some(42134 / 552), Some(42134 % 552), true)
-        );
-        assert_eq!(
-            (-22134i16).divmod(552, true, true),
-            (Some(-22134 / 552), Some(-22134 % 552), true)
-        );
+        assert_eq!(134u8.divmod(31), (134 / 31, 134 % 31, true));
+        assert_eq!(134u8.divmod(0), (0, 0, false));
+        assert_eq!(74i8.divmod(21), (74 / 21, 74 % 21, true));
+        assert_eq!(42134u16.divmod(552), (42134 / 552, 42134 % 552, true));
+        assert_eq!((-22134i16).divmod(552), (-22134 / 552, -22134 % 552, true));
     }
 
     #[test]

@@ -550,12 +550,7 @@ where
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn divmod(
-        self,
-        rhs: Self,
-        get_div: bool,
-        get_mod: bool,
-    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+    fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
         let divres = ExprNode::<T, N, false>::variable(self.creator.clone());
         let mut matrix = gen_dadda_matrix(
             self.creator.clone(),
@@ -587,11 +582,7 @@ where
         let creator = self.creator.clone();
         let mulres_cond = mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, false));
 
-        (
-            if get_div { Some(divres) } else { None },
-            if get_mod { Some(modv) } else { None },
-            modv_cond & mulres_cond,
-        )
+        (divres, modv, modv_cond & mulres_cond)
     }
 }
 
@@ -607,25 +598,18 @@ where
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn divmod(
-        self,
-        rhs: Self,
-        get_div: bool,
-        get_mod: bool,
-    ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+    fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
         let ua = self.clone().abs();
         let ub = rhs.clone().abs();
-        let (udiv, umod, cond) = ua.divmod(ub, get_div, get_mod);
+        let (udiv, umod, cond) = ua.divmod(ub);
         let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
         (
-            udiv.map(|udiv| {
-                int_ite(
-                    sign_a.clone() ^ sign_b,
-                    -(udiv.clone().as_signed()),
-                    udiv.as_signed(),
-                )
-            }),
-            umod.map(|umod| int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed())),
+            int_ite(
+                sign_a.clone() ^ sign_b,
+                -(udiv.clone().as_signed()),
+                udiv.as_signed(),
+            ),
+            int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
             cond,
         )
     }
@@ -649,11 +633,9 @@ macro_rules! impl_int_divmodall_pty {
             fn divmod(
                 self,
                 rhs: $pty,
-                get_div: bool,
-                get_mod: bool,
-            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+            ) -> (Self::Output, Self::Output, Self::OutputCond) {
                 let creator = self.creator.clone();
-                self.divmod(Self::constant(creator, rhs), get_div, get_mod)
+                self.divmod(Self::constant(creator, rhs))
             }
         }
 
@@ -673,11 +655,9 @@ macro_rules! impl_int_divmodall_pty {
             fn divmod(
                 self,
                 rhs: ExprNode<T, $ty, $sign>,
-                get_div: bool,
-                get_mod: bool,
-            ) -> (Option<Self::Output>, Option<Self::Output>, Self::OutputCond) {
+            ) -> (Self::Output, Self::Output, Self::OutputCond) {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, $sign>::constant(creator, self).divmod(rhs, get_div, get_mod)
+                ExprNode::<T, $ty, $sign>::constant(creator, self).divmod(rhs)
             }
         }
     }
@@ -713,8 +693,8 @@ macro_rules! impl_int_div_mod {
             type Output = (Self, BoolExprNode<T>);
 
             fn div(self, rhs: Self) -> Self::Output {
-                let (d, _, c) = self.divmod(rhs, true, false);
-                (d.unwrap(), c)
+                let (d, _, c) = self.divmod(rhs);
+                (d, c)
             }
         }
 
@@ -730,8 +710,8 @@ macro_rules! impl_int_div_mod {
             type Output = (Self, BoolExprNode<T>);
 
             fn rem(self, rhs: Self) -> Self::Output {
-                let (_, r, c) = self.divmod(rhs, false, true);
-                (r.unwrap(), c)
+                let (_, r, c) = self.divmod(rhs);
+                (r, c)
             }
         }
     };
@@ -1736,63 +1716,45 @@ mod tests {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let (divr, modr, cond) = x1.divmod(x2, true, true);
+            let (divr, modr, cond) = x1.divmod(x2);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
             let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
             let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
 
-            assert_eq!(
-                exp_divr.indexes.as_slice(),
-                divr.unwrap().indexes.as_slice()
-            );
-            assert_eq!(
-                exp_modr.indexes.as_slice(),
-                modr.unwrap().indexes.as_slice()
-            );
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
             assert_eq!(exp_cond.index, cond.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let (divr, modr, cond) = x1.divmod(57, true, true);
+            let (divr, modr, cond) = x1.divmod(57);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
             let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 57);
             let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
 
-            assert_eq!(
-                exp_divr.indexes.as_slice(),
-                divr.unwrap().indexes.as_slice()
-            );
-            assert_eq!(
-                exp_modr.indexes.as_slice(),
-                modr.unwrap().indexes.as_slice()
-            );
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
             assert_eq!(exp_cond.index, cond.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let (divr, modr, cond) = (97).divmod(x1, true, true);
+            let (divr, modr, cond) = (97).divmod(x1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
             let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 97);
             let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x2, x1);
 
-            assert_eq!(
-                exp_divr.indexes.as_slice(),
-                divr.unwrap().indexes.as_slice()
-            );
-            assert_eq!(
-                exp_modr.indexes.as_slice(),
-                modr.unwrap().indexes.as_slice()
-            );
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
             assert_eq!(exp_cond.index, cond.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
