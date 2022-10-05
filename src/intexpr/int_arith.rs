@@ -1710,18 +1710,17 @@ mod tests {
         (res, modv, modv_cond & mul_cond)
     }
 
-    #[test]
-    fn test_expr_node_divmod_unsigned() {
-        {
+    macro_rules! test_expr_node_divmod_xx {
+        ($sign:expr, $imm1:expr, $imm2:expr, $test_divmod:ident) => {{
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let (divr, modr, cond) = x1.divmod(x2);
 
             let exp_ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
-            let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let (exp_divr, exp_modr, exp_cond) = $test_divmod(x1, x2);
 
             assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
             assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
@@ -1730,13 +1729,13 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let (divr, modr, cond) = x1.divmod(57);
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, modr, cond) = x1.divmod($imm1);
 
             let exp_ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 57);
-            let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x1, x2);
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm1);
+            let (exp_divr, exp_modr, exp_cond) = $test_divmod(x1, x2);
 
             assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
             assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
@@ -1745,18 +1744,149 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let (divr, modr, cond) = (97).divmod(x1);
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, modr, cond) = ($imm2).divmod(x1);
 
             let exp_ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::constant(exp_ec.clone(), 97);
-            let (exp_divr, exp_modr, exp_cond) = divmod_u10_unsigned(x2, x1);
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm2);
+            let (exp_divr, exp_modr, exp_cond) = $test_divmod(x2, x1);
 
             assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
             assert_eq!(exp_modr.indexes.as_slice(), modr.indexes.as_slice());
             assert_eq!(exp_cond.index, cond.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    fn divmod_u10_signed(
+        x1: ExprNode<isize, U10, true>,
+        x2: ExprNode<isize, U10, true>,
+    ) -> (
+        ExprNode<isize, U10, true>,
+        ExprNode<isize, U10, true>,
+        BoolExprNode<isize>,
+    ) {
+        let (udiv, umod, cond) = divmod_u10_unsigned(x1.clone().abs(), x2.clone().abs());
+        let (sign_a, sign_b) = (x1.bit(9), x2.bit(9));
+        (
+            int_ite(
+                sign_a.clone() ^ sign_b,
+                -(udiv.clone().as_signed()),
+                udiv.as_signed(),
+            ),
+            int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
+            cond,
+        )
+    }
+
+    #[test]
+    fn test_expr_node_divmod() {
+        test_expr_node_divmod_xx!(false, 57, 97, divmod_u10_unsigned);
+        test_expr_node_divmod_xx!(true, -59, 101, divmod_u10_signed);
+    }
+
+    macro_rules! test_expr_node_div_xx {
+        ($sign:expr, $imm1:expr, $imm2:expr, $test_divmod:ident) => {{
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = x1 / x2;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let (exp_divr, _, exp_cond) = $test_divmod(x1, x2);
+
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = x1 / $imm1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm1);
+            let (exp_divr, _, exp_cond) = $test_divmod(x1, x2);
+
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = ($imm2) / x1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm2);
+            let (exp_divr, _, exp_cond) = $test_divmod(x2, x1);
+
+            assert_eq!(exp_divr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    #[test]
+    fn test_expr_node_div() {
+        test_expr_node_div_xx!(false, 76, 134, divmod_u10_unsigned);
+        test_expr_node_div_xx!(true, 31, -52, divmod_u10_signed);
+    }
+
+    macro_rules! test_expr_node_mod_xx {
+        ($sign:expr, $imm1:expr, $imm2:expr, $test_divmod:ident) => {{
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = x1 % x2;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let (_, exp_modr, exp_cond) = $test_divmod(x1, x2);
+
+            assert_eq!(exp_modr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = x1 % $imm1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm1);
+            let (_, exp_modr, exp_cond) = $test_divmod(x1, x2);
+
+            assert_eq!(exp_modr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
+            let (divr, cond) = ($imm2) % x1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::constant(exp_ec.clone(), $imm2);
+            let (_, exp_modr, exp_cond) = $test_divmod(x2, x1);
+
+            assert_eq!(exp_modr.indexes.as_slice(), divr.indexes.as_slice());
+            assert_eq!(exp_cond.index, cond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    #[test]
+    fn test_expr_node_mod() {
+        test_expr_node_mod_xx!(false, 99, 173, divmod_u10_unsigned);
+        test_expr_node_mod_xx!(true, -81, 57, divmod_u10_signed);
     }
 }
