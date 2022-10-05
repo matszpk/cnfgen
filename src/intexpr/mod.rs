@@ -401,7 +401,7 @@ where
     let mut iter = table_iter.into_iter();
     while let Some(v) = iter.next() {
         if let Some(v2) = iter.next() {
-            ites.push(int_ite(index.bit(K::USIZE - 1), v, v2));
+            ites.push(int_ite(index.bit(0), v2, v));
         } else {
             panic!("Odd number of elements");
         }
@@ -413,9 +413,9 @@ where
         }
         for i in 0..(ites.len() >> 1) {
             ites[i] = int_ite(
-                index.bit(K::USIZE - step - 1),
-                ites[(i << 1)].clone(),
+                index.bit(step),
                 ites[(i << 1) + 1].clone(),
+                ites[(i << 1)].clone(),
             );
         }
         ites.resize(
@@ -688,6 +688,61 @@ mod tests {
         let x1 = ExprNode::<isize, U7, false>::variable(exp_ec.clone());
         let x2 = ExprNode::<isize, U7, false>::variable(exp_ec.clone());
         let exp = (ExprNode::filled_expr(c1.clone()) & x1) | (ExprNode::filled_expr(!c1) & x2);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_int_table() {
+        let ec = ExprCreator::new();
+        let idx = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| ExprNode::<isize, U10, false>::variable(ec.clone()))
+            .collect::<Vec<_>>();
+        let res = int_table(idx, values);
+
+        let exp_ec = ExprCreator::new();
+        let idx = ExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| ExprNode::<isize, U10, false>::variable(exp_ec.clone()))
+            .collect::<Vec<_>>();
+
+        let mut selects0 = vec![];
+        for i in 0..16 {
+            selects0.push(int_ite(
+                idx.bit(0),
+                values[(i << 1) + 1].clone(),
+                values[(i << 1)].clone(),
+            ));
+        }
+        let mut selects1 = vec![];
+        for i in 0..8 {
+            selects1.push(int_ite(
+                idx.bit(1),
+                selects0[(i << 1) + 1].clone(),
+                selects0[(i << 1)].clone(),
+            ));
+        }
+        let mut selects2 = vec![];
+        for i in 0..4 {
+            selects2.push(int_ite(
+                idx.bit(2),
+                selects1[(i << 1) + 1].clone(),
+                selects1[(i << 1)].clone(),
+            ));
+        }
+        let mut selects3 = vec![];
+        for i in 0..2 {
+            selects3.push(int_ite(
+                idx.bit(3),
+                selects2[(i << 1) + 1].clone(),
+                selects2[(i << 1)].clone(),
+            ));
+        }
+        let exp = int_ite(idx.bit(4), selects3[1].clone(), selects3[0].clone());
 
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
