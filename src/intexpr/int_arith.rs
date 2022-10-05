@@ -987,12 +987,17 @@ mod tests {
         }
     }
 
-    macro_rules! test_expr_node_add_xx {
+    macro_rules! test_expr_node_add_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let res = x1 + x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out += x2;
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1001,11 +1006,18 @@ mod tests {
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.indexes.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let res = x1 + ($imm1);
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out += ($imm1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1016,6 +1028,9 @@ mod tests {
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.indexes.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         }
         {
             let ec = ExprCreator::new();
@@ -1033,18 +1048,23 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_add() {
-        test_expr_node_add_xx!(false, 71, 138);
-        test_expr_node_add_xx!(true, 105, 62);
-        test_expr_node_add_xx!(true, -69, -86);
+    fn test_expr_node_add_and_assign() {
+        test_expr_node_add_and_assign_xx!(false, 71, 138);
+        test_expr_node_add_and_assign_xx!(true, 105, 62);
+        test_expr_node_add_and_assign_xx!(true, -69, -86);
     }
 
-    macro_rules! test_expr_node_sub_xx {
+    macro_rules! test_expr_node_sub_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let res = x1 - x2;
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out -= x2;
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1053,11 +1073,18 @@ mod tests {
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.indexes.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         }
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let res = x1 - ($imm1);
+
+            let ec2 = ExprCreator::new();
+            let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
+            x1_out -= ($imm1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1068,6 +1095,9 @@ mod tests {
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+            assert_eq!(exp.indexes.as_slice(), x1_out.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec2.borrow());
         }
         {
             let ec = ExprCreator::new();
@@ -1085,10 +1115,10 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_sub() {
-        test_expr_node_sub_xx!(false, 85, 151);
-        test_expr_node_sub_xx!(true, 56, 113);
-        test_expr_node_sub_xx!(true, -89, -59);
+    fn test_expr_node_sub_and_assign() {
+        test_expr_node_sub_and_assign_xx!(false, 85, 151);
+        test_expr_node_sub_and_assign_xx!(true, 56, 113);
+        test_expr_node_sub_and_assign_xx!(true, -89, -59);
     }
 
     #[test]
