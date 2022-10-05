@@ -1289,6 +1289,64 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
+            let bvs = alloc_boolvars(ec.clone(), 4 * 5 - 3);
+            let mut matrix = vec![
+                vec![bvs[0].index],
+                vec![bvs[1].index, bvs[2].index],
+                vec![bvs[3].index, bvs[4].index, bvs[5].index],
+                vec![bvs[6].index, bvs[7].index, bvs[8].index, bvs[9].index],
+                vec![bvs[10].index, bvs[11].index, bvs[12].index, bvs[13].index],
+                vec![bvs[14].index, bvs[15].index, bvs[16].index],
+            ];
+            let res = gen_dadda_mult(ec.clone(), &mut matrix);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), 4 * 5 - 3);
+            //          9 13
+            //       5  8 12 16
+            //    2  4  7 11 15
+            // 0  1  3  6 10 14
+            let (s0, c0) = half_adder(bvs[8].clone(), bvs[9].clone());
+            let (s1, c1) = opt_full_adder(bvs[11].clone(), bvs[12].clone(), bvs[13].clone());
+            let s2 = bvs[15].clone() ^ bvs[16].clone();
+            //       5 s0 c0 c1
+            //    2  4  7 s1 s2
+            // 0  1  3  6 10 14
+            let (s0_2, c0_2) = half_adder(bvs[4].clone(), bvs[5].clone());
+            let (s1_2, c1_2) = opt_full_adder(bvs[6].clone(), bvs[7].clone(), s0);
+            let (s2_2, c2_2) = opt_full_adder(bvs[10].clone(), s1, c0);
+            let s3_2 = bvs[14].clone() ^ s2 ^ c1;
+            //    2 s0 c0 c1 c2
+            // 0  1  3 s1 s2 s3
+            let a = ExprNode::<isize, U6, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    bvs[0].index,
+                    bvs[1].index,
+                    bvs[3].index,
+                    s1_2.index,
+                    s2_2.index,
+                    s3_2.index,
+                ]),
+            };
+            let b = ExprNode::<isize, U6, false> {
+                creator: exp_ec.clone(),
+                indexes: GenericArray::clone_from_slice(&[
+                    0,
+                    bvs[2].index,
+                    s0_2.index,
+                    c0_2.index,
+                    c1_2.index,
+                    c2_2.index,
+                ]),
+            };
+            let exp = a + b;
+
+            assert_eq!(exp.indexes.as_slice(), res.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
             let bvs = alloc_boolvars(ec.clone(), 5 * 7);
             let mut matrix = vec![
                 vec![bvs[0].index],
