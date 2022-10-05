@@ -768,3 +768,34 @@ macro_rules! impl_int_div_mod_op {
 
 impl_int_div_mod_op!($, Div, div, impl_int_div_pty, impl_int_div_upty, impl_int_div_ipty);
 impl_int_div_mod_op!($, Rem, rem, impl_int_rem_pty, impl_int_rem_upty, impl_int_rem_ipty);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::boolexpr::test_utils::*;
+
+    #[test]
+    fn test_expr_node_neg() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U5, true>::variable(ec.clone());
+        let res = -x1;
+
+        let exp_ec = ExprCreator::new();
+        let bvs = alloc_boolvars(exp_ec.clone(), 5)
+            .into_iter()
+            .map(|x| !x)
+            .collect::<Vec<_>>();
+        let bnfalse = BoolExprNode::single_value(exp_ec.clone(), false);
+        let bntrue = BoolExprNode::single_value(exp_ec.clone(), true);
+        let mut temp = vec![];
+        temp.push(half_adder(bvs[0].clone(), bntrue));
+        temp.push(half_adder(bvs[1].clone(), temp[0].clone().1));
+        temp.push(half_adder(bvs[2].clone(), temp[1].clone().1));
+        temp.push(half_adder(bvs[3].clone(), temp[2].clone().1));
+        temp.push((bvs[4].clone() ^ temp[3].clone().1, bnfalse));
+        let exp = temp.iter().map(|x| x.0.index).collect::<Vec<_>>();
+
+        assert_eq!(exp.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+}
