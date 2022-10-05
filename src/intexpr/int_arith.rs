@@ -915,4 +915,50 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
+
+    #[test]
+    fn test_expr_node_add() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let res = x1 + x2;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let exp = x1.addc(x2, BoolExprNode::single_value(exp_ec.clone(), false));
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let res = x1 + 74u8;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let exp = x1.addc(
+                ExprNode::constant(exp_ec.clone(), 74u8),
+                BoolExprNode::single_value(exp_ec.clone(), false),
+            );
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let res = 107u8 + x1;
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let exp = ExprNode::constant(exp_ec.clone(), 107u8)
+                .addc(x1, BoolExprNode::single_value(exp_ec.clone(), false));
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+    }
 }
