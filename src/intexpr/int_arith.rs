@@ -1651,4 +1651,63 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
     }
+
+    fn fullmull_signed_u10(
+        x1: ExprNode<isize, U10, true>,
+        x2: ExprNode<isize, U10, true>,
+    ) -> ExprNode<isize, U20, true> {
+        let exp_ec = x1.creator.clone();
+        let ux1 = x1.clone().abs();
+        let ux2 = x2.clone().abs();
+        let mut matrix = gen_dadda_matrix(exp_ec.clone(), &ux1.indexes, &ux2.indexes, 20);
+        let temp = ExprNode::<isize, U20, true> {
+            creator: exp_ec.clone(),
+            indexes: GenericArray::clone_from_slice(&gen_dadda_mult(exp_ec.clone(), &mut matrix)),
+        };
+        int_ite(x1.bit(9) ^ x2.bit(9), -temp.clone(), temp)
+    }
+
+    #[test]
+    fn test_expr_node_fullmul_signed() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let res = x1.fullmul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let exp = fullmull_signed_u10(x1, x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let res = x1.fullmul(-56);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::constant(exp_ec.clone(), -56);
+            let exp = fullmull_signed_u10(x1, x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let res = (-73).fullmul(x1);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::constant(exp_ec.clone(), -73);
+            let exp = fullmull_signed_u10(x2, x1);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+    }
 }
