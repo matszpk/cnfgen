@@ -798,4 +798,18 @@ mod tests {
         assert_eq!(exp.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
+    
+    #[test]
+    fn test_expr_node_abs() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+        let res = x1.abs();
+        
+        let exp_ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+        let exp = int_ite(x1.bit(9), -x1.clone(), x1.clone());
+        
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
 }
