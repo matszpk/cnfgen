@@ -1304,7 +1304,7 @@ mod tests {
             {
                 let xp1 = v[1].clone() ^ v[2].clone();
                 let xp2 = v[3].clone() ^ v[4].clone();
-                ((xp1.clone() | xp2.clone()) | ((!xp1) |xp2)).index
+                ((xp1.clone() | xp2.clone()) | ((!xp1) | xp2)).index
             },
             concat!(
                 "p cnf 6 7\n",
