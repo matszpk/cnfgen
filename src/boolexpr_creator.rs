@@ -396,30 +396,31 @@ where
                         top.joining_clause
                     );
                 }
-                // generate joining clause for next
-                let next_clause = if conj || disjunc {
-                    if let JoiningClause::Join(_) = top.joining_clause {
-                        top.joining_clause.clone()
-                    } else {
-                        JoiningClause::Join(stackpos)
-                    }
-                } else if node.is_xor_or_equal() {
-                    JoiningClause::Join(stackpos)
-                } else if node.is_negated() {
-                    top.joining_clause.clone()
-                } else {
-                    JoiningClause::Nothing
-                };
-                test_println!(
-                    "WcN: {} {} {}: {:?}",
-                    node_index,
-                    top.path,
-                    stackpos,
-                    next_clause
-                );
                 //////////////
 
                 if first_path || second_path {
+                    // generate joining clause for next
+                    let next_clause = if conj || disjunc {
+                        if let JoiningClause::Join(_) = top.joining_clause {
+                            top.joining_clause.clone()
+                        } else {
+                            JoiningClause::Join(stackpos)
+                        }
+                    } else if node.is_xor_or_equal() {
+                        JoiningClause::Join(stackpos)
+                    } else if node.is_negated() {
+                        top.joining_clause.clone()
+                    } else {
+                        JoiningClause::Nothing
+                    };
+                    test_println!(
+                        "WcN: {} {} {}: {:?}",
+                        node_index,
+                        top.path,
+                        stackpos,
+                        next_clause
+                    );
+
                     // determine clauses usage and not_join.
                     let (normal_usage, negated_usage, not_join) = match node {
                         Node::Single(_) => (false, false, false),
