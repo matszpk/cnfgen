@@ -1579,6 +1579,30 @@ mod tests {
             [(Quantifier::Exists, [1]), (Quantifier::ForAll, [2])],
             concat!("p cnf 2 2\n", "e 1 0\na 2 0\n", "1 0\n2 0\n")
         );
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            { (!((v[1].clone() | v[2].clone()).imp(v[3].clone())) | v[4].clone()).index },
+            [(Quantifier::Exists, [1, 2]), (Quantifier::ForAll, [3, 4])],
+            concat!(
+                "p cnf 7 4\n",
+                "e 1 2 0\na 3 4 0\ne 6 7 0\n",
+                "1 2 -7 0\n6 7 0\n-3 6 0\n4 -6 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            5,
+            { (!((v[1].clone() | v[2].clone()).imp(v[3].clone())) | v[4].clone()).index },
+            [(Quantifier::ForAll, [1, 2]), (Quantifier::Exists, [3, 4])],
+            concat!(
+                "p cnf 7 4\n",
+                "a 1 2 0\ne 3 4 6 7 0\n",
+                "1 2 -7 0\n6 7 0\n-3 6 0\n4 -6 0\n"
+            )
+        );
     }
 
     use generic_array::typenum::*;
