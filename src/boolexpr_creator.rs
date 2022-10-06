@@ -269,6 +269,10 @@ where
         dep_nodes: &[DepNode<T>],
         cnf: &mut LW,
     ) -> Result<(), CNFError> {
+        if start == 0 {
+            // if start from false, then write empty clause - UNSATISFIABLE
+            return cnf.write_literals([]);
+        }
         // Joining clause - structure to holds final subexpressions to join in one clause -
         // conjunction, disjunction, XOR or Equality.
         #[derive(Clone, Debug)]
@@ -896,6 +900,7 @@ mod tests {
         #[allow(unused_assignments)]
         let mut ec = ExprCreator::<isize>::new();
         // single operator testcases
+        expr_creator_testcase!(ec, v, 1, { 0 }, "p cnf 1 1\n0\n");
         expr_creator_testcase!(ec, v, 1, { v[1].index }, "p cnf 1 0\n");
         expr_creator_testcase!(
             ec,
