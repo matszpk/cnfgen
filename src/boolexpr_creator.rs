@@ -714,7 +714,7 @@ where
                         Node::Negated(_) => false,
                         Node::And(_, _) => top.op_join != OpJoin::Conj,
                         Node::Or(_, _) | Node::Impl(_, _) => top.op_join != OpJoin::Disjunc,
-                        _ => true,
+                        _ => true, // xor or equal
                     };
 
                     let new_var = !top.start && (new_var || dep_node.parent_count > 1);
