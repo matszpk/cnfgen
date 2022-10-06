@@ -866,7 +866,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::boolexpr::*;
+    use crate::*;
 
     macro_rules! expr_creator_testcase {
         ($ec: ident, $v: ident, $vars: expr, $expr: tt, $res: expr) => {
@@ -877,9 +877,9 @@ mod tests {
         ($ec: ident, $v: ident, $vars:expr, $expr: tt, $quants: expr, $res: expr) => {
             $ec = ExprCreator::<isize>::new();
             $v.clear();
-            $v.push(ExprNode::single($ec.clone(), false));
+            $v.push(BoolExprNode::single($ec.clone(), false));
             for _ in 0..$vars {
-                $v.push(ExprNode::variable($ec.clone()));
+                $v.push(BoolExprNode::variable($ec.clone()));
             }
             let expr_index = $expr;
             let mut cnf_writer = CNFWriter::new(vec![]);
@@ -1576,6 +1576,55 @@ mod tests {
             { (v[1].clone() & v[2].clone()).index },
             [(Quantifier::Exists, [1]), (Quantifier::ForAll, [2])],
             concat!("p cnf 2 2\n", "e 1 0\na 2 0\n", "1 0\n2 0\n")
+        );
+    }
+
+    use generic_array::typenum::*;
+
+    #[test]
+    fn test_expr_creator_intexprs() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
+        // single operator testcases
+        expr_creator_testcase!(
+            ec,
+            v,
+            12,
+            {
+                let x1 =
+                    IntExprNode::<isize, U6, false>::from_boolexprs(Vec::from(&v[1..7])).unwrap();
+                let x2 =
+                    IntExprNode::<isize, U6, false>::from_boolexprs(Vec::from(&v[7..13])).unwrap();
+                (x1.equal(x2)).index
+            },
+            concat!(
+                "p cnf 18 18\n",
+                "1 -7 -13 0\n-1 7 -13 0\n2 -8 -14 0\n-2 8 -14 0\n3 -9 -15 0\n-3 9 -15 0\n",
+                "4 -10 -16 0\n-4 10 -16 0\n5 -11 -17 0\n-5 11 -17 0\n6 -12 -18 0\n-6 12 -18 0\n",
+                "13 0\n14 0\n15 0\n16 0\n17 0\n18 0\n"
+            )
+        );
+        expr_creator_testcase!(
+            ec,
+            v,
+            12,
+            {
+                let x1 =
+                    IntExprNode::<isize, U6, false>::from_boolexprs(Vec::from(&v[1..7])).unwrap();
+                let x2 =
+                    IntExprNode::<isize, U6, false>::from_boolexprs(Vec::from(&v[7..13])).unwrap();
+                (x1.less_than(x2)).index
+            },
+            concat!(
+                "p cnf 31 36\n",
+                "6 -12 -14 0\n-6 12 -14 0\n5 -11 -17 0\n-5 11 -17 0\n4 -10 -20 0\n-4 10 -20 0\n",
+                "3 -9 -23 0\n-3 9 -23 0\n2 -8 -26 0\n-2 8 -26 0\n-25 26 0\n-1 -25 0\n7 -25 0\n",
+                "-2 -27 0\n8 -27 0\n-24 25 27 0\n-22 23 0\n-22 24 0\n-3 -28 0\n9 -28 0\n",
+                "-21 22 28 0\n-19 20 0\n-19 21 0\n-4 -29 0\n10 -29 0\n-18 19 29 0\n-16 17 0\n",
+                "-16 18 0\n-5 -30 0\n11 -30 0\n-15 16 30 0\n-13 14 0\n-13 15 0\n-6 -31 0\n",
+                "12 -31 0\n13 31 0\n"
+            )
         );
     }
 }
