@@ -624,9 +624,6 @@ where
                         visited[node_index] = true;
                     }
 
-                    //test_println!("Count: {}: {} {} {}", node_index, first_path, second_path,
-                    //        dep_nodes[node_index].parent_count);
-
                     if first_path {
                         top.path = 1;
                         stack.push(SimpleEntry {
