@@ -237,8 +237,8 @@ where
             Literal::Value(true) => 1,
             Literal::VarLit(ll) => {
                 assert!(ll.positive().unwrap() <= self.var_count());
-                let ltoi = ((ll.positive().unwrap().to_usize() - 1) << 1)
-                    + if ll < T::empty() { 1 } else { 0 };
+                let ltoi =
+                    ((ll.positive().unwrap().to_usize() - 1) << 1) + usize::from(ll < T::empty());
                 let node_index = self.lit_to_index[ltoi];
                 if node_index != 0 {
                     node_index
