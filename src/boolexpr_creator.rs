@@ -324,7 +324,7 @@ where
 
         test_println!("----------write");
         while !stack.is_empty() {
-            {
+            if stack.last().unwrap().path == 0 {
                 // push child parent node linkvar to joining clause
                 let (negated, node_index) = {
                     let top = stack.last().unwrap();
