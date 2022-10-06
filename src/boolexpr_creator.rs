@@ -365,7 +365,8 @@ where
                 }
             }
 
-            let stacklen = stack.len() - 1;
+            // current stack position at last entry
+            let stackpos = stack.len() - 1;
             let mut top = stack.last_mut().unwrap();
             let dep_node = dep_nodes.get(top.node_index).unwrap();
 
@@ -400,10 +401,10 @@ where
                     if let JoiningClause::Join(_) = top.joining_clause {
                         top.joining_clause.clone()
                     } else {
-                        JoiningClause::Join(stacklen)
+                        JoiningClause::Join(stackpos)
                     }
                 } else if node.is_xor_or_equal() {
-                    JoiningClause::Join(stacklen)
+                    JoiningClause::Join(stackpos)
                 } else if node.is_negated() {
                     top.joining_clause.clone()
                 } else {
@@ -413,7 +414,7 @@ where
                     "WcN: {} {} {}: {:?}",
                     node_index,
                     top.path,
-                    stacklen,
+                    stackpos,
                     next_clause
                 );
                 //////////////
