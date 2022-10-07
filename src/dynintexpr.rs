@@ -22,7 +22,7 @@
 
 use std::cell::RefCell;
 use std::fmt::Debug;
-use std::ops::Neg;
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use std::rc::Rc;
 
 use crate::intexpr::IntError;
@@ -504,5 +504,76 @@ where
 
     fn greater_equal(self, rhs: Self) -> Self::Output {
         rhs.less_equal(self)
+    }
+}
+
+macro_rules! impl_dynint_bitop {
+    ($trait:ident, $op:ident) => {
+        impl<T, const SIGN: bool> $trait for ExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = Self;
+
+            fn $op(self, rhs: Self) -> Self::Output {
+                assert_eq!(self.indexes.len(), rhs.indexes.len());
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: (0..self.indexes.len())
+                            .into_iter()
+                            .map(|x| (self.bit(x).$op(rhs.bit(x))).index)
+                            .collect::<Vec<_>>(),
+                }
+            }
+        }
+    }
+}
+
+impl_dynint_bitop!(BitAnd, bitand);
+impl_dynint_bitop!(BitOr, bitor);
+impl_dynint_bitop!(BitXor, bitxor);
+
+macro_rules! impl_dynint_bitop_assign {
+    ($trait:ident, $op:ident, $op_assign:ident) => {
+        impl<T, const SIGN: bool> $trait for ExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            fn $op_assign(&mut self, rhs: Self) {
+                *self = self.clone().$op(rhs);
+            }
+        }
+    }
+}
+
+impl_dynint_bitop_assign!(BitAndAssign, bitand, bitand_assign);
+impl_dynint_bitop_assign!(BitOrAssign, bitor, bitor_assign);
+impl_dynint_bitop_assign!(BitXorAssign, bitxor, bitxor_assign);
+
+/// Not trait implementation.
+impl<T, const SIGN: bool> Not for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn not(self) -> Self {
+        ExprNode {
+            creator: self.creator.clone(),
+            indexes: (0..self.indexes.len()).into_iter().map(|x| (!self.bit(x)).index)
+                    .collect::<Vec<_>>()
+        }
     }
 }
