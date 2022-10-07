@@ -27,7 +27,8 @@ use std::rc::Rc;
 
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
-use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
+use crate::{BitVal, BoolEqual, BoolImpl, BoolExprNode, ExprCreator, IntEqual, IntOrd, Literal,
+    VarLit};
 
 // ExprNode - main node
 //
@@ -371,3 +372,87 @@ macro_rules! impl_int_try_iconstant {
 }
 
 impl_int_ipty!(impl_int_try_iconstant);
+
+impl<'a, T, const SIGN: bool> BitVal for &'a ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = BoolExprNode<T>;
+
+    fn bit(self, x: usize) -> Self::Output {
+        BoolExprNode::new(self.creator.clone(), self.indexes[x])
+    }
+}
+
+// ///////////////////
+// IntEqual
+
+impl<T, const SIGN: bool> IntEqual for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = BoolExprNode<T>;
+
+    fn equal(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let mut xp = BoolExprNode::single(self.creator.clone(), true);
+        for i in 0..self.indexes.len() {
+            xp &= self.bit(i).bequal(rhs.bit(i));
+        }
+        xp
+    }
+
+    fn nequal(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let mut xp = BoolExprNode::single(self.creator.clone(), false);
+        for i in 0..self.indexes.len() {
+            xp |= self.bit(i) ^ rhs.bit(i);
+        }
+        xp
+    }
+}
+
+impl<T> IntOrd for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = BoolExprNode<T>;
+
+    fn less_than(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let mut xp = (!self.bit(0)) & rhs.bit(0);
+        for i in 1..self.indexes.len() {
+            xp = (self.bit(i).bequal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+        }
+        xp
+    }
+
+    fn less_equal(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let mut xp = self.bit(0).imp(rhs.bit(0));
+        for i in 1..self.indexes.len() {
+            xp = (self.bit(i).bequal(rhs.bit(i)) & xp) | ((!self.bit(i)) & rhs.bit(i));
+        }
+        xp
+    }
+
+    fn greater_than(self, rhs: Self) -> Self::Output {
+        rhs.less_than(self)
+    }
+
+    fn greater_equal(self, rhs: Self) -> Self::Output {
+        rhs.less_equal(self)
+    }
+}
