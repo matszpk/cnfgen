@@ -21,10 +21,8 @@
 //! The module to generate CNF clauses from integer expressions.
 
 use std::cell::RefCell;
-use std::cmp;
 use std::fmt::Debug;
-use std::iter;
-use std::ops::{Add, BitAnd, BitOr, Neg, Not, Sub};
+use std::ops::Neg;
 use std::rc::Rc;
 
 use crate::intexpr::IntError;
@@ -99,7 +97,7 @@ where
             creator: v.creator.clone(),
             indexes: vec![v.index; n],
         }
-    }
+    }   
 
     pub fn as_unsigned(self) -> ExprNode<T, false> {
         ExprNode {
@@ -167,13 +165,13 @@ where
     }
 }
 
-pub trait TryFromExprNode<T>: Sized {
+pub trait TryFromNSized<T>: Sized {
     type Error;
     
     fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
 }
 
-impl<T> TryFromExprNode<ExprNode<T, false>> for ExprNode<T, false>
+impl<T> TryFromNSized<ExprNode<T, false>> for ExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -197,7 +195,7 @@ where
     }
 }
 
-impl<T> TryFromExprNode<ExprNode<T, true>> for ExprNode<T, false>
+impl<T> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -224,7 +222,7 @@ where
     }
 }
 
-impl<T> TryFromExprNode<ExprNode<T, false>> for ExprNode<T, true>
+impl<T> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -251,7 +249,7 @@ where
     }
 }
 
-impl<T> TryFromExprNode<ExprNode<T, true>> for ExprNode<T, true>
+impl<T> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
