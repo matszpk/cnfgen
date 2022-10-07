@@ -524,13 +524,13 @@ macro_rules! impl_dynint_bitop {
                 ExprNode {
                     creator: self.creator.clone(),
                     indexes: (0..self.indexes.len())
-                            .into_iter()
-                            .map(|x| (self.bit(x).$op(rhs.bit(x))).index)
-                            .collect::<Vec<_>>(),
+                        .into_iter()
+                        .map(|x| (self.bit(x).$op(rhs.bit(x))).index)
+                        .collect::<Vec<_>>(),
                 }
             }
         }
-    }
+    };
 }
 
 impl_dynint_bitop!(BitAnd, bitand);
@@ -551,7 +551,7 @@ macro_rules! impl_dynint_bitop_assign {
                 *self = self.clone().$op(rhs);
             }
         }
-    }
+    };
 }
 
 impl_dynint_bitop_assign!(BitAndAssign, bitand, bitand_assign);
@@ -572,8 +572,10 @@ where
     fn not(self) -> Self {
         ExprNode {
             creator: self.creator.clone(),
-            indexes: (0..self.indexes.len()).into_iter().map(|x| (!self.bit(x)).index)
-                    .collect::<Vec<_>>()
+            indexes: (0..self.indexes.len())
+                .into_iter()
+                .map(|x| (!self.bit(x)).index)
+                .collect::<Vec<_>>(),
         }
     }
 }
