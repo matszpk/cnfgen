@@ -49,3 +49,5 @@ pub use intexpr::{
     U32ExprNode, U64ExprNode, U8ExprNode,
 };
 mod intmacros;
+
+pub use generic_array;
