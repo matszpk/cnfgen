@@ -21,10 +21,15 @@
 //! The module to generate CNF clauses from integer expressions.
 
 use std::cell::RefCell;
+use std::cmp;
 use std::fmt::Debug;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
+use std::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, ShlAssign, Shr,
+    ShrAssign,
+};
 use std::rc::Rc;
 
+use crate::boolexpr::bool_ite;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
@@ -579,3 +584,238 @@ where
         }
     }
 }
+
+// shift operations
+
+impl<T, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn shl(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = {
+            let nbits = usize::BITS - n.leading_zeros();
+            if (1 << (nbits - 1)) == n {
+                nbits - 1
+            } else {
+                nbits
+            }
+        } as usize;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
+                *out = bool_ite(
+                    rhs.bit(i),
+                    // if no overflow then get bit(v)
+                    if x >= (1usize << i) {
+                        input.bit(x - (1 << i))
+                    } else {
+                        BoolExprNode::new(input.creator.clone(), 0)
+                    },
+                    input.bit(x),
+                )
+                .index
+            });
+        }
+        output
+    }
+}
+
+macro_rules! impl_dynint_shl_imm {
+    ($ty:ty) => {
+        impl<T, const SIGN: bool> Shl<$ty> for ExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = Self;
+
+            fn shl(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                let n = self.indexes.len();
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= n {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = vec![0; n];
+                output[usize_rhs..].copy_from_slice(&self.indexes[0..(n - usize_rhs)]);
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_dynint_shl_imm);
+impl_int_ipty!(impl_dynint_shl_imm);
+
+/// Shift right implementation.
+impl<T, const SIGN: bool, const SIGN2: bool> Shr<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn shr(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = {
+            let nbits = usize::BITS - n.leading_zeros();
+            if (1 << (nbits - 1)) == n {
+                nbits - 1
+            } else {
+                nbits
+            }
+        } as usize;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
+                *out = bool_ite(
+                    rhs.bit(i),
+                    // if no overflow then get bit(v)
+                    if x + (1usize << i) < n {
+                        input.bit(x + (1 << i))
+                    } else {
+                        BoolExprNode::new(
+                            self.creator.clone(),
+                            if SIGN {
+                                *input.indexes.last().unwrap()
+                            } else {
+                                0
+                            },
+                        )
+                    },
+                    input.bit(x),
+                )
+                .index
+            });
+        }
+        output
+    }
+}
+
+macro_rules! impl_dynint_shr_imm {
+    ($ty:ty) => {
+        impl<T, const SIGN: bool> Shr<$ty> for ExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = Self;
+
+            fn shr(self, rhs: $ty) -> Self::Output {
+                let n = self.indexes.len();
+                // check whether zeroes
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= n {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = vec![
+                    if SIGN {
+                        *self.indexes.last().unwrap()
+                    } else {
+                        0
+                    };
+                    n
+                ];
+                output[0..(n - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
+                ExprNode {
+                    creator: self.creator.clone(),
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_dynint_shr_imm);
+impl_int_ipty!(impl_dynint_shr_imm);
+
+// ShlAssign
+macro_rules! impl_dynint_shx_assign {
+    ($trait:ident, $op:ident, $op_assign:ident, $macro:ident) => {
+        impl<T, const SIGN: bool, const SIGN2: bool> $trait<ExprNode<T, SIGN2>>
+            for ExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            fn $op_assign(&mut self, rhs: ExprNode<T, SIGN2>) {
+                *self = self.clone().$op(rhs)
+            }
+        }
+
+        macro_rules! $macro {
+            ($ty:ty) => {
+                impl<T, const SIGN: bool> $trait<$ty> for ExprNode<T, SIGN>
+                where
+                    T: VarLit + Neg<Output = T> + Debug,
+                    isize: TryFrom<T>,
+                    <T as TryInto<usize>>::Error: Debug,
+                    <T as TryFrom<usize>>::Error: Debug,
+                    <isize as TryFrom<T>>::Error: Debug,
+                {
+                    fn $op_assign(&mut self, rhs: $ty) {
+                        *self = self.clone().$op(rhs)
+                    }
+                }
+            };
+        }
+
+        impl_int_upty!($macro);
+        impl_int_ipty!($macro);
+    };
+}
+
+impl_dynint_shx_assign!(ShlAssign, shl, shl_assign, impl_dynint_shl_assign_imm);
+impl_dynint_shx_assign!(ShrAssign, shr, shr_assign, impl_dynint_shr_assign_imm);
