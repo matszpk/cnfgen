@@ -27,8 +27,9 @@ use std::rc::Rc;
 
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
-use crate::{BitVal, BoolEqual, BoolImpl, BoolExprNode, ExprCreator, IntEqual, IntOrd, Literal,
-    VarLit};
+use crate::{
+    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, IntEqual, IntOrd, Literal, VarLit,
+};
 
 // ExprNode - main node
 //
