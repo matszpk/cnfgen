@@ -27,6 +27,7 @@ use std::iter;
 use std::ops::{Add, BitAnd, BitOr, Neg, Not, Sub};
 use std::rc::Rc;
 
+use crate::intexpr::IntError;
 use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
 
 // ExprNode - main node
@@ -163,5 +164,114 @@ where
                 indexes: Vec::from(&self.indexes[k..]),
             },
         )
+    }
+}
+
+pub trait TryFromExprNode<T>: Sized {
+    type Error;
+    
+    fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
+}
+
+impl<T> TryFromExprNode<ExprNode<T, false>> for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Error = IntError;
+
+    fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
+        if n < input.indexes.len() {
+            if !input.indexes.iter().skip(n).all(|x| *x == 0) {
+                return Err(IntError::BitOverflow);
+            }
+            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+        } else {
+            let mut indexes = Vec::from(input.indexes.as_slice());
+            indexes.resize(n, 0);
+            Ok(ExprNode{ creator: input.creator, indexes })
+        }
+    }
+}
+
+impl<T> TryFromExprNode<ExprNode<T, true>> for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Error = IntError;
+
+    fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
+        if n < input.indexes.len() {
+            if !input.indexes.iter().skip(n).all(|x| *x == 0) {
+                return Err(IntError::BitOverflow);
+            }
+            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+        } else {
+            if *input.indexes.last().unwrap() != 0 {
+                return Err(IntError::CanBeNegative);
+            }
+            let mut indexes = Vec::from(input.indexes.as_slice());
+            indexes.resize(n, 0);
+            Ok(ExprNode{ creator: input.creator, indexes })
+        }
+    }
+}
+
+impl<T> TryFromExprNode<ExprNode<T, false>> for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Error = IntError;
+
+    fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
+        if n < input.indexes.len() {
+            if !input.indexes.iter().skip(n).all(|x| *x == 0) {
+                return Err(IntError::BitOverflow);
+            }
+            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+        } else {
+            if *input.indexes.last().unwrap() != 0 {
+                return Err(IntError::BitOverflow);
+            }
+            let mut indexes = Vec::from(input.indexes.as_slice());
+            indexes.resize(n, 0);
+            Ok(ExprNode{ creator: input.creator, indexes })
+        }
+    }
+}
+
+impl<T> TryFromExprNode<ExprNode<T, true>> for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Error = IntError;
+
+    fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
+        let last = *input.indexes.last().unwrap();
+        if n < input.indexes.len() {
+            if !input.indexes.iter().skip(n).all(|x| *x == last) {
+                return Err(IntError::BitOverflow);
+            }
+            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+        } else {
+            let mut indexes = Vec::from(input.indexes.as_slice());
+            indexes.resize(n, last);
+            Ok(ExprNode{ creator: input.creator, indexes })
+        }
     }
 }
