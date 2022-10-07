@@ -26,6 +26,7 @@ use std::ops::Neg;
 use std::rc::Rc;
 
 use crate::intexpr::IntError;
+use crate::{impl_int_ipty, impl_int_upty};
 use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
 
 // ExprNode - main node
@@ -97,7 +98,7 @@ where
             creator: v.creator.clone(),
             indexes: vec![v.index; n],
         }
-    }   
+    }
 
     pub fn as_unsigned(self) -> ExprNode<T, false> {
         ExprNode {
@@ -167,7 +168,7 @@ where
 
 pub trait TryFromNSized<T>: Sized {
     type Error;
-    
+
     fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
 }
 
@@ -186,11 +187,17 @@ where
             if !input.indexes.iter().skip(n).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes: Vec::from(&input.indexes[0..n]),
+            })
         } else {
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode{ creator: input.creator, indexes })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes,
+            })
         }
     }
 }
@@ -210,14 +217,20 @@ where
             if !input.indexes.iter().skip(n).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes: Vec::from(&input.indexes[0..n]),
+            })
         } else {
             if *input.indexes.last().unwrap() != 0 {
                 return Err(IntError::CanBeNegative);
             }
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode{ creator: input.creator, indexes })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes,
+            })
         }
     }
 }
@@ -237,14 +250,20 @@ where
             if !input.indexes.iter().skip(n).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes: Vec::from(&input.indexes[0..n]),
+            })
         } else {
             if *input.indexes.last().unwrap() != 0 {
                 return Err(IntError::BitOverflow);
             }
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode{ creator: input.creator, indexes })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes,
+            })
         }
     }
 }
@@ -265,11 +284,90 @@ where
             if !input.indexes.iter().skip(n).all(|x| *x == last) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode{ creator: input.creator, indexes: Vec::from(&input.indexes[0..n]) })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes: Vec::from(&input.indexes[0..n]),
+            })
         } else {
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, last);
-            Ok(ExprNode{ creator: input.creator, indexes })
+            Ok(ExprNode {
+                creator: input.creator,
+                indexes,
+            })
         }
     }
 }
+
+trait TryIntConstant<T: VarLit, U>: Sized {
+    fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U, n: usize)
+        -> Result<Self, IntError>;
+}
+
+macro_rules! impl_int_try_uconstant {
+    ($pty:ty) => {
+        impl<T: VarLit> TryIntConstant<T, $pty> for ExprNode<T, false> {
+            fn try_constant(
+                creator: Rc<RefCell<ExprCreator<T>>>,
+                v: $pty,
+                n: usize,
+            ) -> Result<Self, IntError> {
+                let bits = <$pty>::BITS as usize;
+                if n < bits && (v & ((1 << (bits - n) - 1) << n)) != 0 {
+                    return Err(IntError::BitOverflow);
+                }
+                Ok(ExprNode {
+                    creator,
+                    indexes: (0..n)
+                        .into_iter()
+                        .map(|x| {
+                            // return 1 - true node index, 0 - false node index
+                            if x < bits {
+                                usize::from((v & (1 << x)) != 0)
+                            } else {
+                                0
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                })
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_try_uconstant);
+
+macro_rules! impl_int_try_iconstant {
+    ($pty:ty) => {
+        impl<T: VarLit> TryIntConstant<T, $pty> for ExprNode<T, true> {
+            fn try_constant(
+                creator: Rc<RefCell<ExprCreator<T>>>,
+                v: $pty,
+                n: usize,
+            ) -> Result<Self, IntError> {
+                let bits = <$pty>::BITS as usize;
+                let mask = ((1 << (bits - n) - 1) << n);
+                let signmask = if v < 0 { mask } else { 0 };
+                if n < bits && (v & mask) != signmask {
+                    return Err(IntError::BitOverflow);
+                }
+                Ok(ExprNode {
+                    creator,
+                    indexes: (0..n)
+                        .into_iter()
+                        .map(|x| {
+                            // return 1 - true node index, 0 - false node index
+                            if x < bits {
+                                usize::from((v & (1 << x)) != 0)
+                            } else {
+                                usize::from((v & (1 << ((<$pty>::BITS - 1) as usize))) != 0)
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                })
+            }
+        }
+    };
+}
+
+impl_int_ipty!(impl_int_try_iconstant);
