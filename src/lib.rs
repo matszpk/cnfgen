@@ -48,6 +48,8 @@ pub use intexpr::{
     I32ExprNode, I64ExprNode, I8ExprNode, IntConstant, IntEqual, IntOrd, U128ExprNode, U16ExprNode,
     U32ExprNode, U64ExprNode, U8ExprNode,
 };
+pub mod dynintexpr;
 mod intmacros;
+pub use dynintexpr::ExprNode as DynIntExprNode;
 
 pub use generic_array;
