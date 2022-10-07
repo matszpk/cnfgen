@@ -457,3 +457,52 @@ where
         rhs.less_equal(self)
     }
 }
+
+impl<T> IntOrd for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = BoolExprNode<T>;
+
+    fn less_than(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let lhs_sign = self.bit(self.indexes.len() - 1);
+        let rhs_sign = rhs.bit(self.indexes.len() - 1);
+        let (lhs_num, rhs_num) = {
+            let mut lhs_num = self.as_unsigned();
+            let mut rhs_num = rhs.as_unsigned();
+            *lhs_num.indexes.last_mut().unwrap() = 0;
+            *rhs_num.indexes.last_mut().unwrap() = 0;
+            (lhs_num, rhs_num)
+        };
+        (lhs_sign.clone() & (!rhs_sign.clone()))
+            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_than(rhs_num))
+    }
+
+    fn less_equal(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let lhs_sign = self.bit(self.indexes.len() - 1);
+        let rhs_sign = rhs.bit(self.indexes.len() - 1);
+        let (lhs_num, rhs_num) = {
+            let mut lhs_num = self.as_unsigned();
+            let mut rhs_num = rhs.as_unsigned();
+            *lhs_num.indexes.last_mut().unwrap() = 0;
+            *rhs_num.indexes.last_mut().unwrap() = 0;
+            (lhs_num, rhs_num)
+        };
+        (lhs_sign.clone() & (!rhs_sign.clone()))
+            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
+    }
+
+    fn greater_than(self, rhs: Self) -> Self::Output {
+        rhs.less_than(self)
+    }
+
+    fn greater_equal(self, rhs: Self) -> Self::Output {
+        rhs.less_equal(self)
+    }
+}
