@@ -141,7 +141,7 @@ where
     }
 
     pub fn concat(self, rest: Self) -> Self {
-        assert_eq!(self.creator, rest.creator);
+        assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rest.creator));
         ExprNode {
             creator: self.creator.clone(),
             indexes: self

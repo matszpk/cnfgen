@@ -85,7 +85,7 @@ where
         GenericArray::from_exact_iter(iter.into_iter().map(|x| {
             // check creator - whether this same
             if let Some(c) = creator.clone() {
-                assert_eq!(c, x.creator.clone());
+                assert_eq!(Rc::as_ptr(&c), Rc::as_ptr(&x.creator));
             } else {
                 creator = Some(x.creator.clone());
             }
@@ -167,7 +167,7 @@ where
         Sum<N, N2>: ArrayLength<usize>,
     {
         use generic_array::sequence::*;
-        assert_eq!(self.creator, rest.creator);
+        assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rest.creator));
         ExprNode {
             creator: self.creator,
             indexes: self.indexes.concat(rest.indexes),
