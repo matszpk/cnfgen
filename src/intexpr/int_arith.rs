@@ -30,7 +30,7 @@ use generic_array::*;
 
 use super::*;
 use crate::{impl_int_ipty_ty1, impl_int_upty_ty1};
-use crate::{BoolExprNode, ExprCreator, VarLit};
+use crate::{BoolEqual, BoolExprNode, ExprCreator, VarLit};
 
 impl<T, N: ArrayLength<usize>> ExprNode<T, N, true>
 where
@@ -603,14 +603,18 @@ where
         let ub = rhs.clone().abs();
         let (udiv, umod, cond) = ua.divmod(ub);
         let (sign_a, sign_b) = (self.bit(N::USIZE - 1), rhs.bit(N::USIZE - 1));
+        let exp_divsign = sign_a.clone() ^ sign_b;
+        let divres = int_ite(
+            exp_divsign.clone(),
+            -(udiv.clone().as_signed()),
+            udiv.as_signed(),
+        );
+        let divres_sign = divres.bit(N::USIZE - 1);
         (
-            int_ite(
-                sign_a.clone() ^ sign_b,
-                -(udiv.clone().as_signed()),
-                udiv.as_signed(),
-            ),
+            divres.clone(),
             int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
-            cond,
+            cond & (exp_divsign.bequal(divres_sign)
+                | divres.equal(ExprNode::<T, N, true>::filled(self.creator.clone(), false))),
         )
     }
 }
@@ -1769,14 +1773,17 @@ mod tests {
     ) {
         let (udiv, umod, cond) = divmod_u10_unsigned(x1.clone().abs(), x2.clone().abs());
         let (sign_a, sign_b) = (x1.bit(9), x2.bit(9));
+        let exp_divsign = sign_a.clone() ^ sign_b;
+        let divres = int_ite(
+            exp_divsign.clone(),
+            -(udiv.clone().as_signed()),
+            udiv.as_signed(),
+        );
+        let divres_sign = divres.bit(9);
         (
-            int_ite(
-                sign_a.clone() ^ sign_b,
-                -(udiv.clone().as_signed()),
-                udiv.as_signed(),
-            ),
+            divres.clone(),
             int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
-            cond,
+            cond & (exp_divsign.bequal(divres_sign) | divres.equal(0)),
         )
     }
 
