@@ -236,14 +236,7 @@ where
     type Output = Self;
 
     fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
-        let nbits = {
-            let nbits = usize::BITS - N::USIZE.leading_zeros();
-            if (1 << (nbits - 1)) == N::USIZE {
-                nbits - 1
-            } else {
-                nbits
-            }
-        } as usize;
+        let nbits = Self::LOG_BITS;
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
@@ -367,14 +360,7 @@ where
     type Output = Self;
 
     fn shr(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
-        let nbits = {
-            let nbits = usize::BITS - N::USIZE.leading_zeros();
-            if (1 << (nbits - 1)) == N::USIZE {
-                nbits - 1
-            } else {
-                nbits
-            }
-        } as usize;
+        let nbits = Self::LOG_BITS;
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)

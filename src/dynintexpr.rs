@@ -30,6 +30,7 @@ use std::ops::{
 use std::rc::Rc;
 
 use crate::boolexpr::bool_ite;
+use crate::int_utils::*;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
@@ -604,14 +605,7 @@ where
     fn shl(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
-        let nbits = {
-            let nbits = usize::BITS - n.leading_zeros();
-            if (1 << (nbits - 1)) == n {
-                nbits - 1
-            } else {
-                nbits
-            }
-        } as usize;
+        let nbits = calc_log_bits(n);
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
@@ -693,14 +687,7 @@ where
     fn shr(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
-        let nbits = {
-            let nbits = usize::BITS - n.leading_zeros();
-            if (1 << (nbits - 1)) == n {
-                nbits - 1
-            } else {
-                nbits
-            }
-        } as usize;
+        let nbits = calc_log_bits(n);
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)

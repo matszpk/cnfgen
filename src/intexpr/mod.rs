@@ -31,6 +31,7 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use crate::boolexpr::{bool_ite, half_adder, opt_full_adder};
+use crate::int_utils::*;
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
 use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
 
@@ -67,6 +68,7 @@ where
 {
     pub const BITS: usize = N::USIZE;
     pub const SIGN: bool = SIGN;
+    pub const LOG_BITS: usize = calc_log_bits(Self::BITS);
     // Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
         let mut indexes = GenericArray::<usize, N>::default();
