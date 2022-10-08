@@ -2,7 +2,7 @@
 name = "cnfgen"
 authors = ["Mateusz Szpakowski"]
 license = "LGPL-2.1-or-later"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Generate DIMACS CNF formulae from operations"
 keywords = ["cnf", "logic", "cnfgen", "SAT"]
