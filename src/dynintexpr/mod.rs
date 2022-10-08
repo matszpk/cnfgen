@@ -810,7 +810,7 @@ mod tests {
             );
         }
     }
-    
+
     #[test]
     fn test_expr_node_bitval() {
         let ec = ExprCreator::new();
@@ -819,5 +819,67 @@ mod tests {
         assert_eq!(x1.bit(6), BoolExprNode::single(ec.clone(), 7));
         let x1 = ExprNode::<isize, true>::variable(ec.clone(), 7);
         assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
+    }
+
+    use crate::IntExprNode;
+    use generic_array::typenum::*;
+
+    #[test]
+    fn test_expr_node_int_equal() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x3 = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x4 = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let reseq = x1.equal(x2);
+        let resne = x3.nequal(x4);
+
+        let exp_ec = ExprCreator::new();
+        let x1 = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let x2 = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let x3 = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let x4 = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let expeq = x1.equal(x2);
+        let expne = x3.nequal(x4);
+
+        assert_eq!(expeq, reseq);
+        assert_eq!(expne, resne);
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    macro_rules! test_int_ord_macro {
+        ($sign:expr) => {
+            let ec = ExprCreator::new();
+            let xv = (0..8)
+                .into_iter()
+                .map(|_| ExprNode::<isize, $sign>::variable(ec.clone(), 5))
+                .collect::<Vec<_>>();
+            let reslt = xv[0].clone().less_than(xv[1].clone());
+            let resle = xv[2].clone().less_equal(xv[3].clone());
+            let resgt = xv[4].clone().greater_than(xv[5].clone());
+            let resge = xv[6].clone().greater_equal(xv[7].clone());
+
+            let exp_ec = ExprCreator::new();
+            let xv = (0..8)
+                .into_iter()
+                .map(|_| IntExprNode::<isize, U5, $sign>::variable(exp_ec.clone()))
+                .collect::<Vec<_>>();
+            let explt = xv[0].clone().less_than(xv[1].clone());
+            let exple = xv[2].clone().less_equal(xv[3].clone());
+            let expgt = xv[4].clone().greater_than(xv[5].clone());
+            let expge = xv[6].clone().greater_equal(xv[7].clone());
+
+            assert_eq!(explt, reslt);
+            assert_eq!(exple, resle);
+            assert_eq!(expgt, resgt);
+            assert_eq!(expge, resge);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_int_ord() {
+        test_int_ord_macro!(false);
+        test_int_ord_macro!(true);
     }
 }
