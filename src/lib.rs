@@ -39,18 +39,20 @@ pub use writer::{
 };
 
 pub mod boolexpr;
-pub use boolexpr::{BoolEqual, BoolImpl, ExprNode as BoolExprNode};
+pub use boolexpr::{bool_ite, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 pub mod boolexpr_creator;
 pub use boolexpr_creator::ExprCreator;
 mod int_utils;
 pub mod intexpr;
 pub use intexpr::{
-    BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode, I16ExprNode,
-    I32ExprNode, I64ExprNode, I8ExprNode, IntConstant, IntEqual, IntOrd, U128ExprNode, U16ExprNode,
-    U32ExprNode, U64ExprNode, U8ExprNode,
+    int_ite, int_table, BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode,
+    I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IntConstant, IntEqual, IntError, IntOrd,
+    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode,
 };
 pub mod dynintexpr;
 mod intmacros;
-pub use dynintexpr::ExprNode as DynIntExprNode;
+pub use dynintexpr::{
+    dynint_ite, dynint_table, ExprNode as DynIntExprNode, TryFromNSized, TryIntConstant,
+};
 
 pub use generic_array;
