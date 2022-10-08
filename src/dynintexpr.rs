@@ -24,19 +24,20 @@ use std::cell::RefCell;
 use std::cmp;
 use std::fmt::Debug;
 use std::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Shl, ShlAssign, Shr,
-    ShrAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, MulAssign,
+    Neg, Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
 use generic_array::*;
 
+use crate::boolexpr::half_adder;
 use crate::int_utils::*;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
-    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, IntEqual, IntExprNode, IntOrd, Literal,
-    VarLit,
+    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, FullMul, IntEqual, IntExprNode, IntOrd,
+    Literal, VarLit,
 };
 
 // ExprNode - main node
@@ -122,6 +123,11 @@ where
             creator: self.creator,
             indexes: self.indexes,
         }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.indexes.len()
     }
 }
 
@@ -766,3 +772,222 @@ macro_rules! impl_dynint_shx_assign {
 
 impl_dynint_shx_assign!(ShlAssign, shl, shl_assign, impl_dynint_shl_assign_imm);
 impl_dynint_shx_assign!(ShrAssign, shr, shr_assign, impl_dynint_shr_assign_imm);
+
+/// Returns result of the If-Then-Else (ITE) - integer version.
+pub fn dynint_ite<T, const SIGN: bool>(
+    c: BoolExprNode<T>,
+    t: ExprNode<T, SIGN>,
+    e: ExprNode<T, SIGN>,
+) -> ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    (ExprNode::<T, SIGN>::filled_expr(t.len(), c.clone()) & t.clone())
+        | (ExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
+}
+
+// absolute value
+
+impl<T> ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn abs(self) -> ExprNode<T, false> {
+        // if sign then -self else self
+        dynint_ite(self.bit(self.indexes.len() - 1), -self.clone(), self).as_unsigned()
+    }
+}
+
+//////////
+// Add/Sub implementation
+
+impl<T, const SIGN: bool> ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
+        let mut output = vec![0; self.indexes.len()];
+        let c = helper_addc_cout(&mut output, &self, &rhs, in_carry);
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c,
+        )
+    }
+
+    pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
+        let mut output = vec![0; self.indexes.len()];
+        helper_addc(&mut output, &self, &rhs, in_carry);
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+
+    pub fn subc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
+        let mut output = vec![0; self.indexes.len()];
+        helper_subc(&mut output, &self, &rhs, in_carry);
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+
+    pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
+        let n = self.indexes.len();
+        let mut output = vec![0; n];
+        let mut c = in_carry;
+        for i in 0..(n - 1) {
+            (output[i], c) = {
+                let (s0, c0) = half_adder(self.bit(i), c);
+                (s0.index, c0)
+            };
+        }
+        output[n - 1] = (self.bit(n - 1) ^ c).index;
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
+
+impl<T, const SIGN: bool> Add<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut output = vec![0; self.indexes.len()];
+        helper_addc(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
+
+impl<T, const SIGN: bool> Sub<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let mut output = vec![0; self.indexes.len()];
+        helper_subc(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), true),
+        );
+        ExprNode {
+            creator: self.creator,
+            indexes: output,
+        }
+    }
+}
+
+impl_dynint_bitop_assign!(AddAssign, add, add_assign);
+impl_dynint_bitop_assign!(SubAssign, sub, sub_assign);
+
+// Neg impl
+
+impl<T> Neg for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
+    }
+}
+
+/// Most advanced: multiplication.
+
+impl<T, const SIGN: bool> Mul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes,
+            self.indexes.len(),
+        );
+        let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        ExprNode {
+            creator: self.creator,
+            indexes: res,
+        }
+    }
+}
+
+impl_dynint_bitop_assign!(MulAssign, mul, mul_assign);
+
+/// Full multiplication
+
+impl<T> FullMul<ExprNode<T, false>> for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = ExprNode<T, false>;
+
+    fn fullmul(self, rhs: Self) -> Self::Output {
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes,
+            2 * self.indexes.len(),
+        );
+        let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        ExprNode {
+            creator: self.creator,
+            indexes: res,
+        }
+    }
+}
