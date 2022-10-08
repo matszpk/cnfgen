@@ -29,18 +29,21 @@ use std::ops::{
 };
 use std::rc::Rc;
 
+use generic_array::*;
+
 use crate::int_utils::*;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
-    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, IntEqual, IntOrd, Literal, VarLit,
+    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, IntEqual, IntExprNode, IntOrd, Literal,
+    VarLit,
 };
 
 // ExprNode - main node
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug, const SIGN: bool> {
-    creator: Rc<RefCell<ExprCreator<T>>>,
+    pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) indexes: Vec<usize>,
 }
 
@@ -179,14 +182,7 @@ pub trait TryFromNSized<T>: Sized {
     fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
 }
 
-impl<T> TryFromNSized<ExprNode<T, false>> for ExprNode<T, false>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
+impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, false> {
     type Error = IntError;
 
     fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
@@ -209,14 +205,7 @@ where
     }
 }
 
-impl<T> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
+impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false> {
     type Error = IntError;
 
     fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
@@ -242,14 +231,7 @@ where
     }
 }
 
-impl<T> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
+impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true> {
     type Error = IntError;
 
     fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
@@ -275,14 +257,7 @@ where
     }
 }
 
-impl<T> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
+impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true> {
     type Error = IntError;
 
     fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
@@ -302,6 +277,19 @@ where
                 creator: input.creator,
                 indexes,
             })
+        }
+    }
+}
+
+impl<T, N, const SIGN: bool> From<IntExprNode<T, N, SIGN>> for ExprNode<T, SIGN>
+where
+    T: VarLit,
+    N: ArrayLength<usize>,
+{
+    fn from(v: IntExprNode<T, N, SIGN>) -> Self {
+        ExprNode {
+            creator: v.creator,
+            indexes: Vec::from(v.indexes.as_slice()),
         }
     }
 }

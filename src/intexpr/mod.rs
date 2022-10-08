@@ -33,7 +33,7 @@ use generic_array::*;
 use crate::boolexpr::half_adder;
 use crate::int_utils::*;
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
-use crate::{BoolExprNode, ExprCreator, Literal, VarLit};
+use crate::{BoolExprNode, DynIntExprNode, ExprCreator, Literal, VarLit};
 
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
@@ -41,6 +41,8 @@ pub enum IntError {
     BitOverflow,
     #[error("Value can be negative")]
     CanBeNegative,
+    #[error("Bit number mismatch")]
+    BitsMismatch,
 }
 
 pub mod traits;
@@ -312,6 +314,22 @@ impl<T: VarLit, N: ArrayLength<usize>> TryFrom<ExprNode<T, N, true>> for ExprNod
         Ok(ExprNode {
             creator: v.creator,
             indexes: v.indexes,
+        })
+    }
+}
+
+impl<T: VarLit, N: ArrayLength<usize>, const SIGN: bool> TryFrom<DynIntExprNode<T, SIGN>>
+    for ExprNode<T, N, SIGN>
+{
+    type Error = IntError;
+
+    fn try_from(v: DynIntExprNode<T, SIGN>) -> Result<Self, Self::Error> {
+        if N::USIZE != v.indexes.len() {
+            return Err(IntError::BitsMismatch);
+        }
+        Ok(ExprNode {
+            creator: v.creator,
+            indexes: GenericArray::clone_from_slice(&v.indexes),
         })
     }
 }
