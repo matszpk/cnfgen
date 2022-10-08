@@ -389,6 +389,10 @@ where
 {
     type Output = BoolExprNode<T>;
 
+    fn bitnum(self) -> usize {
+        self.indexes.len()
+    }
+
     fn bit(self, x: usize) -> Self::Output {
         BoolExprNode::new(self.creator.clone(), self.indexes[x])
     }

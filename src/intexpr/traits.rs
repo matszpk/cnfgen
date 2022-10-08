@@ -101,6 +101,7 @@ pub trait IntConstant<T: VarLit, U> {
 pub trait BitVal {
     type Output;
 
+    fn bitnum(self) -> usize;
     fn bit(self, n: usize) -> Self::Output;
 }
 
@@ -108,6 +109,11 @@ macro_rules! impl_int_bitval_upty {
     ($pty:ty) => {
         impl BitVal for $pty {
             type Output = bool;
+
+            #[inline]
+            fn bitnum(self) -> usize {
+                <$pty>::BITS as usize
+            }
 
             #[inline]
             fn bit(self, x: usize) -> Self::Output {
@@ -127,6 +133,11 @@ macro_rules! impl_int_bitval_ipty {
     ($pty:ty) => {
         impl BitVal for $pty {
             type Output = bool;
+
+            #[inline]
+            fn bitnum(self) -> usize {
+                <$pty>::BITS as usize
+            }
 
             #[inline]
             fn bit(self, x: usize) -> Self::Output {
@@ -239,6 +250,11 @@ where
     N: ArrayLength<usize>,
 {
     type Output = BoolExprNode<T>;
+
+    #[inline]
+    fn bitnum(self) -> usize {
+        N::USIZE
+    }
 
     fn bit(self, x: usize) -> Self::Output {
         BoolExprNode::new(self.creator.clone(), self.indexes[x])
