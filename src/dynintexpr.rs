@@ -790,6 +790,48 @@ where
         | (ExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
 }
 
+pub fn dynint_table<T, I, const SIGN: bool>(
+    index: ExprNode<T, SIGN>,
+    table_iter: I,
+) -> ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = ExprNode<T, SIGN>>,
+{
+    let mut ites = vec![];
+    let mut iter = table_iter.into_iter();
+    while let Some(v) = iter.next() {
+        if let Some(v2) = iter.next() {
+            ites.push(dynint_ite(index.bit(0), v2, v));
+        } else {
+            panic!("Odd number of elements");
+        }
+    }
+
+    for step in 1..(index.len()) {
+        if (ites.len() & 1) != 0 {
+            panic!("Odd number of elements");
+        }
+        for i in 0..(ites.len() >> 1) {
+            ites[i] = dynint_ite(
+                index.bit(step),
+                ites[(i << 1) + 1].clone(),
+                ites[(i << 1)].clone(),
+            );
+        }
+        ites.resize(
+            ites.len() >> 1,
+            ExprNode::filled(index.creator.clone(), ites[0].len(), false),
+        );
+    }
+
+    ites.pop().unwrap()
+}
+
 // absolute value
 
 impl<T> ExprNode<T, true>
