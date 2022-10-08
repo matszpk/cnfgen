@@ -601,6 +601,9 @@ mod tests {
         // Unsigned N, LAST=0 -> Signed N
         let ix2 = ExprNode::<isize, U8, true>::try_from(x1.clone()).unwrap();
         assert_eq!([16, 17, 18, 19, 20, 21, 22, 0], *ix2.indexes);
+        // Unsigned N, LAST=0 -> Signed N+X
+        let ix2 = ExprNode::<isize, U9, true>::try_from(x1.clone()).unwrap();
+        assert_eq!([16, 17, 18, 19, 20, 21, 22, 0, 0], *ix2.indexes);
 
         let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
         // Unsinged N, LAST=var -> Signed N+X
