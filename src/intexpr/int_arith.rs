@@ -57,13 +57,7 @@ where
 {
     pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE {
-            (output[i], c) = {
-                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
+        let c = helper_addc_cout(&mut output, &self, &rhs, in_carry);
         (
             ExprNode {
                 creator: self.creator,
@@ -75,14 +69,7 @@ where
 
     pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
+        helper_addc(&mut output, &self, &rhs, in_carry);
         ExprNode {
             creator: self.creator,
             indexes: output,
@@ -91,14 +78,7 @@ where
 
     pub fn subc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c = in_carry;
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = opt_full_adder(self.bit(i), !rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ !rhs.bit(N::USIZE - 1) ^ c).index;
+        helper_subc(&mut output, &self, &rhs, in_carry);
         ExprNode {
             creator: self.creator,
             indexes: output,
@@ -135,14 +115,12 @@ where
 
     fn add(self, rhs: Self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c = BoolExprNode::new(self.creator.clone(), 0); // false
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = opt_full_adder(self.bit(i), rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1) ^ c).index;
+        helper_addc(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
         ExprNode {
             creator: self.creator,
             indexes: output,
@@ -224,14 +202,12 @@ where
 
     fn sub(self, rhs: Self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
-        let mut c = BoolExprNode::new(self.creator.clone(), 1); // true
-        for i in 0..N::USIZE - 1 {
-            (output[i], c) = {
-                let (s0, c0) = opt_full_adder(self.bit(i), !rhs.bit(i), c);
-                (s0.index, c0)
-            };
-        }
-        output[N::USIZE - 1] = (self.bit(N::USIZE - 1) ^ !rhs.bit(N::USIZE - 1) ^ c).index;
+        helper_subc(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), true),
+        );
         ExprNode {
             creator: self.creator,
             indexes: output,
@@ -656,6 +632,7 @@ impl_int_div_mod_op!($, Rem, rem, impl_int_rem_pty, impl_int_rem_upty, impl_int_
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::boolexpr::opt_full_adder;
     use crate::boolexpr::test_utils::*;
 
     #[test]
