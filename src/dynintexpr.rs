@@ -29,7 +29,6 @@ use std::ops::{
 };
 use std::rc::Rc;
 
-use crate::boolexpr::bool_ite;
 use crate::int_utils::*;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
@@ -621,19 +620,7 @@ where
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
-            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
-                *out = bool_ite(
-                    rhs.bit(i),
-                    // if no overflow then get bit(v)
-                    if x >= (1usize << i) {
-                        input.bit(x - (1 << i))
-                    } else {
-                        BoolExprNode::new(input.creator.clone(), 0)
-                    },
-                    input.bit(x),
-                )
-                .index
-            });
+            iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
         output
     }
@@ -703,26 +690,7 @@ where
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
-            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
-                *out = bool_ite(
-                    rhs.bit(i),
-                    // if no overflow then get bit(v)
-                    if x + (1usize << i) < n {
-                        input.bit(x + (1 << i))
-                    } else {
-                        BoolExprNode::new(
-                            self.creator.clone(),
-                            if SIGN {
-                                *input.indexes.last().unwrap()
-                            } else {
-                                0
-                            },
-                        )
-                    },
-                    input.bit(x),
-                )
-                .index
-            });
+            iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
         output
     }

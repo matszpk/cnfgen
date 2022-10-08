@@ -31,8 +31,8 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use super::*;
+use crate::VarLit;
 use crate::{impl_int_ipty, impl_int_ipty_ty1, impl_int_upty, impl_int_upty_ty1};
-use crate::{BoolExprNode, VarLit};
 
 // macro helpers for binary operation traits.
 macro_rules! impl_int_bitop {
@@ -252,19 +252,7 @@ where
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
-            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
-                *out = bool_ite(
-                    rhs.bit(i),
-                    // if no overflow then get bit(v)
-                    if x >= (1usize << i) {
-                        input.bit(x - (1 << i))
-                    } else {
-                        BoolExprNode::new(input.creator.clone(), 0)
-                    },
-                    input.bit(x),
-                )
-                .index
-            });
+            iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
         output
     }
@@ -376,26 +364,7 @@ where
         let mut output = self.clone();
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
-            output.indexes.iter_mut().enumerate().for_each(|(x, out)| {
-                *out = bool_ite(
-                    rhs.bit(i),
-                    // if no overflow then get bit(v)
-                    if x + (1usize << i) < N::USIZE {
-                        input.bit(x + (1 << i))
-                    } else {
-                        BoolExprNode::new(
-                            self.creator.clone(),
-                            if SIGN {
-                                *input.indexes.last().unwrap()
-                            } else {
-                                0
-                            },
-                        )
-                    },
-                    input.bit(x),
-                )
-                .index
-            });
+            iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
         output
     }
@@ -532,6 +501,7 @@ impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::boolexpr::bool_ite;
     use crate::boolexpr::test_utils::*;
 
     macro_rules! test_expr_node_bitop {

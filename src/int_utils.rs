@@ -25,8 +25,8 @@ use std::fmt::Debug;
 use std::ops::Neg;
 use std::rc::Rc;
 
-use crate::boolexpr::{half_adder, opt_full_adder};
-use crate::{BoolExprNode, ExprCreator, VarLit};
+use crate::boolexpr::{bool_ite, half_adder, opt_full_adder};
+use crate::{BitVal, BoolExprNode, ExprCreator, VarLit};
 
 pub(super) fn gen_dadda_mult<T>(
     creator: Rc<RefCell<ExprCreator<T>>>,
@@ -169,6 +169,67 @@ pub(super) const fn calc_log_bits(n: usize) -> usize {
     } else {
         nbits as usize
     }
+}
+
+pub(super) fn iter_shift_left<T, BV>(
+    output: &mut [usize],
+    input: BV,
+    rhs_bit: BoolExprNode<T>,
+    i: usize,
+) where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    BV: BitVal<Output = BoolExprNode<T>> + Copy,
+{
+    output.iter_mut().enumerate().for_each(|(x, out)| {
+        *out = bool_ite(
+            rhs_bit.clone(),
+            // if no overflow then get bit(v)
+            if x >= (1usize << i) {
+                input.bit(x - (1 << i))
+            } else {
+                BoolExprNode::new(rhs_bit.creator.clone(), 0)
+            },
+            input.bit(x),
+        )
+        .index
+    });
+}
+
+pub(super) fn iter_shift_right<T, BV>(
+    output: &mut [usize],
+    input: BV,
+    rhs_bit: BoolExprNode<T>,
+    i: usize,
+    sign: bool,
+) where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    BV: BitVal<Output = BoolExprNode<T>> + Copy,
+{
+    output.iter_mut().enumerate().for_each(|(x, out)| {
+        *out = bool_ite(
+            rhs_bit.clone(),
+            // if no overflow then get bit(v)
+            if x + (1usize << i) < input.bitnum() {
+                input.bit(x + (1 << i))
+            } else {
+                if sign {
+                    input.bit(input.bitnum() - 1)
+                } else {
+                    BoolExprNode::new(rhs_bit.creator.clone(), 0)
+                }
+            },
+            input.bit(x),
+        )
+        .index
+    });
 }
 
 #[cfg(test)]
