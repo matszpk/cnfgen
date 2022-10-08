@@ -697,7 +697,7 @@ impl_dynint_div_mod!(true);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IntExprNode;
+    use crate::{int_ite, int_table, IntExprNode};
     use generic_array::typenum::*;
 
     macro_rules! test_expr_node_binaryop {
@@ -748,6 +748,46 @@ mod tests {
         let exp_ec = ExprCreator::new();
         let x1 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
         let exp = !x1;
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_dynint_ite() {
+        let ec = ExprCreator::new();
+        let c = BoolExprNode::<isize>::variable(ec.clone());
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let res = dynint_ite(c, x1, x2);
+
+        let exp_ec = ExprCreator::new();
+        let c = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let x1 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let x2 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let exp = int_ite(c, x1, x2);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_dynint_table() {
+        let ec = ExprCreator::new();
+        let idx = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| ExprNode::<isize, false>::variable(ec.clone(), 10))
+            .collect::<Vec<_>>();
+        let res = dynint_table(idx, values);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| IntExprNode::<isize, U10, false>::variable(exp_ec.clone()))
+            .collect::<Vec<_>>();
+        let exp = int_table(idx, values);
 
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
