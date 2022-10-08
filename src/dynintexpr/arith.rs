@@ -699,7 +699,7 @@ mod tests {
     use super::*;
     use crate::IntExprNode;
     use generic_array::typenum::*;
-    
+
     macro_rules! test_expr_node_binaryop {
         ($sign:expr, $op:ident, $op_assign:ident) => {
             let ec = ExprCreator::new();
@@ -709,7 +709,7 @@ mod tests {
             let x4 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let res = x1.$op(x2);
             res_x3.$op_assign(x4);
-            
+
             let exp_ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
             let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -717,40 +717,380 @@ mod tests {
             let x4 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
             let exp = x1.$op(x2);
             exp_x3.$op_assign(x4);
-            
+
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
-        }
+        };
     }
-    
+
     #[test]
     fn test_expr_node_bitand() {
         test_expr_node_binaryop!(false, bitand, bitand_assign);
     }
-    
+
     #[test]
     fn test_expr_node_bitor() {
         test_expr_node_binaryop!(false, bitor, bitor_assign);
     }
-    
+
     #[test]
     fn test_expr_node_bitxor() {
         test_expr_node_binaryop!(false, bitxor, bitxor_assign);
     }
-    
+
+    #[test]
+    fn test_expr_node_not() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let res = !x1;
+
+        let exp_ec = ExprCreator::new();
+        let x1 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let exp = !x1;
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    macro_rules! test_expr_node_shiftop {
+        ($sign:expr, $op:ident, $op_assign:ident) => {{
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = ExprNode::<isize, false>::variable(ec.clone(), 4);
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = ExprNode::<isize, false>::variable(ec.clone(), 4);
+            let res = x1.$op(x2);
+            res_x3.$op_assign(x4);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U4, false>::variable(exp_ec.clone());
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x4 = IntExprNode::<isize, U4, false>::variable(exp_ec.clone());
+            let exp = x1.$op(x2);
+            exp_x3.$op_assign(x4);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = ExprNode::<isize, false>::variable(ec.clone(), 3);
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = ExprNode::<isize, false>::variable(ec.clone(), 3);
+            let res = x1.$op(x2);
+            res_x3.$op_assign(x4);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U3, false>::variable(exp_ec.clone());
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x4 = IntExprNode::<isize, U3, false>::variable(exp_ec.clone());
+            let exp = x1.$op(x2);
+            exp_x3.$op_assign(x4);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = ExprNode::<isize, true>::try_from_n(
+                ExprNode::<isize, false>::variable(ec.clone(), 4),
+                5,
+            )
+            .unwrap();
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = ExprNode::<isize, true>::try_from_n(
+                ExprNode::<isize, false>::variable(ec.clone(), 4),
+                5,
+            )
+            .unwrap();
+            let res = x1.$op(x2);
+            res_x3.$op_assign(x4);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U5, true>::from(
+                IntExprNode::<isize, U4, false>::variable(exp_ec.clone()),
+            );
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x4 = IntExprNode::<isize, U5, true>::from(
+                IntExprNode::<isize, U4, false>::variable(exp_ec.clone()),
+            );
+            let exp = x1.$op(x2);
+            exp_x3.$op_assign(x4);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = ExprNode::<isize, true>::try_from_n(
+                ExprNode::<isize, false>::variable(ec.clone(), 3),
+                4,
+            )
+            .unwrap();
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = ExprNode::<isize, true>::try_from_n(
+                ExprNode::<isize, false>::variable(ec.clone(), 3),
+                4,
+            )
+            .unwrap();
+            let res = x1.$op(x2);
+            res_x3.$op_assign(x4);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U4, true>::from(
+                IntExprNode::<isize, U3, false>::variable(exp_ec.clone()),
+            );
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x4 = IntExprNode::<isize, U4, true>::from(
+                IntExprNode::<isize, U3, false>::variable(exp_ec.clone()),
+            );
+            let exp = x1.$op(x2);
+            exp_x3.$op_assign(x4);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let res = x1.$op(11u8);
+            res_x3.$op_assign(10u8);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let exp = x1.$op(11u8);
+            exp_x3.$op_assign(10u8);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let res = x1.$op(11i8);
+            res_x3.$op_assign(10i8);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let mut exp_x3 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let exp = x1.$op(11i8);
+            exp_x3.$op_assign(10i8);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    #[test]
+    fn test_expr_node_shl() {
+        test_expr_node_shiftop!(false, shl, shl_assign);
+        test_expr_node_shiftop!(true, shl, shl_assign);
+    }
+
+    #[test]
+    fn test_expr_node_shr() {
+        test_expr_node_shiftop!(false, shr, shr_assign);
+        test_expr_node_shiftop!(true, shr, shr_assign);
+    }
+
+    #[test]
+    fn test_expr_node_addc_with_carry() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let c = BoolExprNode::<isize>::variable(ec.clone());
+        let (res, resc) = x1.addc_with_carry(x2, c);
+
+        let exp_ec = ExprCreator::new();
+        let x1 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let x2 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let c = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let (exp, expc) = x1.addc_with_carry(x2, c);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(expc.index, resc.index);
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    macro_rules! test_expr_node_arith_carry {
+        ($sign:expr, $op:ident) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let c = BoolExprNode::<isize>::variable(ec.clone());
+            let res = x1.$op(x2, c);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let c = BoolExprNode::<isize>::variable(exp_ec.clone());
+            let exp = x1.$op(x2, c);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_addc() {
+        test_expr_node_arith_carry!(false, addc);
+    }
+
+    #[test]
+    fn test_expr_node_subc() {
+        test_expr_node_arith_carry!(false, subc);
+    }
+
+    #[test]
+    fn test_expr_node_addc_same_carry() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let c = BoolExprNode::<isize>::variable(ec.clone());
+        let res = x1.add_same_carry(c);
+
+        let exp_ec = ExprCreator::new();
+        let x1 = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let c = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let exp = x1.add_same_carry(c);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
     #[test]
     fn test_expr_node_add() {
         test_expr_node_binaryop!(false, add, add_assign);
+        test_expr_node_binaryop!(true, add, add_assign);
     }
-    
+
     #[test]
     fn test_expr_node_sub() {
         test_expr_node_binaryop!(false, sub, sub_assign);
+        test_expr_node_binaryop!(true, sub, sub_assign);
     }
-    
+
+    #[test]
+    fn test_expr_node_unaryops() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, true>::variable(ec.clone(), 10);
+        let x2 = ExprNode::<isize, true>::variable(ec.clone(), 10);
+        let resabs = x1.abs();
+        let resneg = -x2;
+
+        let exp_ec = ExprCreator::new();
+        let x1 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
+        let x2 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
+        let expabs = x1.abs();
+        let expneg = -x2;
+
+        assert_eq!(expabs.indexes.as_slice(), resabs.indexes.as_slice());
+        assert_eq!(expneg.indexes.as_slice(), resneg.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
     #[test]
     fn test_expr_node_mul() {
         test_expr_node_binaryop!(false, mul, mul_assign);
+        test_expr_node_binaryop!(true, mul, mul_assign);
+    }
+
+    macro_rules! test_expr_node_fullmul {
+        ($sign:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let res = x1.fullmul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let exp = x1.fullmul(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_fullmul() {
+        test_expr_node_fullmul!(false);
+        test_expr_node_fullmul!(true);
+    }
+
+    macro_rules! test_expr_node_divmod {
+        ($sign:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let (resdiv, resmod, rescond) = x1.divmod(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let (expdiv, expmod, expcond) = x1.divmod(x2);
+
+            assert_eq!(expdiv.indexes.as_slice(), resdiv.indexes.as_slice());
+            assert_eq!(expmod.indexes.as_slice(), resmod.indexes.as_slice());
+            assert_eq!(expcond.index, rescond.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_divmod() {
+        test_expr_node_divmod!(false);
+        test_expr_node_divmod!(true);
+    }
+
+    macro_rules! test_expr_node_divop {
+        ($sign:expr, $op:ident) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let (res, resc) = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let (exp, expc) = x1.$op(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_div() {
+        test_expr_node_divop!(false, div);
+        test_expr_node_divop!(true, div);
+    }
+
+    #[test]
+    fn test_expr_node_rem() {
+        test_expr_node_divop!(false, rem);
+        test_expr_node_divop!(true, rem);
     }
 }
