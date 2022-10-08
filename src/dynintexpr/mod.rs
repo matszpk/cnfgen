@@ -298,7 +298,7 @@ where
 }
 
 pub trait TryIntConstant<T: VarLit, U>: Sized {
-    fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U, n: usize)
+    fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, n: usize, v: U)
         -> Result<Self, IntError>;
 }
 
@@ -307,11 +307,11 @@ macro_rules! impl_int_try_uconstant {
         impl<T: VarLit> TryIntConstant<T, $pty> for ExprNode<T, false> {
             fn try_constant(
                 creator: Rc<RefCell<ExprCreator<T>>>,
-                v: $pty,
                 n: usize,
+                v: $pty,
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
-                if n < bits && (v & ((1 << (bits - n) - 1) << n)) != 0 {
+                if n < bits && (v & (((1 << (bits - n)) - 1) << n)) != 0 {
                     return Err(IntError::BitOverflow);
                 }
                 Ok(ExprNode {
@@ -340,11 +340,11 @@ macro_rules! impl_int_try_iconstant {
         impl<T: VarLit> TryIntConstant<T, $pty> for ExprNode<T, true> {
             fn try_constant(
                 creator: Rc<RefCell<ExprCreator<T>>>,
-                v: $pty,
                 n: usize,
+                v: $pty,
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
-                let mask = ((1 << (bits - n) - 1) << n);
+                let mask = (((1 << (bits - n)) - 1) << n);
                 let signmask = if v < 0 { mask } else { 0 };
                 if n < bits && (v & mask) != signmask {
                     return Err(IntError::BitOverflow);
@@ -767,5 +767,47 @@ mod tests {
             Err("Bit overflow".to_string()),
             ExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
+    }
+
+    #[test]
+    fn test_expr_node_try_int_constant() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::try_constant(ec.clone(), 9, 0b11011001u16).unwrap();
+        assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, true>::try_constant(ec.clone(), 8, 0b00111001i16).unwrap();
+        assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, true>::try_constant(ec.clone(), 10, -15i8).unwrap();
+        assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
+        let x1 =
+            ExprNode::<isize, false>::try_constant(ec.clone(), 64, 1848549293434211u64).unwrap();
+        assert_eq!(
+            (0..64)
+                .into_iter()
+                .map(|x| ((1848549293434211u64 >> x) & 1) as usize)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            x1.indexes.as_slice()
+        );
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, false>::try_constant(ec.clone(), 4, 14u16 | (1u16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, true>::try_constant(ec.clone(), 4, 6i16 | (1i16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, true>::try_constant(ec.clone(), 4, (-6i16) ^ (1i16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
     }
 }
