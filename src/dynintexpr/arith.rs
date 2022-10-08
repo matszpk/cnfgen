@@ -693,3 +693,64 @@ macro_rules! impl_dynint_div_mod {
 
 impl_dynint_div_mod!(false);
 impl_dynint_div_mod!(true);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::IntExprNode;
+    use generic_array::typenum::*;
+    
+    macro_rules! test_expr_node_binaryop {
+        ($sign:expr, $op:ident, $op_assign:ident) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x4 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let res = x1.$op(x2);
+            res_x3.$op_assign(x4);
+            
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let mut exp_x3 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let x4 = IntExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
+            let exp = x1.$op(x2);
+            exp_x3.$op_assign(x4);
+            
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(exp_x3.indexes.as_slice(), res_x3.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+    }
+    
+    #[test]
+    fn test_expr_node_bitand() {
+        test_expr_node_binaryop!(false, bitand, bitand_assign);
+    }
+    
+    #[test]
+    fn test_expr_node_bitor() {
+        test_expr_node_binaryop!(false, bitor, bitor_assign);
+    }
+    
+    #[test]
+    fn test_expr_node_bitxor() {
+        test_expr_node_binaryop!(false, bitxor, bitxor_assign);
+    }
+    
+    #[test]
+    fn test_expr_node_add() {
+        test_expr_node_binaryop!(false, add, add_assign);
+    }
+    
+    #[test]
+    fn test_expr_node_sub() {
+        test_expr_node_binaryop!(false, sub, sub_assign);
+    }
+    
+    #[test]
+    fn test_expr_node_mul() {
+        test_expr_node_binaryop!(false, mul, mul_assign);
+    }
+}
