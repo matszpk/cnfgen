@@ -300,7 +300,7 @@ where
     }
 }
 
-trait TryIntConstant<T: VarLit, U>: Sized {
+pub trait TryIntConstant<T: VarLit, U>: Sized {
     fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U, n: usize)
         -> Result<Self, IntError>;
 }
