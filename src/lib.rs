@@ -21,14 +21,30 @@
 //! The library to generate CNF (Conjuctive Normal Form) formulaes.
 
 pub mod prelude {
+    pub use crate::BitMask;
+    pub use crate::BitVal;
+    pub use crate::BoolEqual;
+    pub use crate::BoolExprNode;
+    pub use crate::BoolImpl;
     pub use crate::CNFError;
     pub use crate::CNFWriter;
     pub use crate::Clause;
+    pub use crate::DivMod;
+    pub use crate::DynIntExprNode;
+    pub use crate::ExprCreator;
+    pub use crate::FullMul;
     pub use crate::InputClause;
+    pub use crate::IntConstant;
+    pub use crate::IntEqual;
+    pub use crate::IntError;
+    pub use crate::IntExprNode;
+    pub use crate::IntOrd;
     pub use crate::Literal;
     pub use crate::QuantSet;
     pub use crate::Quantifier;
     pub use crate::SimplifiableClause;
+    pub use crate::TryFromNSized;
+    pub use crate::TryIntConstant;
     pub use crate::VarLit;
 }
 
