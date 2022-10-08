@@ -810,4 +810,14 @@ mod tests {
             );
         }
     }
+    
+    #[test]
+    fn test_expr_node_bitval() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 7);
+        assert_eq!(x1.bit(2), BoolExprNode::single(ec.clone(), 3));
+        assert_eq!(x1.bit(6), BoolExprNode::single(ec.clone(), 7));
+        let x1 = ExprNode::<isize, true>::variable(ec.clone(), 7);
+        assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
+    }
 }
