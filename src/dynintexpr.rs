@@ -24,8 +24,8 @@ use std::cell::RefCell;
 use std::cmp;
 use std::fmt::Debug;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, MulAssign,
-    Neg, Not, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, Mul,
+    MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use std::rc::Rc;
 
@@ -36,8 +36,8 @@ use crate::int_utils::*;
 use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
-    BitVal, BoolEqual, BoolExprNode, BoolImpl, ExprCreator, FullMul, IntEqual, IntExprNode, IntOrd,
-    Literal, VarLit,
+    BitVal, BoolEqual, BoolExprNode, BoolImpl, DivMod, ExprCreator, FullMul, IntEqual, IntExprNode,
+    IntOrd, Literal, VarLit,
 };
 
 // ExprNode - main node
@@ -1013,3 +1013,122 @@ where
         )
     }
 }
+
+// DivMod - dividion and remainder all in one
+
+impl<T> DivMod<ExprNode<T, false>> for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let divres = ExprNode::<T, false>::variable(self.creator.clone(), n);
+        let mut matrix =
+            gen_dadda_matrix(self.creator.clone(), &rhs.indexes, &divres.indexes, 2 * n);
+        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
+
+        // modv - division modulo
+        let modv = ExprNode::<T, false>::variable(self.creator.clone(), n);
+        let modv_cond = modv.clone().less_than(rhs);
+
+        // add modulo to mulres
+        let (mulres_lo, carry) = ExprNode::<T, false> {
+            creator: self.creator.clone(),
+            indexes: Vec::from(&mulres[0..n]),
+        }
+        .addc_with_carry(
+            modv.clone(),
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        let mulres_hi = ExprNode::<T, false> {
+            creator: self.creator.clone(),
+            indexes: Vec::from(&mulres[n..]),
+        }
+        .add_same_carry(carry);
+        // condition for mulres - mulres_lo = self,  mulres_hi = 0
+        let creator = self.creator.clone();
+        let mulres_cond =
+            mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, n, false));
+
+        (divres, modv, modv_cond & mulres_cond)
+    }
+}
+
+impl<T> DivMod<ExprNode<T, true>> for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let (udiv, umod, cond) = ua.divmod(ub);
+        let (sign_a, sign_b) = (self.bit(n - 1), rhs.bit(n - 1));
+        let exp_divsign = sign_a.clone() ^ sign_b;
+        let divres = dynint_ite(
+            exp_divsign.clone(),
+            -(udiv.clone().as_signed()),
+            udiv.as_signed(),
+        );
+        let divres_sign = divres.bit(n - 1);
+        (
+            divres.clone(),
+            dynint_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
+            cond & (exp_divsign.bequal(divres_sign)
+                | divres.equal(ExprNode::<T, true>::filled(self.creator.clone(), n, false))),
+        )
+    }
+}
+
+macro_rules! impl_dynint_div_mod {
+    ($sign:expr) => {
+        impl<T> Div<ExprNode<T, $sign>> for ExprNode<T, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = (Self, BoolExprNode<T>);
+
+            fn div(self, rhs: Self) -> Self::Output {
+                let (d, _, c) = self.divmod(rhs);
+                (d, c)
+            }
+        }
+
+        impl<T> Rem<ExprNode<T, $sign>> for ExprNode<T, $sign>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = (Self, BoolExprNode<T>);
+
+            fn rem(self, rhs: Self) -> Self::Output {
+                let (_, r, c) = self.divmod(rhs);
+                (r, c)
+            }
+        }
+    };
+}
+
+impl_dynint_div_mod!(false);
+impl_dynint_div_mod!(true);
