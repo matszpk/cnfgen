@@ -42,6 +42,7 @@ pub mod boolexpr;
 pub use boolexpr::{BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 pub mod boolexpr_creator;
 pub use boolexpr_creator::ExprCreator;
+mod int_utils;
 pub mod intexpr;
 pub use intexpr::{
     BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode, I16ExprNode,

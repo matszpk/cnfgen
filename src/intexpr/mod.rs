@@ -53,7 +53,7 @@ pub use int_arith::*;
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug, N: ArrayLength<usize>, const SIGN: bool> {
-    creator: Rc<RefCell<ExprCreator<T>>>,
+    pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) indexes: GenericArray<usize, N>,
 }
 
