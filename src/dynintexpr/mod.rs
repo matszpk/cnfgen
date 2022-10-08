@@ -240,8 +240,8 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true> {
     type Error = IntError;
 
     fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
-        if n < input.indexes.len() {
-            if !input.indexes.iter().skip(n).all(|x| *x == 0) {
+        if n <= input.indexes.len() {
+            if !input.indexes.iter().skip(n - 1).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
             Ok(ExprNode {
@@ -249,9 +249,6 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true> {
                 indexes: Vec::from(&input.indexes[0..n]),
             })
         } else {
-            if *input.indexes.last().unwrap() != 0 {
-                return Err(IntError::BitOverflow);
-            }
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
             Ok(ExprNode {
