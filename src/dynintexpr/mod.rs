@@ -510,6 +510,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::IntExprNode;
+    use generic_array::typenum::*;
     use std::iter;
 
     #[test]
@@ -597,6 +599,14 @@ mod tests {
                 .as_slice(),
             xt2.indexes.as_slice()
         );
+    }
+
+    #[test]
+    fn test_expr_node_from_int_expr_node() {
+        let ec = ExprCreator::new();
+        let ix1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+        let dix1 = ExprNode::<isize, false>::from(ix1.clone());
+        assert_eq!(ix1.indexes.as_slice(), dix1.indexes.as_slice());
     }
 
     #[test]
@@ -820,9 +830,6 @@ mod tests {
         let x1 = ExprNode::<isize, true>::variable(ec.clone(), 7);
         assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
     }
-
-    use crate::IntExprNode;
-    use generic_array::typenum::*;
 
     #[test]
     fn test_expr_node_int_equal() {

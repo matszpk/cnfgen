@@ -566,6 +566,15 @@ mod tests {
     }
 
     #[test]
+    fn test_expr_node_try_from_dynint_expr_node() {
+        use crate::DynIntExprNode;
+        let ec = ExprCreator::new();
+        let dix1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
+        let ix1 = ExprNode::<isize, U10, false>::try_from(dix1.clone()).unwrap();
+        assert_eq!(ix1.indexes.as_slice(), dix1.indexes.as_slice());
+    }
+
+    #[test]
     fn test_expr_node_try_from() {
         let ec = ExprCreator::new();
         let ix1 =
