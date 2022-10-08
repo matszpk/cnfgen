@@ -28,8 +28,10 @@ use std::rc::Rc;
 use crate::boolexpr::{half_adder, opt_full_adder};
 use crate::{BoolExprNode, ExprCreator, VarLit};
 
-pub(super) fn gen_dadda_mult<T>(creator: Rc<RefCell<ExprCreator<T>>>, matrix: &mut [Vec<usize>])
-        -> Vec<usize>
+pub(super) fn gen_dadda_mult<T>(
+    creator: Rc<RefCell<ExprCreator<T>>>,
+    matrix: &mut [Vec<usize>],
+) -> Vec<usize>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -164,11 +166,11 @@ where
 mod tests {
     use super::*;
     use crate::boolexpr::test_utils::*;
-    
-    use generic_array::GenericArray;
-    use generic_array::typenum::*;
+
     use crate::IntExprNode;
-    
+    use generic_array::typenum::*;
+    use generic_array::GenericArray;
+
     #[test]
     fn test_gen_dadda_matrix() {
         {
