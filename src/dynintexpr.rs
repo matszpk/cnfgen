@@ -991,3 +991,25 @@ where
         }
     }
 }
+
+impl<T> FullMul<ExprNode<T, true>> for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = ExprNode<T, true>;
+
+    fn fullmul(self, rhs: Self) -> Self::Output {
+        let ua = self.clone().abs();
+        let ub = rhs.clone().abs();
+        let res = ua.fullmul(ub);
+        dynint_ite(
+            self.bit(self.indexes.len() - 1) ^ rhs.bit(self.indexes.len() - 1),
+            -res.clone().as_signed(),
+            res.as_signed(),
+        )
+    }
+}
