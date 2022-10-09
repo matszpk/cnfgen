@@ -141,28 +141,23 @@ where
 }
 
 /// Shift left implementation.
-impl<T, const SIGN: bool, const SIGN2: bool> IntCondShl<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondShl<ExprNode<T, false>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, SIGN2>: TryIntConstant<T, usize>,
-    ExprNode<T, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+    ExprNode<T, false>: TryIntConstant<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shl(self, rhs: ExprNode<T, SIGN2>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shl(self, rhs: ExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
-        // check whether zeroes in sign and in unused bits in Rhs
-        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
-            panic!("this arithmetic operation will overflow");
-        }
-        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+        let nbits = cmp::min(nbits, n2);
 
         let mut input = ExprNode {
             creator: self.creator.clone(),
@@ -173,8 +168,41 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
+    }
+}
+
+impl<T, const SIGN: bool> IntCondShl<ExprNode<T, true>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    ExprNode<T, true>: TryIntConstant<T, isize>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shl(self, rhs: ExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        let nbits = cmp::min(nbits, n2 - 1);
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        let nexpr =
+            ExprNode::<T, true>::try_constant(self.creator.clone(), n2, (n - 1) as isize).unwrap();
+        (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
 
@@ -249,29 +277,24 @@ where
     }
 }
 
-/// Shift right implementation.
-impl<T, const SIGN: bool, const SIGN2: bool> IntCondShr<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+/// Shift left implementation.
+impl<T, const SIGN: bool> IntCondShr<ExprNode<T, false>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, SIGN2>: TryIntConstant<T, usize>,
-    ExprNode<T, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+    ExprNode<T, false>: TryIntConstant<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shr(self, rhs: ExprNode<T, SIGN2>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shr(self, rhs: ExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
-        // check whether zeroes in sign and in unused bits in Rhs
-        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
-            panic!("this arithmetic operation will overflow");
-        }
-        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+        let nbits = cmp::min(nbits, n2);
 
         let mut input = ExprNode {
             creator: self.creator.clone(),
@@ -282,8 +305,41 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
+    }
+}
+
+impl<T, const SIGN: bool> IntCondShr<ExprNode<T, true>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    ExprNode<T, true>: TryIntConstant<T, isize>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shr(self, rhs: ExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        let nbits = cmp::min(nbits, n2 - 1);
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
+        }
+        let nexpr =
+            ExprNode::<T, true>::try_constant(self.creator.clone(), n2, (n - 1) as isize).unwrap();
+        (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
 
@@ -1241,6 +1297,84 @@ mod tests {
     fn test_expr_node_shr() {
         test_expr_node_shiftop!(false, shr, shr_assign);
         test_expr_node_shiftop!(true, shr, shr_assign);
+    }
+
+    macro_rules! test_expr_node_cond_shl_5 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), $bits);
+            let x2 = ExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
+            let (res, resc) = x1.cond_shl(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(exp_ec.clone());
+            let (exp, expc) = x1.cond_shl(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_cond_shl() {
+        test_expr_node_cond_shl_5!(false, false, U26, U5, 26, 5);
+        test_expr_node_cond_shl_5!(true, false, U26, U5, 26, 5);
+        test_expr_node_cond_shl_5!(false, false, U32, U5, 32, 5);
+        test_expr_node_cond_shl_5!(true, false, U32, U5, 32, 5);
+        test_expr_node_cond_shl_5!(false, false, U26, U7, 26, 7);
+        test_expr_node_cond_shl_5!(true, false, U26, U7, 26, 7);
+        test_expr_node_cond_shl_5!(false, false, U32, U7, 32, 7);
+        test_expr_node_cond_shl_5!(true, false, U32, U7, 32, 7);
+
+        test_expr_node_cond_shl_5!(false, true, U26, U6, 26, 6);
+        test_expr_node_cond_shl_5!(true, true, U26, U6, 26, 6);
+        test_expr_node_cond_shl_5!(false, true, U32, U6, 32, 6);
+        test_expr_node_cond_shl_5!(true, true, U32, U6, 32, 6);
+        test_expr_node_cond_shl_5!(false, true, U26, U7, 26, 7);
+        test_expr_node_cond_shl_5!(true, true, U26, U7, 26, 7);
+        test_expr_node_cond_shl_5!(false, true, U32, U7, 32, 7);
+        test_expr_node_cond_shl_5!(true, true, U32, U7, 32, 7);
+    }
+
+    macro_rules! test_expr_node_cond_shr_5 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), $bits);
+            let x2 = ExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
+            let (res, resc) = x1.cond_shr(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(exp_ec.clone());
+            let (exp, expc) = x1.cond_shr(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_cond_shr() {
+        test_expr_node_cond_shr_5!(false, false, U26, U5, 26, 5);
+        test_expr_node_cond_shr_5!(true, false, U26, U5, 26, 5);
+        test_expr_node_cond_shr_5!(false, false, U32, U5, 32, 5);
+        test_expr_node_cond_shr_5!(true, false, U32, U5, 32, 5);
+        test_expr_node_cond_shr_5!(false, false, U26, U7, 26, 7);
+        test_expr_node_cond_shr_5!(true, false, U26, U7, 26, 7);
+        test_expr_node_cond_shr_5!(false, false, U32, U7, 32, 7);
+        test_expr_node_cond_shr_5!(true, false, U32, U7, 32, 7);
+
+        test_expr_node_cond_shr_5!(false, true, U26, U6, 26, 6);
+        test_expr_node_cond_shr_5!(true, true, U26, U6, 26, 6);
+        test_expr_node_cond_shr_5!(false, true, U32, U6, 32, 6);
+        test_expr_node_cond_shr_5!(true, true, U32, U6, 32, 6);
+        test_expr_node_cond_shr_5!(false, true, U26, U7, 26, 7);
+        test_expr_node_cond_shr_5!(true, true, U26, U7, 26, 7);
+        test_expr_node_cond_shr_5!(false, true, U32, U7, 32, 7);
+        test_expr_node_cond_shr_5!(true, true, U32, U7, 32, 7);
     }
 
     #[test]
