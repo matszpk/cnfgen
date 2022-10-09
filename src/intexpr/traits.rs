@@ -336,6 +336,7 @@ macro_rules! impl_int_mod_neg_pty {
         impl IntModNeg for $pty {
             type Output = Self;
 
+            #[inline]
             fn mod_neg(self) -> Self {
                 self.overflowing_neg().0
             }
