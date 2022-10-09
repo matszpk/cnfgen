@@ -189,6 +189,126 @@ macro_rules! impl_int_binary_op {
 
 impl_int_binary_op!($, IntModAdd, mod_add, impl_int_add_pty, impl_int_add_upty, impl_int_add_ipty);
 
+impl<T, N> IntCondAdd<ExprNode<T, N, false>> for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_add(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let (c, _) = helper_addc_cout(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            !c, // good if no carry
+        )
+    }
+}
+
+impl<T, N> IntCondAdd<ExprNode<T, N, true>> for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_add(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let (c, csign) = helper_addc_cout(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), false),
+        );
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c.bequal(csign), // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+        )
+    }
+}
+
+macro_rules! impl_int_cond_binary_op {
+    ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
+
+        macro_rules! $macro_gen {
+                    ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = (Self, BoolExprNode<T>);
+
+                            fn $op(self, rhs: $pty) -> Self::Output {
+                                let creator = self.creator.clone();
+                                self.$op(Self::constant(creator, rhs))
+                            }
+                        }
+
+                        /// Binary operation traits implementation.
+                        impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
+                        where
+                            T: VarLit + Neg<Output = T> + Debug,
+                            isize: TryFrom<T>,
+                            <T as TryInto<usize>>::Error: Debug,
+                            <T as TryFrom<usize>>::Error: Debug,
+                            <isize as TryFrom<T>>::Error: Debug,
+                            $ty: ArrayLength<usize>,
+                        {
+                            type Output = (ExprNode<T, $ty, $sign>, BoolExprNode<T>);
+
+                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                                let creator = rhs.creator.clone();
+                                ExprNode::<T, $ty, $sign>::constant(creator, self).$op(rhs)
+                            }
+                        }
+                    }
+                }
+
+        macro_rules! $macro_upty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(false, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+        macro_rules! $macro_ipty {
+                    ($pty:ty, $ty:ty, $d($d gparams:ident),*) => {
+                        $macro_gen!(true, $pty, $ty, $d( $d gparams ),*);
+                    }
+                }
+
+        impl_int_upty_ty1!($macro_upty);
+        impl_int_ipty_ty1!($macro_ipty);
+    }
+}
+
+impl_int_cond_binary_op!($, IntCondAdd, cond_add, impl_int_cond_add_pty, impl_int_cond_add_upty,
+        impl_int_cond_add_ipty);
+
 impl<T, N, const SIGN: bool> IntModSub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -216,6 +336,67 @@ where
 }
 
 impl_int_binary_op!($, IntModSub, mod_sub, impl_int_sub_pty, impl_int_sub_upty, impl_int_sub_ipty);
+
+impl<T, N> IntCondSub<ExprNode<T, N, false>> for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_sub(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let (c, _) = helper_subc_cout(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), true),
+        );
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c, // good if carry
+        )
+    }
+}
+
+impl<T, N> IntCondSub<ExprNode<T, N, true>> for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_sub(self, rhs: Self) -> Self::Output {
+        let mut output = GenericArray::<usize, N>::default();
+        let (c, csign) = helper_subc_cout(
+            &mut output,
+            &self,
+            &rhs,
+            BoolExprNode::single_value(self.creator.clone(), true),
+        );
+        (
+            ExprNode {
+                creator: self.creator,
+                indexes: output,
+            },
+            c.bequal(csign), // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+        )
+    }
+}
+
+impl_int_cond_binary_op!($, IntCondSub, cond_sub, impl_int_cond_sub_pty, impl_int_cond_sub_upty,
+        impl_int_cond_sub_ipty);
 
 // AddAssign,  SubAssign
 impl_int_bitop_assign!($, IntModAddAssign, mod_add_assign, mod_add, impl_int_add_assign_pty,
@@ -918,6 +1099,50 @@ mod tests {
         test_expr_node_mod_add_and_assign_xx!(true, -69, -86);
     }
 
+    #[test]
+    fn test_expr_node_cond_add() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let (res, resc) = x1.cond_add(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let (exp, tempc) =
+                x1.addc_with_carry(x2, BoolExprNode::single_value(exp_ec.clone(), false));
+            let expc = !tempc;
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let (res, resc) = x1.cond_add(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let mut exp = vec![0; 10];
+            let (expc1, expc2) = helper_addc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), false),
+            );
+            let expc = expc1.bequal(expc2);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+    }
+
     macro_rules! test_expr_node_mod_sub_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
@@ -983,6 +1208,54 @@ mod tests {
         test_expr_node_mod_sub_and_assign_xx!(false, 85, 151);
         test_expr_node_mod_sub_and_assign_xx!(true, 56, 113);
         test_expr_node_mod_sub_and_assign_xx!(true, -89, -59);
+    }
+
+    #[test]
+    fn test_expr_node_cond_sub() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let (res, resc) = x1.cond_sub(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let mut exp = vec![0; 10];
+            let (expc, _) = helper_subc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), true),
+            );
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let (res, resc) = x1.cond_sub(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let mut exp = vec![0; 10];
+            let (expc1, expc2) = helper_subc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), true),
+            );
+            let expc = expc1.bequal(expc2);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
     }
 
     macro_rules! test_expr_node_mod_mul_and_assign_xx {
