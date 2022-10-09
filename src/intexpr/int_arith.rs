@@ -464,6 +464,62 @@ where
     }
 }
 
+impl<T, N> IntCondMul<ExprNode<T, N, false>> for ExprNode<T, N, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_mul(self, rhs: Self) -> Self::Output {
+        let mut matrix = gen_dadda_matrix(
+            self.creator.clone(),
+            &self.indexes,
+            &rhs.indexes,
+            2 * N::USIZE,
+        );
+        let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        let reshi = ExprNode::<T, N, false> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::<_, N>::clone_from_slice(&res[N::USIZE..]),
+        };
+        (
+            ExprNode {
+                creator: self.creator.clone(),
+                indexes: GenericArray::<_, N>::clone_from_slice(&res[0..N::USIZE]),
+            },
+            reshi.equal(ExprNode::filled(self.creator, false)),
+        )
+    }
+}
+
+impl<T, N> IntCondMul<ExprNode<T, N, true>> for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_mul(self, rhs: Self) -> Self::Output {
+        let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
+        let (res, resc) = self.clone().as_unsigned().cond_mul(rhs.clone().as_unsigned());
+        let ressign = res.bit(N::USIZE - 1);
+        (
+            res.clone().as_signed(),
+            resc & (expsign.bequal(ressign)
+                | res.equal(ExprNode::filled(self.creator, false))),
+        )
+    }
+}
+
 impl_int_binary_op!($, IntModMul, mod_mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, IntModMulAssign, mod_mul_assign, mod_mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
