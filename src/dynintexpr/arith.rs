@@ -121,6 +121,7 @@ where
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != n && rhs.indexes[nbits - 1] != 0)
         {
             panic!("this arithmetic operation will overflow");
         }
@@ -191,6 +192,7 @@ where
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != n && rhs.indexes[nbits - 1] != 0)
         {
             panic!("this arithmetic operation will overflow");
         }

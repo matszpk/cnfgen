@@ -240,6 +240,7 @@ where
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != N::USIZE && rhs.indexes[nbits - 1] != 0)
         {
             panic!("this arithmetic operation will overflow");
         }
@@ -352,6 +353,7 @@ where
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
             || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != N::USIZE && rhs.indexes[nbits - 1] != 0)
         {
             panic!("this arithmetic operation will overflow");
         }
@@ -826,18 +828,12 @@ mod tests {
 
     #[test]
     fn test_expr_node_shl_and_shl_assign() {
-        test_expr_node_shl_assign_3!(false, false, U6, U3, 6);
         test_expr_node_shl_assign_3!(false, false, U8, U3, 8);
-        test_expr_node_shl_assign_3!(false, false, U6, U5, 6);
         test_expr_node_shl_assign_3!(false, false, U8, U5, 8);
-        test_expr_node_shl_assign_3!(true, false, U6, U3, 6);
         test_expr_node_shl_assign_3!(true, false, U8, U3, 8);
-        test_expr_node_shl_assign_3!(true, false, U6, U5, 6);
         test_expr_node_shl_assign_3!(true, false, U8, U5, 8);
 
-        test_expr_node_shl_assign_3!(false, true, U6, U4, 6);
         test_expr_node_shl_assign_3!(false, true, U8, U4, 8);
-        test_expr_node_shl_assign_3!(true, true, U6, U4, 6);
         test_expr_node_shl_assign_3!(true, true, U8, U4, 8);
 
         // lhs is immediate - constant
@@ -868,19 +864,13 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        test_expr_node_shl_assign_5!(false, false, U27, U5, 27);
         test_expr_node_shl_assign_5!(false, false, U32, U5, 32);
-        test_expr_node_shl_assign_5!(false, false, U27, U8, 27);
         test_expr_node_shl_assign_5!(false, false, U32, U8, 32);
 
-        test_expr_node_shl_assign_5!(true, false, U27, U5, 27);
         test_expr_node_shl_assign_5!(true, false, U32, U5, 32);
-        test_expr_node_shl_assign_5!(true, false, U27, U8, 27);
         test_expr_node_shl_assign_5!(true, false, U32, U8, 32);
 
-        test_expr_node_shl_assign_5!(false, true, U27, U6, 27);
         test_expr_node_shl_assign_5!(false, true, U32, U6, 32);
-        test_expr_node_shl_assign_5!(true, true, U27, U6, 27);
         test_expr_node_shl_assign_5!(true, true, U32, U6, 32);
 
         // lhs is immediate - constant
@@ -1107,18 +1097,12 @@ mod tests {
 
     #[test]
     fn test_expr_node_shr_and_shr_assign() {
-        test_expr_node_shr_assign_3!(false, false, U6, U3, 6);
         test_expr_node_shr_assign_3!(false, false, U8, U3, 8);
-        test_expr_node_shr_assign_3!(false, false, U6, U5, 6);
         test_expr_node_shr_assign_3!(false, false, U8, U5, 8);
-        test_expr_node_shr_assign_3!(true, false, U6, U3, 6);
         test_expr_node_shr_assign_3!(true, false, U8, U3, 8);
-        test_expr_node_shr_assign_3!(true, false, U6, U5, 6);
         test_expr_node_shr_assign_3!(true, false, U8, U5, 8);
 
-        test_expr_node_shr_assign_3!(false, true, U6, U4, 6);
         test_expr_node_shr_assign_3!(false, true, U8, U4, 8);
-        test_expr_node_shr_assign_3!(true, true, U6, U4, 6);
         test_expr_node_shr_assign_3!(true, true, U8, U4, 8);
 
         // lhs is immediate - constant
@@ -1150,19 +1134,13 @@ mod tests {
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
 
-        test_expr_node_shr_assign_5!(false, false, U27, U5, 27);
         test_expr_node_shr_assign_5!(false, false, U32, U5, 32);
-        test_expr_node_shr_assign_5!(false, false, U27, U8, 27);
         test_expr_node_shr_assign_5!(false, false, U32, U8, 32);
 
-        test_expr_node_shr_assign_5!(true, false, U27, U5, 27);
         test_expr_node_shr_assign_5!(true, false, U32, U5, 32);
-        test_expr_node_shr_assign_5!(true, false, U27, U8, 27);
         test_expr_node_shr_assign_5!(true, false, U32, U8, 32);
 
-        test_expr_node_shr_assign_5!(false, true, U27, U6, 27);
         test_expr_node_shr_assign_5!(false, true, U32, U6, 32);
-        test_expr_node_shr_assign_5!(true, true, U27, U6, 27);
         test_expr_node_shr_assign_5!(true, true, U32, U6, 32);
 
         // lhs is immediate - constant
