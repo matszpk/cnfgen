@@ -371,7 +371,7 @@ where
         }
         let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
             self.creator.clone(),
-            N::U64,
+            N::U64 - 1,
         ))
         .unwrap();
         (output, rhs.less_equal(nexpr))
@@ -581,7 +581,7 @@ where
         }
         let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
             self.creator.clone(),
-            N::U64,
+            N::U64 - 1,
         ))
         .unwrap();
         (output, rhs.less_equal(nexpr))

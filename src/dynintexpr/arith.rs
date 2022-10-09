@@ -173,7 +173,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n).unwrap();
+        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
@@ -249,7 +249,7 @@ where
     }
 }
 
-/// Shift left implementation.
+/// Shift right implementation.
 impl<T, const SIGN: bool, const SIGN2: bool> IntCondShr<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -282,7 +282,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n).unwrap();
+        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
