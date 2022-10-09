@@ -40,7 +40,12 @@ where
 {
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
-        int_ite(self.bit(N::USIZE - 1), -self.clone(), self).as_unsigned()
+        int_ite(self.bit(N::USIZE - 1), self.clone().mod_neg(), self).as_unsigned()
+    }
+
+    pub fn mod_neg(self) -> Self {
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
     }
 }
 
@@ -223,25 +228,6 @@ impl_int_bitop_assign!($, IntModAddAssign, mod_add_assign, mod_add, impl_int_add
 impl_int_bitop_assign!($, IntModSubAssign, mod_sub_assign, mod_sub, impl_int_sub_assign_pty,
         impl_int_sub_assign_upty, impl_int_sub_assign_ipty);
 
-// Neg impl
-
-impl<T, N> Neg for ExprNode<T, N, true>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
-{
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        let trueval = BoolExprNode::new(self.creator.clone(), 1);
-        (!self).add_same_carry(trueval)
-    }
-}
-
 /// Most advanced: multiplication.
 
 impl<T, N, const SIGN: bool> IntModMul<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
@@ -317,7 +303,7 @@ where
         let res = ua.fullmul(ub);
         int_ite(
             self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
-            -res.clone().as_signed(),
+            res.clone().as_signed().mod_neg(),
             res.as_signed(),
         )
     }
@@ -449,13 +435,13 @@ where
         let exp_divsign = sign_a.clone() ^ sign_b;
         let divres = int_ite(
             exp_divsign.clone(),
-            -(udiv.clone().as_signed()),
+            udiv.clone().as_signed().mod_neg(),
             udiv.as_signed(),
         );
         let divres_sign = divres.bit(N::USIZE - 1);
         (
             divres.clone(),
-            int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
+            int_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
             cond & (exp_divsign.bequal(divres_sign)
                 | divres.equal(ExprNode::<T, N, true>::filled(self.creator.clone(), false))),
         )
@@ -639,7 +625,7 @@ mod tests {
     fn test_expr_node_neg() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U5, true>::variable(ec.clone());
-        let res = -x1;
+        let res = x1.mod_neg();
 
         let exp_ec = ExprCreator::new();
         let bvs = alloc_boolvars(exp_ec.clone(), 5)
@@ -668,7 +654,7 @@ mod tests {
 
         let exp_ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
-        let exp = int_ite(x1.bit(9), -x1.clone(), x1.clone());
+        let exp = int_ite(x1.bit(9), x1.clone().mod_neg(), x1.clone());
 
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -1079,7 +1065,7 @@ mod tests {
             creator: exp_ec.clone(),
             indexes: GenericArray::clone_from_slice(&gen_dadda_mult(exp_ec.clone(), &mut matrix)),
         };
-        int_ite(x1.bit(9) ^ x2.bit(9), -temp.clone(), temp)
+        int_ite(x1.bit(9) ^ x2.bit(9), temp.clone().mod_neg(), temp)
     }
 
     #[test]
@@ -1206,13 +1192,17 @@ mod tests {
         let exp_divsign = sign_a.clone() ^ sign_b;
         let divres = int_ite(
             exp_divsign.clone(),
-            -(udiv.clone().as_signed()),
+            (udiv.clone().as_signed()).mod_neg(),
             udiv.as_signed(),
         );
         let divres_sign = divres.bit(9);
         (
             divres.clone(),
-            int_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
+            int_ite(
+                sign_a,
+                (umod.clone().as_signed()).mod_neg(),
+                umod.as_signed(),
+            ),
             cond & (exp_divsign.bequal(divres_sign) | divres.equal(0)),
         )
     }

@@ -363,7 +363,17 @@ where
 {
     pub fn abs(self) -> ExprNode<T, false> {
         // if sign then -self else self
-        dynint_ite(self.bit(self.indexes.len() - 1), -self.clone(), self).as_unsigned()
+        dynint_ite(
+            self.bit(self.indexes.len() - 1),
+            self.clone().mod_neg(),
+            self,
+        )
+        .as_unsigned()
+    }
+
+    pub fn mod_neg(self) -> Self {
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
     }
 }
 
@@ -479,24 +489,6 @@ where
 impl_dynint_bitop_assign!(IntModAddAssign, mod_add, mod_add_assign);
 impl_dynint_bitop_assign!(IntModSubAssign, mod_sub, mod_sub_assign);
 
-// Neg impl
-
-impl<T> Neg for ExprNode<T, true>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-{
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        let trueval = BoolExprNode::new(self.creator.clone(), 1);
-        (!self).add_same_carry(trueval)
-    }
-}
-
 /// Most advanced: multiplication.
 
 impl<T, const SIGN: bool> IntModMul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
@@ -569,7 +561,7 @@ where
         let res = ua.fullmul(ub);
         dynint_ite(
             self.bit(self.indexes.len() - 1) ^ rhs.bit(self.indexes.len() - 1),
-            -res.clone().as_signed(),
+            res.clone().as_signed().mod_neg(),
             res.as_signed(),
         )
     }
@@ -642,13 +634,13 @@ where
         let exp_divsign = sign_a.clone() ^ sign_b;
         let divres = dynint_ite(
             exp_divsign.clone(),
-            -(udiv.clone().as_signed()),
+            udiv.clone().as_signed().mod_neg(),
             udiv.as_signed(),
         );
         let divres_sign = divres.bit(n - 1);
         (
             divres.clone(),
-            dynint_ite(sign_a, -(umod.clone().as_signed()), umod.as_signed()),
+            dynint_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
             cond & (exp_divsign.bequal(divres_sign)
                 | divres.equal(ExprNode::<T, true>::filled(self.creator.clone(), n, false))),
         )
@@ -1037,13 +1029,13 @@ mod tests {
         let x1 = ExprNode::<isize, true>::variable(ec.clone(), 10);
         let x2 = ExprNode::<isize, true>::variable(ec.clone(), 10);
         let resabs = x1.abs();
-        let resneg = -x2;
+        let resneg = x2.mod_neg();
 
         let exp_ec = ExprCreator::new();
         let x1 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
         let x2 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
         let expabs = x1.abs();
-        let expneg = -x2;
+        let expneg = x2.mod_neg();
 
         assert_eq!(expabs.indexes.as_slice(), resabs.indexes.as_slice());
         assert_eq!(expneg.indexes.as_slice(), resneg.indexes.as_slice());
