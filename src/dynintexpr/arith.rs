@@ -484,7 +484,7 @@ where
 impl_dynint_bitop_assign!(IntModAddAssign, mod_add, mod_add_assign);
 impl_dynint_bitop_assign!(IntModSubAssign, mod_sub, mod_sub_assign);
 
-impl<T, const SIGN: bool> IntModNeg for ExprNode<T, SIGN>
+impl<T> IntModNeg for ExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
