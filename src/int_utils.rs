@@ -301,7 +301,7 @@ mod tests {
     use super::*;
     use crate::boolexpr::test_utils::*;
 
-    use crate::IntExprNode;
+    use crate::{IntExprNode, IntModAdd};
     use generic_array::typenum::*;
     use generic_array::GenericArray;
 
@@ -431,7 +431,7 @@ mod tests {
                     c2.index,
                 ]),
             };
-            let exp = a + b;
+            let exp = a.mod_add(b);
 
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -482,7 +482,7 @@ mod tests {
                     0,
                 ]),
             };
-            let exp = a + b;
+            let exp = a.mod_add(b);
 
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -547,7 +547,7 @@ mod tests {
                     c4_2.index,
                 ]),
             };
-            let exp = a + b;
+            let exp = a.mod_add(b);
 
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -605,7 +605,7 @@ mod tests {
                     c2_2.index,
                 ]),
             };
-            let exp = a + b;
+            let exp = a.mod_add(b);
 
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -712,7 +712,7 @@ mod tests {
                     c7_3.index,
                 ]),
             };
-            let exp = a + b;
+            let exp = a.mod_add(b);
 
             assert_eq!(exp.indexes.as_slice(), res.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());

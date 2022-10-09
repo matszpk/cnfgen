@@ -21,7 +21,7 @@
 //! The module to generate CNF clauses from integer expressions.
 
 use std::fmt::Debug;
-use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Rem, Sub, SubAssign};
+use std::ops::{Div, Neg, Rem};
 
 use generic_array::typenum::*;
 use generic_array::*;
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<T, N, const SIGN: bool> Add<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> IntModAdd<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -113,7 +113,7 @@ where
 {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn mod_add(self, rhs: Self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
         helper_addc(
             &mut output,
@@ -187,9 +187,9 @@ macro_rules! impl_int_binary_op {
     }
 }
 
-impl_int_binary_op!($, Add, add, impl_int_add_pty, impl_int_add_upty, impl_int_add_ipty);
+impl_int_binary_op!($, IntModAdd, mod_add, impl_int_add_pty, impl_int_add_upty, impl_int_add_ipty);
 
-impl<T, N, const SIGN: bool> Sub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> IntModSub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -200,7 +200,7 @@ where
 {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn mod_sub(self, rhs: Self) -> Self::Output {
         let mut output = GenericArray::<usize, N>::default();
         helper_subc(
             &mut output,
@@ -215,13 +215,13 @@ where
     }
 }
 
-impl_int_binary_op!($, Sub, sub, impl_int_sub_pty, impl_int_sub_upty, impl_int_sub_ipty);
+impl_int_binary_op!($, IntModSub, mod_sub, impl_int_sub_pty, impl_int_sub_upty, impl_int_sub_ipty);
 
 // AddAssign,  SubAssign
-impl_int_bitop_assign!($, AddAssign, add_assign, add, impl_int_add_assign_pty,
+impl_int_bitop_assign!($, IntModAddAssign, mod_add_assign, mod_add, impl_int_add_assign_pty,
         impl_int_add_assign_upty, impl_int_add_assign_ipty);
-impl_int_bitop_assign!($, SubAssign, sub_assign, sub, impl_int_sub_assign_pty,
-        impl_sub_add_assign_upty, impl_int_sub_assign_ipty);
+impl_int_bitop_assign!($, IntModSubAssign, mod_sub_assign, mod_sub, impl_int_sub_assign_pty,
+        impl_int_sub_assign_upty, impl_int_sub_assign_ipty);
 
 // Neg impl
 
@@ -244,7 +244,7 @@ where
 
 /// Most advanced: multiplication.
 
-impl<T, N, const SIGN: bool> Mul<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> IntModMul<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -255,7 +255,7 @@ where
 {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn mod_mul(self, rhs: Self) -> Self::Output {
         let mut matrix =
             gen_dadda_matrix(self.creator.clone(), &self.indexes, &rhs.indexes, N::USIZE);
         let mut res = gen_dadda_mult(self.creator.clone(), &mut matrix);
@@ -266,8 +266,8 @@ where
     }
 }
 
-impl_int_binary_op!($, Mul, mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
-impl_int_bitop_assign!($, MulAssign, mul_assign, mul, impl_int_mul_assign_pty,
+impl_int_binary_op!($, IntModMul, mod_mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
+impl_int_bitop_assign!($, IntModMulAssign, mod_mul_assign, mod_mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
 
 /// Full multiplication
@@ -818,17 +818,17 @@ mod tests {
         }
     }
 
-    macro_rules! test_expr_node_add_and_assign_xx {
+    macro_rules! test_expr_node_mod_add_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 + x2;
+            let res = x1.mod_add(x2);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out += x2;
+            x1_out.mod_add_assign(x2);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -844,11 +844,11 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 + ($imm1);
+            let res = x1.mod_add($imm1);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out += ($imm1);
+            x1_out.mod_add_assign($imm1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -866,7 +866,7 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = ($imm2) + x1;
+            let res = ($imm2).mod_add(x1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -879,23 +879,23 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_add_and_assign() {
-        test_expr_node_add_and_assign_xx!(false, 71, 138);
-        test_expr_node_add_and_assign_xx!(true, 105, 62);
-        test_expr_node_add_and_assign_xx!(true, -69, -86);
+    fn test_expr_node_mod_add_and_assign() {
+        test_expr_node_mod_add_and_assign_xx!(false, 71, 138);
+        test_expr_node_mod_add_and_assign_xx!(true, 105, 62);
+        test_expr_node_mod_add_and_assign_xx!(true, -69, -86);
     }
 
-    macro_rules! test_expr_node_sub_and_assign_xx {
+    macro_rules! test_expr_node_mod_sub_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 - x2;
+            let res = x1.mod_sub(x2);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out -= x2;
+            x1_out.mod_sub_assign(x2);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -911,11 +911,11 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 - ($imm1);
+            let res = x1.mod_sub($imm1);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out -= ($imm1);
+            x1_out.mod_sub_assign($imm1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -933,7 +933,7 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = ($imm2) - x1;
+            let res = ($imm2).mod_sub(x1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -946,23 +946,23 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_sub_and_assign() {
-        test_expr_node_sub_and_assign_xx!(false, 85, 151);
-        test_expr_node_sub_and_assign_xx!(true, 56, 113);
-        test_expr_node_sub_and_assign_xx!(true, -89, -59);
+    fn test_expr_node_mod_sub_and_assign() {
+        test_expr_node_mod_sub_and_assign_xx!(false, 85, 151);
+        test_expr_node_mod_sub_and_assign_xx!(true, 56, 113);
+        test_expr_node_mod_sub_and_assign_xx!(true, -89, -59);
     }
 
-    macro_rules! test_expr_node_mul_and_assign_xx {
+    macro_rules! test_expr_node_mod_mul_and_assign_xx {
         ($sign:expr, $imm1:expr, $imm2:expr) => {{
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 * x2;
+            let res = x1.mod_mul(x2);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
             let x2 = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out *= x2;
+            x1_out.mod_mul_assign(x2);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -979,11 +979,11 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = x1 * ($imm1);
+            let res = x1.mod_mul($imm1);
 
             let ec2 = ExprCreator::new();
             let mut x1_out = ExprNode::<isize, U10, $sign>::variable(ec2.clone());
-            x1_out *= ($imm1);
+            x1_out.mod_mul_assign($imm1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1000,7 +1000,7 @@ mod tests {
         {
             let ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(ec.clone());
-            let res = ($imm2) * x1;
+            let res = ($imm2).mod_mul(x1);
 
             let exp_ec = ExprCreator::new();
             let x1 = ExprNode::<isize, U10, $sign>::variable(exp_ec.clone());
@@ -1014,10 +1014,10 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_mul_and_assign() {
-        test_expr_node_mul_and_assign_xx!(false, 167, 116);
-        test_expr_node_mul_and_assign_xx!(true, 83, 38);
-        test_expr_node_mul_and_assign_xx!(true, -69, -121);
+    fn test_expr_node_mod_mul_and_assign() {
+        test_expr_node_mod_mul_and_assign_xx!(false, 167, 116);
+        test_expr_node_mod_mul_and_assign_xx!(true, 83, 38);
+        test_expr_node_mod_mul_and_assign_xx!(true, -69, -121);
     }
 
     #[test]
@@ -1139,7 +1139,7 @@ mod tests {
         let mul = x2.clone().fullmul(res.clone());
         let modv = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
         let modv_cond = modv.clone().less_than(x2.clone());
-        let mulsum = mul + ExprNode::<isize, U20, false>::from(modv.clone());
+        let mulsum = mul.mod_add(ExprNode::<isize, U20, false>::from(modv.clone()));
         let mul_cond = mulsum.subvalue::<U10>(0).equal(x1) & mulsum.subvalue::<U10>(10).equal(0);
         (res, modv, modv_cond & mul_cond)
     }

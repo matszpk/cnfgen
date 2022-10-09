@@ -23,8 +23,8 @@
 use std::cmp;
 use std::fmt::Debug;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, Mul,
-    MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, Neg, Not, Rem, Shl,
+    ShlAssign, Shr, ShrAssign,
 };
 
 use super::*;
@@ -426,7 +426,7 @@ where
     }
 }
 
-impl<T, const SIGN: bool> Add<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModAdd<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -436,7 +436,7 @@ where
 {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self::Output {
+    fn mod_add(self, rhs: Self) -> Self::Output {
         let mut output = vec![0; self.indexes.len()];
         helper_addc(
             &mut output,
@@ -451,7 +451,7 @@ where
     }
 }
 
-impl<T, const SIGN: bool> Sub<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModSub<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -461,7 +461,7 @@ where
 {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn mod_sub(self, rhs: Self) -> Self::Output {
         let mut output = vec![0; self.indexes.len()];
         helper_subc(
             &mut output,
@@ -476,8 +476,8 @@ where
     }
 }
 
-impl_dynint_bitop_assign!(AddAssign, add, add_assign);
-impl_dynint_bitop_assign!(SubAssign, sub, sub_assign);
+impl_dynint_bitop_assign!(IntModAddAssign, mod_add, mod_add_assign);
+impl_dynint_bitop_assign!(IntModSubAssign, mod_sub, mod_sub_assign);
 
 // Neg impl
 
@@ -499,7 +499,7 @@ where
 
 /// Most advanced: multiplication.
 
-impl<T, const SIGN: bool> Mul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModMul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -509,7 +509,7 @@ where
 {
     type Output = Self;
 
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn mod_mul(self, rhs: Self) -> Self::Output {
         let mut matrix = gen_dadda_matrix(
             self.creator.clone(),
             &self.indexes,
@@ -524,7 +524,7 @@ where
     }
 }
 
-impl_dynint_bitop_assign!(MulAssign, mul, mul_assign);
+impl_dynint_bitop_assign!(IntModMulAssign, mod_mul, mod_mul_assign);
 
 /// Full multiplication
 
@@ -1020,15 +1020,15 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_add() {
-        test_expr_node_binaryop!(false, add, add_assign);
-        test_expr_node_binaryop!(true, add, add_assign);
+    fn test_expr_node_mod_add() {
+        test_expr_node_binaryop!(false, mod_add, mod_add_assign);
+        test_expr_node_binaryop!(true, mod_add, mod_add_assign);
     }
 
     #[test]
-    fn test_expr_node_sub() {
-        test_expr_node_binaryop!(false, sub, sub_assign);
-        test_expr_node_binaryop!(true, sub, sub_assign);
+    fn test_expr_node_mod_sub() {
+        test_expr_node_binaryop!(false, mod_sub, mod_sub_assign);
+        test_expr_node_binaryop!(true, mod_sub, mod_sub_assign);
     }
 
     #[test]
@@ -1051,9 +1051,9 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_mul() {
-        test_expr_node_binaryop!(false, mul, mul_assign);
-        test_expr_node_binaryop!(true, mul, mul_assign);
+    fn test_expr_node_mod_mul() {
+        test_expr_node_binaryop!(false, mod_mul, mod_mul_assign);
+        test_expr_node_binaryop!(true, mod_mul, mod_mul_assign);
     }
 
     macro_rules! test_expr_node_fullmul {

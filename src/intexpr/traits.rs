@@ -240,6 +240,87 @@ macro_rules! impl_int_divmod_pty_pty {
 impl_int_upty!(impl_int_divmod_pty_pty);
 impl_int_ipty!(impl_int_divmod_pty_pty);
 
+pub trait IntModAdd<Rhs = Self> {
+    type Output;
+
+    fn mod_add(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntModSub<Rhs = Self> {
+    type Output;
+
+    fn mod_sub(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntModMul<Rhs = Self> {
+    type Output;
+
+    fn mod_mul(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntModAddAssign<Rhs = Self> {
+    fn mod_add_assign(&mut self, rhs: Rhs);
+}
+
+pub trait IntModSubAssign<Rhs = Self> {
+    fn mod_sub_assign(&mut self, rhs: Rhs);
+}
+
+pub trait IntModMulAssign<Rhs = Self> {
+    fn mod_mul_assign(&mut self, rhs: Rhs);
+}
+
+macro_rules! impl_int_mod_arith_pty_pty {
+    ($pty:ty) => {
+        impl IntModAdd for $pty {
+            type Output = Self;
+
+            fn mod_add(self, rhs: Self) -> Self {
+                self.overflowing_add(rhs).0
+            }
+        }
+
+        impl IntModSub for $pty {
+            type Output = Self;
+
+            fn mod_sub(self, rhs: Self) -> Self {
+                self.overflowing_sub(rhs).0
+            }
+        }
+
+        impl IntModMul for $pty {
+            type Output = Self;
+
+            fn mod_mul(self, rhs: Self) -> Self {
+                self.overflowing_mul(rhs).0
+            }
+        }
+
+        impl IntModAddAssign for $pty {
+            fn mod_add_assign(&mut self, rhs: Self) {
+                *self = self.overflowing_add(rhs).0;
+            }
+        }
+
+        impl IntModSubAssign for $pty {
+            fn mod_sub_assign(&mut self, rhs: Self) {
+                *self = self.overflowing_sub(rhs).0;
+            }
+        }
+
+        impl IntModMulAssign for $pty {
+            fn mod_mul_assign(&mut self, rhs: Self) {
+                *self = self.overflowing_mul(rhs).0;
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_mod_arith_pty_pty);
+impl_int_ipty!(impl_int_mod_arith_pty_pty);
+
+// expr node implementation
+
 impl<'a, T, N, const SIGN: bool> BitVal for &'a ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
