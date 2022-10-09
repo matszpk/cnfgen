@@ -198,9 +198,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_add(self, rhs: Self) -> Self::Output {
+    fn cond_add(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let mut output = GenericArray::<usize, N>::default();
         let (c, _) = helper_addc_cout(
             &mut output,
@@ -227,9 +228,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_add(self, rhs: Self) -> Self::Output {
+    fn cond_add(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let mut output = GenericArray::<usize, N>::default();
         let (c, csign) = helper_addc_cout(
             &mut output,
@@ -262,9 +264,10 @@ macro_rules! impl_int_cond_binary_op {
                             <isize as TryFrom<T>>::Error: Debug,
                             $ty: ArrayLength<usize>,
                         {
-                            type Output = (Self, BoolExprNode<T>);
+                            type Output = Self;
+                            type OutputCond = BoolExprNode<T>;
 
-                            fn $op(self, rhs: $pty) -> Self::Output {
+                            fn $op(self, rhs: $pty) -> (Self::Output, Self::OutputCond) {
                                 let creator = self.creator.clone();
                                 self.$op(Self::constant(creator, rhs))
                             }
@@ -280,9 +283,12 @@ macro_rules! impl_int_cond_binary_op {
                             <isize as TryFrom<T>>::Error: Debug,
                             $ty: ArrayLength<usize>,
                         {
-                            type Output = (ExprNode<T, $ty, $sign>, BoolExprNode<T>);
+                            type Output = ExprNode<T, $ty, $sign>;
+                            type OutputCond = BoolExprNode<T>;
 
-                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) ->
+                                    (Self::Output, Self::OutputCond)
+                            {
                                 let creator = rhs.creator.clone();
                                 ExprNode::<T, $ty, $sign>::constant(creator, self).$op(rhs)
                             }
@@ -346,9 +352,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_sub(self, rhs: Self) -> Self::Output {
+    fn cond_sub(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let mut output = GenericArray::<usize, N>::default();
         let (c, _) = helper_subc_cout(
             &mut output,
@@ -375,9 +382,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_sub(self, rhs: Self) -> Self::Output {
+    fn cond_sub(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let mut output = GenericArray::<usize, N>::default();
         let (c, csign) = helper_subc_cout(
             &mut output,
@@ -430,9 +438,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_neg(self) -> Self::Output {
+    fn cond_neg(self) -> (Self::Output, Self::OutputCond) {
         let self_sign = self.bit(N::USIZE - 1);
         let negres = self.mod_neg();
         let negres_sign = negres.bit(N::USIZE - 1);
@@ -473,9 +482,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_mul(self, rhs: Self) -> Self::Output {
+    fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let mut matrix = gen_dadda_matrix(
             self.creator.clone(),
             &self.indexes,
@@ -506,9 +516,10 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_mul(self, rhs: Self) -> Self::Output {
+    fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
         let (res, resc) = self
             .clone()

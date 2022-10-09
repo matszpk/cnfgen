@@ -470,9 +470,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_add(self, rhs: Self) -> Self::Output {
+    fn cond_add(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_addc_cout(
@@ -499,9 +500,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_add(self, rhs: Self) -> Self::Output {
+    fn cond_add(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, csign) = helper_addc_cout(
@@ -554,9 +556,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_sub(self, rhs: Self) -> Self::Output {
+    fn cond_sub(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_subc_cout(
@@ -583,9 +586,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_sub(self, rhs: Self) -> Self::Output {
+    fn cond_sub(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, csign) = helper_subc_cout(
@@ -631,9 +635,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_neg(self) -> Self::Output {
+    fn cond_neg(self) -> (Self::Output, Self::OutputCond) {
         let lastbit = self.len() - 1;
         let self_sign = self.bit(lastbit);
         let negres = self.mod_neg();
@@ -680,9 +685,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_mul(self, rhs: Self) -> Self::Output {
+    fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let mut matrix = gen_dadda_matrix(self.creator.clone(), &self.indexes, &rhs.indexes, 2 * n);
@@ -709,9 +715,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = (Self, BoolExprNode<T>);
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
 
-    fn cond_mul(self, rhs: Self) -> Self::Output {
+    fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let expsign = self.bit(n - 1) ^ rhs.bit(n - 1);

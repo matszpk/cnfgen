@@ -348,26 +348,30 @@ impl_int_ipty!(impl_int_mod_neg_pty);
 
 pub trait IntCondAdd<Rhs = Self> {
     type Output;
+    type OutputCond;
 
-    fn cond_add(self, rhs: Rhs) -> Self::Output;
+    fn cond_add(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
 pub trait IntCondSub<Rhs = Self> {
     type Output;
+    type OutputCond;
 
-    fn cond_sub(self, rhs: Rhs) -> Self::Output;
+    fn cond_sub(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
 pub trait IntCondMul<Rhs = Self> {
     type Output;
+    type OutputCond;
 
-    fn cond_mul(self, rhs: Rhs) -> Self::Output;
+    fn cond_mul(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
 macro_rules! impl_int_cond_arith_pty_pty {
     ($pty:ty) => {
         impl IntCondAdd for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_add(self, rhs: Self) -> (Self, bool) {
@@ -377,7 +381,8 @@ macro_rules! impl_int_cond_arith_pty_pty {
         }
 
         impl IntCondSub for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_sub(self, rhs: Self) -> (Self, bool) {
@@ -387,7 +392,8 @@ macro_rules! impl_int_cond_arith_pty_pty {
         }
 
         impl IntCondMul for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_mul(self, rhs: Self) -> (Self, bool) {
@@ -403,14 +409,16 @@ impl_int_ipty!(impl_int_cond_arith_pty_pty);
 
 pub trait IntCondNeg {
     type Output;
+    type OutputCond;
 
-    fn cond_neg(self) -> Self::Output;
+    fn cond_neg(self) -> (Self::Output, Self::OutputCond);
 }
 
 macro_rules! impl_int_cond_neg_pty {
     ($pty:ty) => {
         impl IntCondNeg for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_neg(self) -> (Self, bool) {
@@ -425,20 +433,23 @@ impl_int_ipty!(impl_int_cond_neg_pty);
 
 pub trait IntCondShl<Rhs = Self> {
     type Output;
+    type OutputCond;
 
-    fn cond_shl(self, rhs: Rhs) -> Self::Output;
+    fn cond_shl(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
 pub trait IntCondShr<Rhs = Self> {
     type Output;
+    type OutputCond;
 
-    fn cond_shr(self, rhs: Rhs) -> Self::Output;
+    fn cond_shr(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
 macro_rules! impl_int_cond_shift_pty_pty {
     ($pty:ty) => {
         impl IntCondShl<u32> for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_shl(self, rhs: u32) -> (Self, bool) {
@@ -448,7 +459,8 @@ macro_rules! impl_int_cond_shift_pty_pty {
         }
 
         impl IntCondShr<u32> for $pty {
-            type Output = (Self, bool);
+            type Output = Self;
+            type OutputCond = bool;
 
             #[inline]
             fn cond_shr(self, rhs: u32) -> (Self, bool) {
