@@ -42,11 +42,6 @@ where
         // if sign then -self else self
         int_ite(self.bit(N::USIZE - 1), self.clone().mod_neg(), self).as_unsigned()
     }
-
-    pub fn mod_neg(self) -> Self {
-        let trueval = BoolExprNode::new(self.creator.clone(), 1);
-        (!self).add_same_carry(trueval)
-    }
 }
 
 //////////
@@ -255,6 +250,23 @@ where
 impl_int_binary_op!($, IntModMul, mod_mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, IntModMulAssign, mod_mul_assign, mod_mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
+
+impl<T, N, const SIGN: bool> IntModNeg for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn mod_neg(self) -> Self {
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
+    }
+}
 
 /// Full multiplication
 

@@ -370,11 +370,6 @@ where
         )
         .as_unsigned()
     }
-
-    pub fn mod_neg(self) -> Self {
-        let trueval = BoolExprNode::new(self.creator.clone(), 1);
-        (!self).add_same_carry(trueval)
-    }
 }
 
 //////////
@@ -488,6 +483,22 @@ where
 
 impl_dynint_bitop_assign!(IntModAddAssign, mod_add, mod_add_assign);
 impl_dynint_bitop_assign!(IntModSubAssign, mod_sub, mod_sub_assign);
+
+impl<T, const SIGN: bool> IntModNeg for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn mod_neg(self) -> Self {
+        let trueval = BoolExprNode::new(self.creator.clone(), 1);
+        (!self).add_same_carry(trueval)
+    }
+}
 
 /// Most advanced: multiplication.
 

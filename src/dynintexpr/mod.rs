@@ -33,8 +33,8 @@ use crate::intexpr::IntError;
 use crate::{impl_int_ipty, impl_int_upty};
 use crate::{
     BitVal, BoolEqual, BoolExprNode, BoolImpl, DivMod, ExprCreator, FullMul, IntEqual, IntExprNode,
-    IntModAdd, IntModAddAssign, IntModMul, IntModMulAssign, IntModSub, IntModSubAssign, IntOrd,
-    Literal, VarLit,
+    IntModAdd, IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign,
+    IntOrd, Literal, VarLit,
 };
 
 pub mod arith;

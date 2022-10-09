@@ -319,6 +319,27 @@ macro_rules! impl_int_mod_arith_pty_pty {
 impl_int_upty!(impl_int_mod_arith_pty_pty);
 impl_int_ipty!(impl_int_mod_arith_pty_pty);
 
+pub trait IntModNeg {
+    type Output;
+
+    fn mod_neg(self) -> Self::Output;
+}
+
+macro_rules! impl_int_mod_neg_pty {
+    ($pty:ty) => {
+        impl IntModNeg for $pty {
+            type Output = Self;
+
+            fn mod_neg(self) -> Self {
+                self.overflowing_neg().0
+            }
+        }
+    };
+}
+
+impl_int_ipty!(impl_int_mod_neg_pty);
+
+// ///////////////////////////////
 // expr node implementation
 
 impl<'a, T, N, const SIGN: bool> BitVal for &'a ExprNode<T, N, SIGN>
