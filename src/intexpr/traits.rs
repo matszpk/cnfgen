@@ -346,6 +346,79 @@ macro_rules! impl_int_mod_neg_pty {
 
 impl_int_ipty!(impl_int_mod_neg_pty);
 
+pub trait IntCondAdd<Rhs = Self> {
+    type Output;
+
+    fn cond_add(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntCondSub<Rhs = Self> {
+    type Output;
+
+    fn cond_sub(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntCondMul<Rhs = Self> {
+    type Output;
+
+    fn cond_mul(self, rhs: Rhs) -> Self::Output;
+}
+
+macro_rules! impl_int_cond_arith_pty_pty {
+    ($pty:ty) => {
+        impl IntCondAdd for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_add(self, rhs: Self) -> (Self, bool) {
+                self.overflowing_add(rhs)
+            }
+        }
+
+        impl IntCondSub for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_sub(self, rhs: Self) -> (Self, bool) {
+                self.overflowing_sub(rhs)
+            }
+        }
+
+        impl IntCondMul for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_mul(self, rhs: Self) -> (Self, bool) {
+                self.overflowing_mul(rhs)
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_cond_arith_pty_pty);
+impl_int_ipty!(impl_int_cond_arith_pty_pty);
+
+pub trait IntCondNeg {
+    type Output;
+
+    fn cond_neg(self) -> Self::Output;
+}
+
+macro_rules! impl_int_cond_neg_pty {
+    ($pty:ty) => {
+        impl IntCondNeg for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_neg(self) -> (Self, bool) {
+                self.overflowing_neg()
+            }
+        }
+    };
+}
+
+impl_int_ipty!(impl_int_cond_neg_pty);
+
 // ///////////////////////////////
 // expr node implementation
 
@@ -837,6 +910,26 @@ mod tests {
 
         assert_eq!(53i8.mod_neg(), -53i8);
         assert_eq!((-128i8).mod_neg(), -128i8);
+    }
+
+    #[test]
+    fn test_int_cond_arith_prim_types() {
+        assert_eq!(54u8.cond_add(45), (99u8, false));
+        assert_eq!(54u8.cond_add(245), (43u8, true));
+        assert_eq!(154u8.cond_sub(11), (143u8, false));
+        assert_eq!(154u8.cond_sub(245), (165u8, true));
+        assert_eq!(67u8.cond_mul(3), (201u8, false));
+        assert_eq!(67u8.cond_mul(11), (225u8, true));
+
+        assert_eq!(54i8.cond_add(45), (99i8, false));
+        assert_eq!(54i8.cond_add(99), (-103i8, true));
+        assert_eq!(77i8.cond_sub(11), (66i8, false));
+        assert_eq!((-100i8).cond_sub(32), (124i8, true));
+        assert_eq!((-30i8).cond_mul(4), (-120i8, false));
+        assert_eq!((-30i8).cond_mul(11), (-74i8, true));
+
+        assert_eq!(53i8.cond_neg(), (-53i8, false));
+        assert_eq!((-128i8).cond_neg(), (-128i8, true));
     }
 
     #[test]
