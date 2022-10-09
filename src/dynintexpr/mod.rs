@@ -311,7 +311,8 @@ macro_rules! impl_int_try_uconstant {
                 v: $pty,
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
-                if n < bits && (v & (((1 << (bits - n)) - 1) << n)) != 0 {
+                if n < bits && (v & ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n)) != 0
+                {
                     return Err(IntError::BitOverflow);
                 }
                 Ok(ExprNode {
@@ -345,7 +346,7 @@ macro_rules! impl_int_try_iconstant {
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
                 if n < bits {
-                    let mask = (((1 << (bits - n)) - 1) << n);
+                    let mask = ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n);
                     let signmask = if v < 0 { mask } else { 0 };
                     if (v & mask) != signmask {
                         return Err(IntError::BitOverflow);
@@ -800,6 +801,8 @@ mod tests {
                 .as_slice(),
             x1.indexes.as_slice()
         );
+        let x1 = ExprNode::<isize, true>::try_constant(ec.clone(), 1, 0i64).unwrap();
+        assert_eq!([0], *x1.indexes);
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
