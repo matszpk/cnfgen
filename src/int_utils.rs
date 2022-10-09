@@ -256,6 +256,30 @@ where
     c
 }
 
+pub(super) fn helper_subc_cout<T, BV>(
+    output: &mut [usize],
+    lhs: BV,
+    rhs: BV,
+    in_carry: BoolExprNode<T>,
+) -> BoolExprNode<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    BV: BitVal<Output = BoolExprNode<T>> + Copy,
+{
+    let mut c = in_carry;
+    for i in 0..lhs.bitnum() {
+        (output[i], c) = {
+            let (s0, c0) = opt_full_adder(lhs.bit(i), !rhs.bit(i), c);
+            (s0.index, c0)
+        };
+    }
+    c
+}
+
 pub(super) fn helper_addc<T, BV>(output: &mut [usize], lhs: BV, rhs: BV, in_carry: BoolExprNode<T>)
 where
     T: VarLit + Neg<Output = T> + Debug,
