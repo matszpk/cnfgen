@@ -140,6 +140,44 @@ where
     }
 }
 
+/// Shift left implementation.
+impl<T, const SIGN: bool, const SIGN2: bool> IntCondShl<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    ExprNode<T, SIGN2>: TryIntConstant<T, usize>,
+    ExprNode<T, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shl(self, rhs: ExprNode<T, SIGN2>) -> (Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        // check whether zeroes in sign and in unused bits in Rhs
+        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n).unwrap();
+        (output, rhs.less_equal(nexpr))
+    }
+}
+
 macro_rules! impl_dynint_shl_imm {
     ($ty:ty) => {
         impl<T, const SIGN: bool> Shl<$ty> for ExprNode<T, SIGN>
@@ -208,6 +246,44 @@ where
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
         output
+    }
+}
+
+/// Shift left implementation.
+impl<T, const SIGN: bool, const SIGN2: bool> IntCondShr<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    ExprNode<T, SIGN2>: TryIntConstant<T, usize>,
+    ExprNode<T, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shr(self, rhs: ExprNode<T, SIGN2>) -> (Self::Output, Self::OutputCond) {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        // check whether zeroes in sign and in unused bits in Rhs
+        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = ExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
+        }
+        let nexpr = ExprNode::<T, SIGN2>::try_constant(self.creator.clone(), n2, n).unwrap();
+        (output, rhs.less_equal(nexpr))
     }
 }
 
