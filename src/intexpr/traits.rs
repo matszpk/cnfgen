@@ -275,6 +275,7 @@ macro_rules! impl_int_mod_arith_pty_pty {
         impl IntModAdd for $pty {
             type Output = Self;
 
+            #[inline]
             fn mod_add(self, rhs: Self) -> Self {
                 self.overflowing_add(rhs).0
             }
@@ -283,6 +284,7 @@ macro_rules! impl_int_mod_arith_pty_pty {
         impl IntModSub for $pty {
             type Output = Self;
 
+            #[inline]
             fn mod_sub(self, rhs: Self) -> Self {
                 self.overflowing_sub(rhs).0
             }
@@ -291,26 +293,30 @@ macro_rules! impl_int_mod_arith_pty_pty {
         impl IntModMul for $pty {
             type Output = Self;
 
+            #[inline]
             fn mod_mul(self, rhs: Self) -> Self {
                 self.overflowing_mul(rhs).0
             }
         }
 
         impl IntModAddAssign for $pty {
+            #[inline]
             fn mod_add_assign(&mut self, rhs: Self) {
-                *self = self.overflowing_add(rhs).0;
+                *self = self.mod_add(rhs);
             }
         }
 
         impl IntModSubAssign for $pty {
+            #[inline]
             fn mod_sub_assign(&mut self, rhs: Self) {
-                *self = self.overflowing_sub(rhs).0;
+                *self = self.mod_sub(rhs);
             }
         }
 
         impl IntModMulAssign for $pty {
+            #[inline]
             fn mod_mul_assign(&mut self, rhs: Self) {
-                *self = self.overflowing_mul(rhs).0;
+                *self = self.mod_mul(rhs);
             }
         }
     };
@@ -800,6 +806,36 @@ mod tests {
         assert_eq!(74i8.divmod(21), (74 / 21, 74 % 21, true));
         assert_eq!(42134u16.divmod(552), (42134 / 552, 42134 % 552, true));
         assert_eq!((-22134i16).divmod(552), (-22134 / 552, -22134 % 552, true));
+    }
+
+    #[test]
+    fn test_int_mod_arith_prim_types() {
+        assert_eq!(54u8.mod_add(45), 99u8);
+        assert_eq!(54u8.mod_add(245), 43u8);
+        assert_eq!(154u8.mod_sub(11), 143u8);
+        assert_eq!(154u8.mod_sub(245), 165u8);
+        assert_eq!(67u8.mod_mul(3), 201u8);
+        assert_eq!(67u8.mod_mul(11), 225u8);
+
+        assert_eq!(54i8.mod_add(45), 99i8);
+        assert_eq!(54i8.mod_add(99), -103i8);
+        assert_eq!(77i8.mod_sub(11), 66i8);
+        assert_eq!((-100i8).mod_sub(32), 124i8);
+        assert_eq!((-30i8).mod_mul(4), -120i8);
+        assert_eq!((-30i8).mod_mul(11), -74i8);
+
+        let mut a = 54u8;
+        a.mod_add_assign(45);
+        assert_eq!(a, 99u8);
+        let mut a = 154u8;
+        a.mod_sub_assign(11);
+        assert_eq!(a, 143u8);
+        let mut a = 67u8;
+        a.mod_mul_assign(3);
+        assert_eq!(a, 201u8);
+
+        assert_eq!(53i8.mod_neg(), -53i8);
+        assert_eq!((-128i8).mod_neg(), -128i8);
     }
 
     #[test]
