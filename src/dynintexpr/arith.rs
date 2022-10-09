@@ -500,6 +500,25 @@ where
     }
 }
 
+impl<T> IntCondNeg for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_neg(self) -> Self::Output {
+        let lastbit = self.len() - 1;
+        let self_sign = self.bit(lastbit);
+        let negres = self.mod_neg();
+        let negres_sign = negres.bit(lastbit);
+        (negres, self_sign ^ negres_sign)
+    }
+}
+
 /// Most advanced: multiplication.
 
 impl<T, const SIGN: bool> IntModMul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
@@ -1039,17 +1058,23 @@ mod tests {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, true>::variable(ec.clone(), 10);
         let x2 = ExprNode::<isize, true>::variable(ec.clone(), 10);
+        let x3 = ExprNode::<isize, true>::variable(ec.clone(), 10);
         let resabs = x1.abs();
         let resneg = x2.mod_neg();
+        let (resneg2, resneg2c) = x3.cond_neg();
 
         let exp_ec = ExprCreator::new();
         let x1 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
         let x2 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
+        let x3 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
         let expabs = x1.abs();
         let expneg = x2.mod_neg();
+        let (expneg2, expneg2c) = x3.cond_neg();
 
         assert_eq!(expabs.indexes.as_slice(), resabs.indexes.as_slice());
         assert_eq!(expneg.indexes.as_slice(), resneg.indexes.as_slice());
+        assert_eq!(expneg2.indexes.as_slice(), resneg2.indexes.as_slice());
+        assert_eq!(expneg2c.index, resneg2c.index);
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 

@@ -240,6 +240,25 @@ where
     }
 }
 
+impl<T, N> IntCondNeg for ExprNode<T, N, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_neg(self) -> Self::Output {
+        let self_sign = self.bit(N::USIZE - 1);
+        let negres = self.mod_neg();
+        let negres_sign = negres.bit(N::USIZE - 1);
+        (negres, self_sign ^ negres_sign)
+    }
+}
+
 /// Most advanced: multiplication.
 
 impl<T, N, const SIGN: bool> IntModMul<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
@@ -634,7 +653,7 @@ mod tests {
     use crate::boolexpr::test_utils::*;
 
     #[test]
-    fn test_expr_node_neg() {
+    fn test_expr_node_mod_neg() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U5, true>::variable(ec.clone());
         let res = x1.mod_neg();
@@ -655,6 +674,22 @@ mod tests {
         let exp = temp.iter().map(|x| x.0.index).collect::<Vec<_>>();
 
         assert_eq!(exp.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_cond_neg() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U5, true>::variable(ec.clone());
+        let (res, resc) = x1.cond_neg();
+
+        let exp_ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U5, true>::variable(exp_ec.clone());
+        let exp = x1.clone().mod_neg();
+        let expc = x1.bit(4) ^ exp.bit(4);
+
+        assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(expc.index, resc.index);
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 
