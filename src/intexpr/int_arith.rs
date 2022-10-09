@@ -57,7 +57,7 @@ where
 {
     pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
         let mut output = GenericArray::<usize, N>::default();
-        let c = helper_addc_cout(&mut output, &self, &rhs, in_carry);
+        let (c, _) = helper_addc_cout(&mut output, &self, &rhs, in_carry);
         (
             ExprNode {
                 creator: self.creator,
