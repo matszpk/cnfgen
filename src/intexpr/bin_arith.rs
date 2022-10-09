@@ -334,6 +334,95 @@ impl_int_shl_self_imm!(true, isize, U64);
 impl_int_shl_self_imm!(true, i64, U64);
 impl_int_shl_self_imm!(true, i128, U128);
 
+/// Shift left implementation.
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShl<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+    ExprNode<T, N2, SIGN2>: TryFrom<ExprNode<T, U64, false>>,
+    <ExprNode<T, N2, SIGN2> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
+    ExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shl(self, rhs: ExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
+        let nbits = Self::LOG_BITS;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
+
+        let mut input = ExprNode::<T, N, SIGN> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
+            self.creator.clone(),
+            N::U64,
+        ))
+        .unwrap();
+        (output, rhs.less_equal(nexpr))
+    }
+}
+
+macro_rules! impl_int_cond_shl_self_imm {
+    ($sign:expr, $ty:ty, $bits:ty) => {
+        impl<T, N, const SIGN: bool> IntCondShl<ExprNode<T, N, SIGN>> for $ty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            ExprNode<T, N, SIGN>: TryFrom<ExprNode<T, U64, false>>,
+            <ExprNode<T, N, SIGN> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
+            ExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+        {
+            type Output = ExprNode<T, $bits, $sign>;
+            type OutputCond = BoolExprNode<T>;
+
+            fn cond_shl(self, rhs: ExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
+                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shl(rhs)
+            }
+        }
+    };
+}
+
+impl_int_cond_shl_self_imm!(false, u8, U8);
+impl_int_cond_shl_self_imm!(false, u16, U16);
+impl_int_cond_shl_self_imm!(false, u32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_cond_shl_self_imm!(false, usize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_cond_shl_self_imm!(false, usize, U64);
+impl_int_cond_shl_self_imm!(false, u64, U64);
+impl_int_cond_shl_self_imm!(false, u128, U128);
+
+impl_int_cond_shl_self_imm!(true, i8, U8);
+impl_int_cond_shl_self_imm!(true, i16, U16);
+impl_int_cond_shl_self_imm!(true, i32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_cond_shl_self_imm!(true, isize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_cond_shl_self_imm!(true, isize, U64);
+impl_int_cond_shl_self_imm!(true, i64, U64);
+impl_int_cond_shl_self_imm!(true, i128, U128);
+
 /// Shift right implementation.
 impl<T, N, const SIGN: bool, N2, const SIGN2: bool> Shr<ExprNode<T, N2, SIGN2>>
     for ExprNode<T, N, SIGN>
@@ -454,6 +543,95 @@ impl_int_shr_self_imm!(true, isize, U32);
 impl_int_shr_self_imm!(true, isize, U64);
 impl_int_shr_self_imm!(true, i64, U64);
 impl_int_shr_self_imm!(true, i128, U128);
+
+/// Shift right implementation.
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShr<ExprNode<T, N2, SIGN2>>
+    for ExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+    ExprNode<T, N2, SIGN2>: TryFrom<ExprNode<T, U64, false>>,
+    <ExprNode<T, N2, SIGN2> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
+    ExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+{
+    type Output = Self;
+    type OutputCond = BoolExprNode<T>;
+
+    fn cond_shr(self, rhs: ExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
+        let nbits = Self::LOG_BITS;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if SIGN2 && *rhs.indexes.last().unwrap() != 0 {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
+
+        let mut input = ExprNode::<T, N, SIGN> {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
+        let mut output = self.clone();
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
+        }
+        let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
+            self.creator.clone(),
+            N::U64,
+        ))
+        .unwrap();
+        (output, rhs.less_equal(nexpr))
+    }
+}
+
+macro_rules! impl_int_cond_shr_self_imm {
+    ($sign:expr, $ty:ty, $bits:ty) => {
+        impl<T, N, const SIGN: bool> IntCondShr<ExprNode<T, N, SIGN>> for $ty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            ExprNode<T, N, SIGN>: TryFrom<ExprNode<T, U64, false>>,
+            <ExprNode<T, N, SIGN> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
+            ExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+        {
+            type Output = ExprNode<T, $bits, $sign>;
+            type OutputCond = BoolExprNode<T>;
+
+            fn cond_shr(self, rhs: ExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
+                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shr(rhs)
+            }
+        }
+    };
+}
+
+impl_int_cond_shr_self_imm!(false, u8, U8);
+impl_int_cond_shr_self_imm!(false, u16, U16);
+impl_int_cond_shr_self_imm!(false, u32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_cond_shr_self_imm!(false, usize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_cond_shr_self_imm!(false, usize, U64);
+impl_int_cond_shr_self_imm!(false, u64, U64);
+impl_int_cond_shr_self_imm!(false, u128, U128);
+
+impl_int_cond_shr_self_imm!(true, i8, U8);
+impl_int_cond_shr_self_imm!(true, i16, U16);
+impl_int_cond_shr_self_imm!(true, i32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_cond_shr_self_imm!(true, isize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_cond_shr_self_imm!(true, isize, U64);
+impl_int_cond_shr_self_imm!(true, i64, U64);
+impl_int_cond_shr_self_imm!(true, i128, U128);
 
 // ShlAssign
 macro_rules! impl_int_shx_assign {
