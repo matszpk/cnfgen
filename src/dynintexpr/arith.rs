@@ -384,6 +384,7 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_addc_cout(&mut output, &self, &rhs, in_carry);
         (
@@ -396,6 +397,7 @@ where
     }
 
     pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_addc(&mut output, &self, &rhs, in_carry);
         ExprNode {
@@ -405,6 +407,7 @@ where
     }
 
     pub fn subc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_subc(&mut output, &self, &rhs, in_carry);
         ExprNode {
@@ -442,6 +445,7 @@ where
     type Output = Self;
 
     fn mod_add(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_addc(
             &mut output,
@@ -467,6 +471,7 @@ where
     type Output = (Self, BoolExprNode<T>);
 
     fn cond_add(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_addc_cout(
             &mut output,
@@ -495,6 +500,7 @@ where
     type Output = (Self, BoolExprNode<T>);
 
     fn cond_add(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, csign) = helper_addc_cout(
             &mut output,
@@ -523,6 +529,7 @@ where
     type Output = Self;
 
     fn mod_sub(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_subc(
             &mut output,
@@ -548,6 +555,7 @@ where
     type Output = (Self, BoolExprNode<T>);
 
     fn cond_sub(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_subc_cout(
             &mut output,
@@ -576,6 +584,7 @@ where
     type Output = (Self, BoolExprNode<T>);
 
     fn cond_sub(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         let (c, csign) = helper_subc_cout(
             &mut output,
@@ -644,6 +653,7 @@ where
     type Output = Self;
 
     fn mod_mul(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut matrix = gen_dadda_matrix(
             self.creator.clone(),
             &self.indexes,
@@ -660,6 +670,61 @@ where
 
 impl_dynint_bitop_assign!(IntModMulAssign, mod_mul, mod_mul_assign);
 
+impl<T> IntCondMul<ExprNode<T, false>> for ExprNode<T, false>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_mul(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let n = self.indexes.len();
+        let mut matrix = gen_dadda_matrix(self.creator.clone(), &self.indexes, &rhs.indexes, 2 * n);
+        let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
+        let reshi = ExprNode::<T, false> {
+            creator: self.creator.clone(),
+            indexes: Vec::from(&res[n..]),
+        };
+        (
+            ExprNode {
+                creator: self.creator.clone(),
+                indexes: Vec::from(&res[0..n]),
+            },
+            reshi.equal(ExprNode::filled(self.creator, n, false)),
+        )
+    }
+}
+
+impl<T> IntCondMul<ExprNode<T, true>> for ExprNode<T, true>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = (Self, BoolExprNode<T>);
+
+    fn cond_mul(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
+        let n = self.indexes.len();
+        let expsign = self.bit(n - 1) ^ rhs.bit(n - 1);
+        let (res, resc) = self
+            .clone()
+            .as_unsigned()
+            .cond_mul(rhs.clone().as_unsigned());
+        let ressign = res.bit(n - 1);
+        (
+            res.clone().as_signed(),
+            resc & (expsign.bequal(ressign) | res.equal(ExprNode::filled(self.creator, n, false))),
+        )
+    }
+}
+
 /// Full multiplication
 
 impl<T> FullMul<ExprNode<T, false>> for ExprNode<T, false>
@@ -673,6 +738,7 @@ where
     type Output = ExprNode<T, false>;
 
     fn fullmul(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut matrix = gen_dadda_matrix(
             self.creator.clone(),
             &self.indexes,
@@ -698,6 +764,7 @@ where
     type Output = ExprNode<T, true>;
 
     fn fullmul(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let ua = self.clone().abs();
         let ub = rhs.clone().abs();
         let res = ua.fullmul(ub);
@@ -723,6 +790,7 @@ where
     type OutputCond = BoolExprNode<T>;
 
     fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let divres = ExprNode::<T, false>::variable(self.creator.clone(), n);
         let mut matrix =
@@ -768,6 +836,7 @@ where
     type OutputCond = BoolExprNode<T>;
 
     fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
+        assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let ua = self.clone().abs();
         let ub = rhs.clone().abs();
@@ -1224,6 +1293,12 @@ mod tests {
     fn test_expr_node_mod_mul() {
         test_expr_node_binaryop!(false, mod_mul, mod_mul_assign);
         test_expr_node_binaryop!(true, mod_mul, mod_mul_assign);
+    }
+
+    #[test]
+    fn test_expr_node_cond_mul() {
+        test_expr_node_condop!(false, cond_mul);
+        test_expr_node_condop!(true, cond_mul);
     }
 
     macro_rules! test_expr_node_fullmul {

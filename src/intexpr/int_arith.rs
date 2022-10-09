@@ -510,12 +510,14 @@ where
 
     fn cond_mul(self, rhs: Self) -> Self::Output {
         let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
-        let (res, resc) = self.clone().as_unsigned().cond_mul(rhs.clone().as_unsigned());
+        let (res, resc) = self
+            .clone()
+            .as_unsigned()
+            .cond_mul(rhs.clone().as_unsigned());
         let ressign = res.bit(N::USIZE - 1);
         (
             res.clone().as_signed(),
-            resc & (expsign.bequal(ressign)
-                | res.equal(ExprNode::filled(self.creator, false))),
+            resc & (expsign.bequal(ressign) | res.equal(ExprNode::filled(self.creator, false))),
         )
     }
 }
@@ -1383,6 +1385,44 @@ mod tests {
         test_expr_node_mod_mul_and_assign_xx!(false, 167, 116);
         test_expr_node_mod_mul_and_assign_xx!(true, 83, 38);
         test_expr_node_mod_mul_and_assign_xx!(true, -69, -121);
+    }
+
+    #[test]
+    fn test_expr_node_cond_mul() {
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let (res, resc) = x1.cond_mul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let exptemp = x1.fullmul(x2);
+            let expc = exptemp.subvalue::<U10>(10).equal(0);
+            let exp = exptemp.subvalue::<U10>(0);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+        {
+            let ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let (res, resc) = x1.cond_mul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let expsign = x1.bit(9) ^ x2.bit(9);
+            let (exp, tempc) = x1.cond_mul(x2);
+            let expc = tempc & (expsign.bequal(exp.bit(9)) | exp.clone().equal(0));
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
     }
 
     #[test]
