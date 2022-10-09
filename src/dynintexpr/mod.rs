@@ -344,10 +344,12 @@ macro_rules! impl_int_try_iconstant {
                 v: $pty,
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
-                let mask = (((1 << (bits - n)) - 1) << n);
-                let signmask = if v < 0 { mask } else { 0 };
-                if n < bits && (v & mask) != signmask {
-                    return Err(IntError::BitOverflow);
+                if n < bits {
+                    let mask = (((1 << (bits - n)) - 1) << n);
+                    let signmask = if v < 0 { mask } else { 0 };
+                    if (v & mask) != signmask {
+                        return Err(IntError::BitOverflow);
+                    }
                 }
                 Ok(ExprNode {
                     creator,
