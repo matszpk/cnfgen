@@ -975,6 +975,16 @@ mod tests {
     }
 
     #[test]
+    fn test_int_cond_shift_prim_types() {
+        assert_eq!(7u32.cond_shl(10), (7 << 10, true));
+        assert_eq!(7u32.cond_shl(31), (0x80000000u32, true));
+        assert_eq!(7u32.cond_shl(32), (7, false));
+        assert_eq!(0xe0000000u32.cond_shr(10), (0xe0000000u32 >> 10, true));
+        assert_eq!(0xe0000000u32.cond_shr(31), (1u32, true));
+        assert_eq!(0xe0000000u32.cond_shr(32), (0xe0000000u32, false));
+    }
+
+    #[test]
     fn test_expr_node_bitval() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, U7, false>::variable(ec.clone());
