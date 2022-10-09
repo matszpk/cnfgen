@@ -423,6 +423,44 @@ macro_rules! impl_int_cond_neg_pty {
 
 impl_int_ipty!(impl_int_cond_neg_pty);
 
+pub trait IntCondShl<Rhs = Self> {
+    type Output;
+
+    fn cond_shl(self, rhs: Rhs) -> Self::Output;
+}
+
+pub trait IntCondShr<Rhs = Self> {
+    type Output;
+
+    fn cond_shr(self, rhs: Rhs) -> Self::Output;
+}
+
+macro_rules! impl_int_cond_shift_pty_pty {
+    ($pty:ty) => {
+        impl IntCondShl<u32> for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_shl(self, rhs: u32) -> (Self, bool) {
+                let (r, c) = self.overflowing_shl(rhs);
+                (r, !c)
+            }
+        }
+
+        impl IntCondShr<u32> for $pty {
+            type Output = (Self, bool);
+
+            #[inline]
+            fn cond_shr(self, rhs: u32) -> (Self, bool) {
+                let (r, c) = self.overflowing_shr(rhs);
+                (r, !c)
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_cond_shift_pty_pty);
+
 // ///////////////////////////////
 // expr node implementation
 

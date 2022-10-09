@@ -37,6 +37,8 @@ pub mod prelude {
     pub use crate::IntCondAdd;
     pub use crate::IntCondMul;
     pub use crate::IntCondNeg;
+    pub use crate::IntCondShl;
+    pub use crate::IntCondShr;
     pub use crate::IntCondSub;
     pub use crate::IntConstant;
     pub use crate::IntEqual;
@@ -74,9 +76,9 @@ pub mod intexpr;
 pub use intexpr::{
     int_ite, int_table, BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode,
     I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IntCondAdd, IntCondMul, IntCondNeg,
-    IntCondSub, IntConstant, IntEqual, IntError, IntModAdd, IntModAddAssign, IntModMul,
-    IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd, U128ExprNode, U16ExprNode,
-    U32ExprNode, U64ExprNode, U8ExprNode,
+    IntCondShl, IntCondShr, IntCondSub, IntConstant, IntEqual, IntError, IntModAdd,
+    IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
+    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode,
 };
 pub mod dynintexpr;
 mod intmacros;
