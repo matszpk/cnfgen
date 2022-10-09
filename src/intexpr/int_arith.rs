@@ -520,6 +520,9 @@ where
     }
 }
 
+impl_int_cond_binary_op!($, IntCondMul, cond_mul, impl_int_cond_mul_pty, impl_int_cond_mul_upty,
+        impl_int_cond_mul_ipty);
+
 impl_int_binary_op!($, IntModMul, mod_mul, impl_int_mul_pty, impl_int_mul_upty, impl_int_mul_ipty);
 impl_int_bitop_assign!($, IntModMulAssign, mod_mul_assign, mod_mul, impl_int_mul_assign_pty,
         impl_int_mul_assign_upty, impl_int_mul_assign_ipty);
