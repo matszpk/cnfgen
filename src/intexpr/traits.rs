@@ -371,7 +371,8 @@ macro_rules! impl_int_cond_arith_pty_pty {
 
             #[inline]
             fn cond_add(self, rhs: Self) -> (Self, bool) {
-                self.overflowing_add(rhs)
+                let (r, c) = self.overflowing_add(rhs);
+                (r, !c)
             }
         }
 
@@ -380,7 +381,8 @@ macro_rules! impl_int_cond_arith_pty_pty {
 
             #[inline]
             fn cond_sub(self, rhs: Self) -> (Self, bool) {
-                self.overflowing_sub(rhs)
+                let (r, c) = self.overflowing_sub(rhs);
+                (r, !c)
             }
         }
 
@@ -389,7 +391,8 @@ macro_rules! impl_int_cond_arith_pty_pty {
 
             #[inline]
             fn cond_mul(self, rhs: Self) -> (Self, bool) {
-                self.overflowing_mul(rhs)
+                let (r, c) = self.overflowing_mul(rhs);
+                (r, !c)
             }
         }
     };
@@ -411,7 +414,8 @@ macro_rules! impl_int_cond_neg_pty {
 
             #[inline]
             fn cond_neg(self) -> (Self, bool) {
-                self.overflowing_neg()
+                let (r, c) = self.overflowing_neg();
+                (r, !c)
             }
         }
     };
@@ -914,22 +918,22 @@ mod tests {
 
     #[test]
     fn test_int_cond_arith_prim_types() {
-        assert_eq!(54u8.cond_add(45), (99u8, false));
-        assert_eq!(54u8.cond_add(245), (43u8, true));
-        assert_eq!(154u8.cond_sub(11), (143u8, false));
-        assert_eq!(154u8.cond_sub(245), (165u8, true));
-        assert_eq!(67u8.cond_mul(3), (201u8, false));
-        assert_eq!(67u8.cond_mul(11), (225u8, true));
+        assert_eq!(54u8.cond_add(45), (99u8, true));
+        assert_eq!(54u8.cond_add(245), (43u8, false));
+        assert_eq!(154u8.cond_sub(11), (143u8, true));
+        assert_eq!(154u8.cond_sub(245), (165u8, false));
+        assert_eq!(67u8.cond_mul(3), (201u8, true));
+        assert_eq!(67u8.cond_mul(11), (225u8, false));
 
-        assert_eq!(54i8.cond_add(45), (99i8, false));
-        assert_eq!(54i8.cond_add(99), (-103i8, true));
-        assert_eq!(77i8.cond_sub(11), (66i8, false));
-        assert_eq!((-100i8).cond_sub(32), (124i8, true));
-        assert_eq!((-30i8).cond_mul(4), (-120i8, false));
-        assert_eq!((-30i8).cond_mul(11), (-74i8, true));
+        assert_eq!(54i8.cond_add(45), (99i8, true));
+        assert_eq!(54i8.cond_add(99), (-103i8, false));
+        assert_eq!(77i8.cond_sub(11), (66i8, true));
+        assert_eq!((-100i8).cond_sub(32), (124i8, false));
+        assert_eq!((-30i8).cond_mul(4), (-120i8, true));
+        assert_eq!((-30i8).cond_mul(11), (-74i8, false));
 
-        assert_eq!(53i8.cond_neg(), (-53i8, false));
-        assert_eq!((-128i8).cond_neg(), (-128i8, true));
+        assert_eq!(53i8.cond_neg(), (-53i8, true));
+        assert_eq!((-128i8).cond_neg(), (-128i8, false));
     }
 
     #[test]
