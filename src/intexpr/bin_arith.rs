@@ -282,7 +282,7 @@ macro_rules! impl_int_shl_imm {
                 let mut output = GenericArray::default();
                 output[usize_rhs..].copy_from_slice(&self.indexes[0..(N::USIZE - usize_rhs)]);
                 ExprNode {
-                    creator: self.creator.clone(),
+                    creator: self.creator,
                     indexes: output,
                 }
             }
@@ -493,7 +493,7 @@ macro_rules! impl_int_shr_imm {
                 .unwrap();
                 output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
                 ExprNode {
-                    creator: self.creator.clone(),
+                    creator: self.creator,
                     indexes: output,
                 }
             }

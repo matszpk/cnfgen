@@ -228,7 +228,7 @@ macro_rules! impl_dynint_shl_imm {
                 let mut output = vec![0; n];
                 output[usize_rhs..].copy_from_slice(&self.indexes[0..(n - usize_rhs)]);
                 ExprNode {
-                    creator: self.creator.clone(),
+                    creator: self.creator,
                     indexes: output,
                 }
             }
@@ -276,7 +276,7 @@ where
     }
 }
 
-/// Shift left implementation.
+/// Shift right implementation.
 impl<T, const SIGN: bool> IntCondShr<ExprNode<T, false>> for ExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
@@ -371,7 +371,7 @@ macro_rules! impl_dynint_shr_imm {
                 ];
                 output[0..(n - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
                 ExprNode {
-                    creator: self.creator.clone(),
+                    creator: self.creator,
                     indexes: output,
                 }
             }
