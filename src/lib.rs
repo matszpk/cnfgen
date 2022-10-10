@@ -58,6 +58,7 @@ pub mod prelude {
     pub use crate::SimplifiableClause;
     pub use crate::TryFromNSized;
     pub use crate::TryIntConstant;
+    pub use crate::TryIntConstantN;
     pub use crate::VarLit;
 }
 
@@ -78,13 +79,13 @@ pub use intexpr::{
     I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IExprNode, IntCondAdd, IntCondMul,
     IntCondNeg, IntCondShl, IntCondShr, IntCondSub, IntConstant, IntEqual, IntError, IntModAdd,
     IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
-    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode, UExprNode,
+    TryIntConstant, U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode, UExprNode,
 };
 pub mod dynintexpr;
 mod intmacros;
 pub use dynintexpr::{
     dynint_ite, dynint_table, ExprNode as DynIntExprNode, IDynExprNode, TryFromNSized,
-    TryIntConstant, UDynExprNode,
+    TryIntConstantN, UDynExprNode,
 };
 
 pub use generic_array;

@@ -148,7 +148,7 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, false>: TryIntConstant<T, usize>,
+    ExprNode<T, false>: TryIntConstantN<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
@@ -168,7 +168,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, false>::try_constant(self.creator, n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
@@ -180,7 +180,7 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, true>: TryIntConstant<T, isize>,
+    ExprNode<T, true>: TryIntConstantN<T, isize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
@@ -200,7 +200,8 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, true>::try_constant(self.creator, n2, (n - 1) as isize).unwrap();
+        let nexpr =
+            ExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
@@ -284,7 +285,7 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, false>: TryIntConstant<T, usize>,
+    ExprNode<T, false>: TryIntConstantN<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
@@ -304,7 +305,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, false>::try_constant(self.creator, n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
@@ -316,7 +317,7 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, true>: TryIntConstant<T, isize>,
+    ExprNode<T, true>: TryIntConstantN<T, isize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
@@ -336,7 +337,8 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, true>::try_constant(self.creator, n2, (n - 1) as isize).unwrap();
+        let nexpr =
+            ExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }

@@ -112,6 +112,11 @@ pub trait IntConstant<T: VarLit, U> {
     fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
 }
 
+/// Trait to try make object from primitive integer (constant).
+pub trait TryIntConstant<T: VarLit, U>: Sized {
+    fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Result<Self, IntError>;
+}
+
 /// Trait to get a bit value from object and get number of bits for object.
 ///
 /// It defined for IntExprNode and DynIntExprNode. The defines `Output` that can be
