@@ -381,6 +381,9 @@ pub type U32ExprNode<T> = ExprNode<T, U32, false>;
 pub type U64ExprNode<T> = ExprNode<T, U64, false>;
 pub type U128ExprNode<T> = ExprNode<T, U128, false>;
 
+pub type UExprNode<T, N> = ExprNode<T, N, false>;
+pub type IExprNode<T, N> = ExprNode<T, N, true>;
+
 pub type I8ExprNode<T> = ExprNode<T, U8, true>;
 pub type I16ExprNode<T> = ExprNode<T, U16, true>;
 pub type I32ExprNode<T> = ExprNode<T, U32, true>;

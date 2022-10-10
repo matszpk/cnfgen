@@ -75,15 +75,16 @@ mod int_utils;
 pub mod intexpr;
 pub use intexpr::{
     int_ite, int_table, BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode,
-    I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IntCondAdd, IntCondMul, IntCondNeg,
-    IntCondShl, IntCondShr, IntCondSub, IntConstant, IntEqual, IntError, IntModAdd,
+    I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IExprNode, IntCondAdd, IntCondMul,
+    IntCondNeg, IntCondShl, IntCondShr, IntCondSub, IntConstant, IntEqual, IntError, IntModAdd,
     IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
-    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode,
+    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode, UExprNode,
 };
 pub mod dynintexpr;
 mod intmacros;
 pub use dynintexpr::{
-    dynint_ite, dynint_table, ExprNode as DynIntExprNode, TryFromNSized, TryIntConstant,
+    dynint_ite, dynint_table, ExprNode as DynIntExprNode, IDynExprNode, TryFromNSized,
+    TryIntConstant, UDynExprNode,
 };
 
 pub use generic_array;

@@ -512,6 +512,11 @@ where
     }
 }
 
+// types
+
+pub type UDynExprNode<T> = ExprNode<T, false>;
+pub type IDynExprNode<T> = ExprNode<T, true>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
