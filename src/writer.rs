@@ -55,7 +55,10 @@ pub enum CNFError {
 }
 
 /// A variable literal. It holds variable number if it is not negated,
-/// or negated variable number if it is negated. Zero value is not allowed.
+/// or negated variable number if it is negated.
+///
+/// Zero value is not allowed.
+/// It can be a signed integer type: from `i8` to `i64` or `isize`.
 pub trait VarLit:
     Neg + PartialEq + Eq + Ord + Copy + TryInto<isize> + TryInto<usize> + TryFrom<usize> + Debug
 {
@@ -136,8 +139,10 @@ impl_varlit!(i32);
 impl_varlit!(i64);
 impl_varlit!(isize);
 
-/// A literal. It holds variable literal or value literal (false or true). It can be used
-/// to construct clause from either variables or constants. T type must be a VarLit.
+/// A literal. It holds variable literal or value literal (false or true).
+///
+/// It can be used to construct clause from either variables or constants.
+/// T type must be VarLit.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Literal<T: VarLit> {
     /// It holds variable literal.
@@ -202,9 +207,11 @@ impl<T: VarLit> From<T> for Literal<T> {
 }
 
 /// Basic clause trait. It contains variable literals.
-/// This clause is a disjuction of literals.
-/// An empty clause is always false - formulaue contains that clause going
+///
+/// This clause is a disjuction of literals. Type T must be VarLit.
+/// An empty clause is always false - formulae contains that clause going
 /// to be unsatisfied.
+/// It can be a slice, an array, a vector or other collection like BTreeMap.
 pub trait Clause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -320,8 +327,10 @@ where
     }
 }
 
-/// Trait of clause that can be simplified. This clause type is used during writing clause
-/// by CNF writer to prepare clause to write.
+/// Trait of clause that can be simplified.
+///
+/// This clause type is used during writing clause by CNF writer to prepare clause to write.
+/// Type T must be VarLit. It can be a vector or sortable and resizable collection.
 pub trait SimplifiableClause<T>:
     Clause<T> + Index<usize, Output = T> + IndexMut<usize, Output = T>
 where
@@ -398,8 +407,10 @@ where
     }
 }
 
-/// A input clause that can be used to construct clauses. It can be easily constructed
-/// by using `push` or `extend` methods. The push method accepts Literal.
+/// A input clause that can be used to construct clauses.
+///
+/// It can be easily constructed by using `push` or `extend` methods.
+/// The push method accepts Literal. Type T must be VarLit.
 #[derive(Default)]
 pub struct InputClause<T> {
     clause: Vec<T>,
@@ -531,7 +542,7 @@ where
     }
 }
 
-/// An implementation Clause for InputCaluse.
+/// An implementation Clause for InputClause.
 impl<T> Clause<T> for InputClause<T>
 where
     T: VarLit + Neg<Output = T>,
@@ -551,6 +562,8 @@ where
 }
 
 /// Quantified literal's set. It contains variables that will be used with quantifier.
+///
+/// Type T must be VarLit. It can be a slice, an array, a vector or other collection.
 pub trait QuantSet<T>
 where
     T: VarLit,
@@ -677,7 +690,7 @@ pub struct CNFHeader {
     pub clause_num: usize,
 }
 
-/// A CNF formulae writer.
+/// A CNF formulae writer. This object is used to write CNF header and formulae clauses.
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,

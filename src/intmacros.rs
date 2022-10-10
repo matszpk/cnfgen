@@ -1096,6 +1096,7 @@ macro_rules! impl_int_ipty_ty1 {
     };
 }
 
+/// Macro helper.
 #[macro_export]
 macro_rules! impl_int_upty {
     ($impl_mac:ident) => {
@@ -1108,6 +1109,7 @@ macro_rules! impl_int_upty {
     };
 }
 
+/// Macro helper.
 #[macro_export]
 macro_rules! impl_int_ipty {
     ($impl_mac:ident) => {
