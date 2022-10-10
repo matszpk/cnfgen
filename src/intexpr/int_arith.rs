@@ -521,13 +521,15 @@ where
 
     fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
-        let (res, resc) = self
-            .clone()
-            .as_unsigned()
-            .cond_mul(rhs.clone().as_unsigned());
+        let (res, resc) = self.clone().abs().cond_mul(rhs.clone().abs());
+        let res = int_ite(
+            expsign.clone(),
+            res.clone().as_signed().mod_neg(),
+            res.clone().as_signed(),
+        );
         let ressign = res.bit(N::USIZE - 1);
         (
-            res.clone().as_signed(),
+            res.clone(),
             resc & (expsign.bequal(ressign) | res.equal(ExprNode::filled(self.creator, false))),
         )
     }
@@ -1424,10 +1426,15 @@ mod tests {
             let (res, resc) = x1.cond_mul(x2);
 
             let exp_ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::variable(exp_ec.clone());
+            let x1 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
+            let x2 = ExprNode::<isize, U10, true>::variable(exp_ec.clone());
             let expsign = x1.bit(9) ^ x2.bit(9);
-            let (exp, tempc) = x1.cond_mul(x2);
+            let (temp, tempc) = x1.clone().abs().cond_mul(x2.abs());
+            let exp = int_ite(
+                expsign.clone(),
+                temp.clone().as_signed().mod_neg(),
+                temp.clone().as_signed(),
+            );
             let expc = tempc & (expsign.bequal(exp.bit(9)) | exp.clone().equal(0));
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());

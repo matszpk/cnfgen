@@ -854,13 +854,15 @@ where
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let expsign = self.bit(n - 1) ^ rhs.bit(n - 1);
-        let (res, resc) = self
-            .clone()
-            .as_unsigned()
-            .cond_mul(rhs.clone().as_unsigned());
+        let (res, resc) = self.clone().abs().cond_mul(rhs.clone().abs());
+        let res = dynint_ite(
+            expsign.clone(),
+            res.clone().as_signed().mod_neg(),
+            res.clone().as_signed(),
+        );
         let ressign = res.bit(n - 1);
         (
-            res.clone().as_signed(),
+            res.clone(),
             resc & (expsign.bequal(ressign) | res.equal(ExprNode::filled(self.creator, n, false))),
         )
     }
