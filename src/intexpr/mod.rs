@@ -35,10 +35,13 @@ use crate::int_utils::*;
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
 use crate::{BoolExprNode, DynIntExprNode, ExprCreator, Literal, VarLit};
 
+/// Integer error.
 #[derive(thiserror::Error, Debug)]
 pub enum IntError {
+    /// If bit overflow - too many bits required.
     #[error("Bit overflow")]
     BitOverflow,
+    /// A value can be negative - it can be happened when convert signed value into unsigned.
     #[error("Value can be negative")]
     CanBeNegative,
     #[error("Bit number mismatch")]
@@ -68,10 +71,14 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Number of BITS.
     pub const BITS: usize = N::USIZE;
+    /// SIGN of integer. It can be false - unsigned, or true - signed.
     pub const SIGN: bool = SIGN;
+    /// Internally used logarithm of number of bits.
     pub const LOG_BITS: usize = calc_log_bits(Self::BITS);
-    // Creates new variable as expression node.
+    
+    /// Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
         let mut indexes = GenericArray::<usize, N>::default();
         {
@@ -84,6 +91,8 @@ where
         ExprNode { creator, indexes }
     }
 
+    /// Creates integer from boolean expressions. An argument is object convertible into
+    /// iterator of `BoolExprNode`.
     pub fn from_boolexprs(iter: impl IntoIterator<Item = BoolExprNode<T>>) -> Option<Self> {
         let mut creator = None;
         GenericArray::from_exact_iter(iter.into_iter().map(|x| {
@@ -101,6 +110,7 @@ where
         })
     }
 
+    /// Creates filled integer from  from Literal.
     pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: impl Into<Literal<T>>) -> Self {
         ExprNode {
             creator: creator.clone(),
@@ -111,6 +121,7 @@ where
         }
     }
 
+    /// Creates filled integer from  from a boolean value.
     pub fn filled_expr(v: BoolExprNode<T>) -> Self {
         ExprNode {
             creator: v.creator.clone(),
@@ -118,6 +129,7 @@ where
         }
     }
 
+    /// Casts integer into unsigned integer.
     pub fn as_unsigned(self) -> ExprNode<T, N, false> {
         ExprNode {
             creator: self.creator,
@@ -125,6 +137,7 @@ where
         }
     }
 
+    /// Casts integer into signed integer.
     pub fn as_signed(self) -> ExprNode<T, N, true> {
         ExprNode {
             creator: self.creator,
@@ -141,6 +154,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates integer that contains `N2` bits starting from `start`.
     pub fn subvalue<N2>(&self, start: usize) -> ExprNode<T, N2, false>
     where
         N2: ArrayLength<usize>,
@@ -151,6 +165,8 @@ where
         }
     }
 
+    /// Creates integer that contains `N2` selected bits. List of bits given in
+    /// object that can be converted into iterator of indexes.
     pub fn select_bits<N2, I>(&self, iter: I) -> Option<ExprNode<T, N2, false>>
     where
         N2: ArrayLength<usize>,
@@ -164,6 +180,7 @@ where
         })
     }
 
+    /// Creates integer of concatenation of self and `rest`.
     pub fn concat<N2>(self, rest: ExprNode<T, N2, false>) -> ExprNode<T, Sum<N, N2>, false>
     where
         N: Add<N2>,
@@ -178,6 +195,7 @@ where
         }
     }
 
+    /// Splits integer into two parts: the first with `K` bits and second with rest of bits.
     pub fn split<K>(
         self,
     ) -> (

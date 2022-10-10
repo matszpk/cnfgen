@@ -38,6 +38,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Calculation of an absolute value. It returns unsigned integer.
     pub fn abs(self) -> ExprNode<T, N, false> {
         // if sign then -self else self
         int_ite(self.bit(N::USIZE - 1), self.clone().mod_neg(), self).as_unsigned()
@@ -55,6 +56,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Returns result of modular addition with input carry `in_carry` and output carry.
     pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
         let mut output = GenericArray::<usize, N>::default();
         let (c, _) = helper_addc_cout(&mut output, &self, &rhs, in_carry);
@@ -67,6 +69,7 @@ where
         )
     }
 
+    /// Returns result of modular addition with input carry.
     pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
         helper_addc(&mut output, &self, &rhs, in_carry);
@@ -76,6 +79,7 @@ where
         }
     }
 
+    /// Returns result of modular subtraction with input carry - it performs `(A + !B) + carry`.
     pub fn subc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
         helper_subc(&mut output, &self, &rhs, in_carry);
@@ -85,6 +89,7 @@ where
         }
     }
 
+    /// Returns result of modular addition of self and same carry.
     pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
         let mut output = GenericArray::<usize, N>::default();
         let mut c = in_carry;
