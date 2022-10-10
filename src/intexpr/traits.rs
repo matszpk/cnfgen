@@ -714,7 +714,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_than(rhs_num))
+            | (lhs_sign.bequal(rhs_sign) & lhs_num.less_than(rhs_num))
     }
 
     fn less_equal(self, rhs: Self) -> Self::Output {
@@ -728,7 +728,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
+            | (lhs_sign.bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
     }
 
     fn greater_than(self, rhs: Self) -> Self::Output {

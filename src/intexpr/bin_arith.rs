@@ -250,7 +250,7 @@ where
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
-        let mut output = self.clone();
+        let mut output = self;
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
@@ -366,7 +366,7 @@ where
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
         let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
-            self.creator.clone(),
+            self.creator,
             N::U64 - 1,
         ))
         .unwrap();
@@ -453,7 +453,7 @@ where
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
-        let mut output = self.clone();
+        let mut output = self;
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
@@ -577,7 +577,7 @@ where
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
         let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
-            self.creator.clone(),
+            self.creator,
             N::U64 - 1,
         ))
         .unwrap();

@@ -219,12 +219,10 @@ pub(super) fn iter_shift_right<T, BV>(
             // if no overflow then get bit(v)
             if x + (1usize << i) < input.bitnum() {
                 input.bit(x + (1 << i))
+            } else if sign {
+                input.bit(input.bitnum() - 1)
             } else {
-                if sign {
-                    input.bit(input.bitnum() - 1)
-                } else {
-                    BoolExprNode::new(rhs_bit.creator.clone(), 0)
-                }
+                BoolExprNode::new(rhs_bit.creator.clone(), 0)
             },
             input.bit(x),
         )
@@ -249,8 +247,8 @@ where
 {
     let n = lhs.bitnum();
     let mut c = in_carry;
-    for i in 0..(n - 1) {
-        (output[i], c) = {
+    for (i, out) in output.iter_mut().enumerate().take(n - 1) {
+        (*out, c) = {
             let (s0, c0) = opt_full_adder(lhs.bit(i), rhs.bit(i), c);
             (s0.index, c0)
         };
@@ -280,8 +278,8 @@ where
 {
     let n = lhs.bitnum();
     let mut c = in_carry;
-    for i in 0..(n - 1) {
-        (output[i], c) = {
+    for (i, out) in output.iter_mut().enumerate().take(n - 1) {
+        (*out, c) = {
             let (s0, c0) = opt_full_adder(lhs.bit(i), !rhs.bit(i), c);
             (s0.index, c0)
         };
@@ -305,8 +303,8 @@ where
 {
     let mut c = in_carry;
     let n = lhs.bitnum();
-    for i in 0..n - 1 {
-        (output[i], c) = {
+    for (i, out) in output.iter_mut().enumerate().take(n - 1) {
+        (*out, c) = {
             let (s0, c0) = opt_full_adder(lhs.bit(i), rhs.bit(i), c);
             (s0.index, c0)
         };
@@ -325,8 +323,8 @@ where
 {
     let mut c = in_carry;
     let n = lhs.bitnum();
-    for i in 0..n - 1 {
-        (output[i], c) = {
+    for (i, out) in output.iter_mut().enumerate().take(n - 1) {
+        (*out, c) = {
             let (s0, c0) = opt_full_adder(lhs.bit(i), !rhs.bit(i), c);
             (s0.index, c0)
         };

@@ -521,11 +521,11 @@ where
 
     fn cond_mul(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
         let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
-        let (res, resc) = self.clone().abs().cond_mul(rhs.clone().abs());
+        let (res, resc) = self.clone().abs().cond_mul(rhs.abs());
         let res = int_ite(
             expsign.clone(),
             res.clone().as_signed().mod_neg(),
-            res.clone().as_signed(),
+            res.as_signed(),
         );
         let ressign = res.bit(N::USIZE - 1);
         (
@@ -729,7 +729,7 @@ where
             divres.clone(),
             int_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
             cond & (exp_divsign.bequal(divres_sign)
-                | divres.equal(ExprNode::<T, N, true>::filled(self.creator.clone(), false))),
+                | divres.equal(ExprNode::<T, N, true>::filled(self.creator, false))),
         )
     }
 }

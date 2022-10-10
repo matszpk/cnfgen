@@ -131,7 +131,7 @@ where
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
-        let mut output = self.clone();
+        let mut output = self;
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
@@ -168,7 +168,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, false>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
@@ -200,8 +200,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr =
-            ExprNode::<T, true>::try_constant(self.creator.clone(), n2, (n - 1) as isize).unwrap();
+        let nexpr = ExprNode::<T, true>::try_constant(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
@@ -268,7 +267,7 @@ where
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
-        let mut output = self.clone();
+        let mut output = self;
         for i in 0..nbits {
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
@@ -305,7 +304,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, false>::try_constant(self.creator.clone(), n2, n - 1).unwrap();
+        let nexpr = ExprNode::<T, false>::try_constant(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
@@ -337,8 +336,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr =
-            ExprNode::<T, true>::try_constant(self.creator.clone(), n2, (n - 1) as isize).unwrap();
+        let nexpr = ExprNode::<T, true>::try_constant(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
@@ -554,8 +552,8 @@ where
         let n = self.indexes.len();
         let mut output = vec![0; n];
         let mut c = in_carry;
-        for i in 0..(n - 1) {
-            (output[i], c) = {
+        for (i, out) in output.iter_mut().enumerate().take(n - 1) {
+            (*out, c) = {
                 let (s0, c0) = half_adder(self.bit(i), c);
                 (s0.index, c0)
             };
@@ -854,11 +852,11 @@ where
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
         let expsign = self.bit(n - 1) ^ rhs.bit(n - 1);
-        let (res, resc) = self.clone().abs().cond_mul(rhs.clone().abs());
+        let (res, resc) = self.clone().abs().cond_mul(rhs.abs());
         let res = dynint_ite(
             expsign.clone(),
             res.clone().as_signed().mod_neg(),
-            res.clone().as_signed(),
+            res.as_signed(),
         );
         let ressign = res.bit(n - 1);
         (
@@ -996,7 +994,7 @@ where
             divres.clone(),
             dynint_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
             cond & (exp_divsign.bequal(divres_sign)
-                | divres.equal(ExprNode::<T, true>::filled(self.creator.clone(), n, false))),
+                | divres.equal(ExprNode::<T, true>::filled(self.creator, n, false))),
         )
     }
 }

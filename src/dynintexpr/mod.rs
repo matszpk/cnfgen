@@ -81,7 +81,7 @@ where
             .map(|x| {
                 // check creator - whether this same
                 if let Some(c) = creator.clone() {
-                    assert_eq!(c, x.creator.clone());
+                    assert_eq!(Rc::as_ptr(&c), Rc::as_ptr(&x.creator));
                 } else {
                     creator = Some(x.creator.clone());
                 }
@@ -129,6 +129,11 @@ where
     #[inline]
     pub fn len(&self) -> usize {
         self.indexes.len()
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.indexes.is_empty()
     }
 }
 
@@ -485,7 +490,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_than(rhs_num))
+            | (lhs_sign.bequal(rhs_sign) & lhs_num.less_than(rhs_num))
     }
 
     fn less_equal(self, rhs: Self) -> Self::Output {
@@ -500,7 +505,7 @@ where
             (lhs_num, rhs_num)
         };
         (lhs_sign.clone() & (!rhs_sign.clone()))
-            | (lhs_sign.clone().bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
+            | (lhs_sign.bequal(rhs_sign) & lhs_num.less_equal(rhs_num))
     }
 
     fn greater_than(self, rhs: Self) -> Self::Output {
