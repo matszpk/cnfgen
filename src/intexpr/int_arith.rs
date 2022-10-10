@@ -189,37 +189,7 @@ macro_rules! impl_int_binary_op {
 
 impl_int_binary_op!($, IntModAdd, mod_add, impl_int_add_pty, impl_int_add_upty, impl_int_add_ipty);
 
-impl<T, N> IntCondAdd<ExprNode<T, N, false>> for ExprNode<T, N, false>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
-{
-    type Output = Self;
-    type OutputCond = BoolExprNode<T>;
-
-    fn cond_add(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
-        let mut output = GenericArray::<usize, N>::default();
-        let (c, _) = helper_addc_cout(
-            &mut output,
-            &self,
-            &rhs,
-            BoolExprNode::single_value(self.creator.clone(), false),
-        );
-        (
-            ExprNode {
-                creator: self.creator,
-                indexes: output,
-            },
-            !c, // good if no carry
-        )
-    }
-}
-
-impl<T, N> IntCondAdd<ExprNode<T, N, true>> for ExprNode<T, N, true>
+impl<T, N, const SIGN: bool> IntCondAdd<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -244,7 +214,12 @@ where
                 creator: self.creator,
                 indexes: output,
             },
-            c.bequal(csign), // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+            if SIGN {
+                // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+                c.bequal(csign)
+            } else {
+                !c // good if no carry
+            },
         )
     }
 }
@@ -343,37 +318,7 @@ where
 
 impl_int_binary_op!($, IntModSub, mod_sub, impl_int_sub_pty, impl_int_sub_upty, impl_int_sub_ipty);
 
-impl<T, N> IntCondSub<ExprNode<T, N, false>> for ExprNode<T, N, false>
-where
-    T: VarLit + Neg<Output = T> + Debug,
-    isize: TryFrom<T>,
-    <T as TryInto<usize>>::Error: Debug,
-    <T as TryFrom<usize>>::Error: Debug,
-    <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
-{
-    type Output = Self;
-    type OutputCond = BoolExprNode<T>;
-
-    fn cond_sub(self, rhs: Self) -> (Self::Output, Self::OutputCond) {
-        let mut output = GenericArray::<usize, N>::default();
-        let (c, _) = helper_subc_cout(
-            &mut output,
-            &self,
-            &rhs,
-            BoolExprNode::single_value(self.creator.clone(), true),
-        );
-        (
-            ExprNode {
-                creator: self.creator,
-                indexes: output,
-            },
-            c, // good if carry
-        )
-    }
-}
-
-impl<T, N> IntCondSub<ExprNode<T, N, true>> for ExprNode<T, N, true>
+impl<T, N, const SIGN: bool> IntCondSub<ExprNode<T, N, SIGN>> for ExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -398,7 +343,12 @@ where
                 creator: self.creator,
                 indexes: output,
             },
-            c.bequal(csign), // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+            if SIGN {
+                // overflow: carry_out ^ carry_at_sign, we need negation of overflow
+                c.bequal(csign)
+            } else {
+                c // good if carry
+            },
         )
     }
 }
