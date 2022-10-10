@@ -269,7 +269,8 @@ macro_rules! impl_int_try_from {
                 TryFrom<ExprNode<T, $ty1, true>> for ExprNode<T, $ty2, false>
             where
                 $ty1: ArrayLength<usize>,
-                $ty2: ArrayLength<usize>, {
+                $ty2: ArrayLength<usize>,
+        {
             type Error = IntError;
 
             fn try_from(v: ExprNode<T, $ty1, true>) -> Result<Self, Self::Error> {
