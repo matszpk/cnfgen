@@ -493,6 +493,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Calculation of an absolute value. It returns unsigned integer.
     pub fn abs(self) -> ExprNode<T, false> {
         // if sign then -self else self
         dynint_ite(
@@ -515,6 +516,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Returns result of modular addition with input carry `in_carry` and output carry.
     pub fn addc_with_carry(self, rhs: Self, in_carry: BoolExprNode<T>) -> (Self, BoolExprNode<T>) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
@@ -528,6 +530,7 @@ where
         )
     }
 
+    /// Returns result of modular addition with input carry.
     pub fn addc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
@@ -538,6 +541,7 @@ where
         }
     }
 
+    /// Returns result of modular subtraction with input carry - it performs `(A + !B) + carry`.
     pub fn subc(self, rhs: Self, in_carry: BoolExprNode<T>) -> Self {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
@@ -548,6 +552,7 @@ where
         }
     }
 
+    /// Returns result of modular addition of self and same carry.
     pub fn add_same_carry(self, in_carry: BoolExprNode<T>) -> Self {
         let n = self.indexes.len();
         let mut output = vec![0; n];

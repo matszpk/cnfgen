@@ -140,7 +140,7 @@ enum OpJoin {
 }
 
 /// The ExprCreator holds all expressions which will be written later.
-/// 
+///
 /// Main purpose of ExprCreator is maintenance state of expression with its variables
 /// during creating that expression by using ExprNode.
 /// An ExprCreator is used with ExprNode to create new expression.

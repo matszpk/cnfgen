@@ -57,9 +57,10 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// SIGN of integer. It can be false - unsigned, or true - signed.
     pub const SIGN: bool = SIGN;
 
-    // Creates new variable as expression node.
+    /// Creates new variable as expression node. `n` is number of bits.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>, n: usize) -> Self {
         let indexes = {
             let mut creator = creator.borrow_mut();
@@ -74,6 +75,8 @@ where
         ExprNode { creator, indexes }
     }
 
+    /// Creates integer from boolean expressions. An argument is object convertible into
+    /// iterator of `BoolExprNode`.
     pub fn from_boolexprs(iter: impl IntoIterator<Item = BoolExprNode<T>>) -> Self {
         let mut creator = None;
         let indexes = iter
@@ -94,6 +97,7 @@ where
         }
     }
 
+    /// Creates filled integer from from Literal. `n` is number of bits.
     pub fn filled(
         creator: Rc<RefCell<ExprCreator<T>>>,
         n: usize,
@@ -105,6 +109,7 @@ where
         }
     }
 
+    /// Creates filled integer from from a boolean value. `n` is number of bits.
     pub fn filled_expr(n: usize, v: BoolExprNode<T>) -> Self {
         ExprNode {
             creator: v.creator.clone(),
@@ -112,6 +117,7 @@ where
         }
     }
 
+    /// Casts integer into unsigned integer.
     pub fn as_unsigned(self) -> ExprNode<T, false> {
         ExprNode {
             creator: self.creator,
@@ -119,6 +125,7 @@ where
         }
     }
 
+    /// Casts integer into signed integer.
     pub fn as_signed(self) -> ExprNode<T, true> {
         ExprNode {
             creator: self.creator,
@@ -126,11 +133,13 @@ where
         }
     }
 
+    /// Returns length - number of bits.
     #[inline]
     pub fn len(&self) -> usize {
         self.indexes.len()
     }
 
+    /// Returns true if length is zero - number of bits is zero.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.indexes.is_empty()
@@ -145,6 +154,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
+    /// Creates integer that contains `n` bits starting from `start`.
     pub fn subvalue(&self, start: usize, n: usize) -> Self {
         ExprNode {
             creator: self.creator.clone(),
@@ -152,6 +162,8 @@ where
         }
     }
 
+    /// Creates integer that contains selected bits. List of bits given in
+    /// object that can be converted into iterator of indexes.
     pub fn select_bits(&self, iter: impl IntoIterator<Item = usize>) -> Self {
         ExprNode {
             creator: self.creator.clone(),
@@ -162,6 +174,7 @@ where
         }
     }
 
+    /// Creates integer of concatenation of self and `rest`.
     pub fn concat(self, rest: Self) -> Self {
         assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rest.creator));
         ExprNode {
@@ -174,6 +187,7 @@ where
         }
     }
 
+    /// Splits integer into two parts: the first with `k` bits and second with rest of bits.
     pub fn split(self, k: usize) -> (Self, Self) {
         (
             ExprNode {
@@ -188,9 +202,12 @@ where
     }
 }
 
+/// Trait to convert DynExprNode to other DynExprNode with different number of bits.
 pub trait TryFromNSized<T>: Sized {
     type Error;
 
+    /// Try to convert from input. `n` is number of bits of destination. It returns
+    /// `Ok(dest)` if conversion can be done, otherwise it returns error.
     fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
 }
 
@@ -304,7 +321,11 @@ where
     }
 }
 
+/// Trait to convert primitive integer into object (`DynIntExprNode`).
+/// It returns `Ok(result)` if integer will be match to size given in `n`.
 pub trait TryIntConstant<T: VarLit, U>: Sized {
+    /// Try to perform conversion into expression node. `n` is number of bits of destination.
+    /// `v` is constant value to convert.
     fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, n: usize, v: U)
         -> Result<Self, IntError>;
 }

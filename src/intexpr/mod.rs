@@ -77,7 +77,7 @@ where
     pub const SIGN: bool = SIGN;
     /// Internally used logarithm of number of bits.
     pub const LOG_BITS: usize = calc_log_bits(Self::BITS);
-    
+
     /// Creates new variable as expression node.
     pub fn variable(creator: Rc<RefCell<ExprCreator<T>>>) -> Self {
         let mut indexes = GenericArray::<usize, N>::default();
@@ -110,7 +110,7 @@ where
         })
     }
 
-    /// Creates filled integer from  from Literal.
+    /// Creates filled integer from from Literal.
     pub fn filled(creator: Rc<RefCell<ExprCreator<T>>>, v: impl Into<Literal<T>>) -> Self {
         ExprNode {
             creator: creator.clone(),
@@ -121,7 +121,7 @@ where
         }
     }
 
-    /// Creates filled integer from  from a boolean value.
+    /// Creates filled integer from from a boolean value.
     pub fn filled_expr(v: BoolExprNode<T>) -> Self {
         ExprNode {
             creator: v.creator.clone(),
@@ -166,7 +166,8 @@ where
     }
 
     /// Creates integer that contains `N2` selected bits. List of bits given in
-    /// object that can be converted into iterator of indexes.
+    /// object that can be converted into iterator of indexes. It returns None if
+    /// number of elements in iterator doesn't match.
     pub fn select_bits<N2, I>(&self, iter: I) -> Option<ExprNode<T, N2, false>>
     where
         N2: ArrayLength<usize>,
