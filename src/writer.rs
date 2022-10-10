@@ -19,6 +19,35 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to write CNF from clauses.
+//!
+//! This module contains utilities to write a CNF files. The CNFWriter is main structure
+//! used to write CNF.
+//!
+//! The `VarLit` trait defines a variable literal - elements of clause. It can be
+//! positive or negative - if we have negated variable. A clause can contains zero or more
+//! variable literals. Same variable literals is just simply signed integer.
+//! The `Clause` trait defines a clause. It can be just an array, a slice, a vector
+//! or other collection that contains signed integers (`VarLit`).
+//!
+//! The `Literal` trait defines general literal - it can be
+//! variable literal or a boolean value. The `InputClause` can be used to construct
+//! clauses by using `Literal`. The `SimplifiableClause` is helper to simplify clauses
+//! before writing them - this trait are used by same CNFWriter to simplify clauses.
+//! The `QuantSet` is used to store list of variable for quantifiers.
+//!
+//! The sample usage is simple:
+//!
+//! ```
+//! use cnfgen::{CNFError, CNFWriter}; // use from library
+//! fn simple_writer() -> Result<(), CNFError> {
+//!     use std::io;
+//!     let mut writer = CNFWriter::new(io::stdout());
+//!     writer.write_header(4, 3)?;
+//!     writer.write_clause([1, 2, -4])?;
+//!     writer.write_clause([1, -2, 3])?;
+//!     writer.write_clause([4, 2, -3])
+//! }
+//! ```
 
 use std::collections::*;
 use std::fmt::Debug;

@@ -19,6 +19,27 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to generate CNF clauses from boolean expressions.
+//!
+//! This module contains traits and main structure to operate on boolean expressions:
+//! `ExprNode` (`BoolExprNode` in library). The same `ExprNode` can be used in following way:
+//!
+//! ```
+//! use cnfgen::{BoolImpl, BoolEqual, BoolExprNode, CNFError, CNFWriter, ExprCreator32};
+//! use std::io;
+//! fn simple_expr_generator() -> Result<(), CNFError> {
+//!     // define ExprCreator.
+//!     let creator = ExprCreator32::new();
+//!     // define variables.
+//!     let x1 = BoolExprNode::variable(creator.clone());
+//!     let x2 = BoolExprNode::variable(creator.clone());
+//!     let x3 = BoolExprNode::variable(creator.clone());
+//!     let x4 = BoolExprNode::variable(creator.clone());
+//!     // define final expression: x1 => ((x2 xor x3) == (x3 and x4)).
+//!     let expr = x1.clone().imp((x2 ^ x3.clone()).bequal(x3 & x4));
+//!     // write CNF to stdout.
+//!     expr.write(&mut CNFWriter::new(io::stdout()))
+//! }
+//! ```
 
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -31,9 +52,13 @@ use crate::boolexpr_creator::{ExprCreator, Node};
 use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 /// Equality operator for boolean expressions and boolean words.
+///
+/// It defined for ExprNode (BoolExprNode). Type `Rhs` can be various than Self.
+/// This trait also defines `Output` that can be different than Self.
 pub trait BoolEqual<Rhs = Self> {
     type Output;
 
+    /// A method to make equality.
     fn bequal(self, rhs: Rhs) -> Self::Output;
 }
 
@@ -47,6 +72,9 @@ impl BoolEqual for bool {
 }
 
 /// Material implication `(!self | rhs)` operator for boolean expressions and boolean words.
+///
+/// It defined for ExprNode (BoolExprNode). Type `Rhs` can be various than Self.
+/// This trait also defines `Output` that can be different than Self.
 pub trait BoolImpl<Rhs = Self> {
     type Output;
 
@@ -76,7 +104,7 @@ impl BoolImpl for bool {
 /// Expression nodes can be used with literals (Literal) or same values (boolean or integer).
 /// If integer will be given then that integer will represents variable literal.
 /// This implementation provides some simplification when an expression node will be joined with
-/// literal or value or this same expresion node (example: `v1 ^ true` => `!v1`).
+/// literal or value or this same expression node (example: `v1 ^ true` => `!v1`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExprNode<T: VarLit + Debug> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,

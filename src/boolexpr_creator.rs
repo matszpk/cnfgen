@@ -19,6 +19,8 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to generate CNF clauses from boolean expressions.
+//!
+//! It defines the ExprCreator - main structure to create and hold boolean expressions.
 
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -138,6 +140,7 @@ enum OpJoin {
 }
 
 /// The ExprCreator holds all expressions which will be written later.
+/// 
 /// Main purpose of ExprCreator is maintenance state of expression with its variables
 /// during creating that expression by using ExprNode.
 /// An ExprCreator is used with ExprNode to create new expression.
@@ -865,6 +868,13 @@ where
         Ok(())
     }
 }
+
+// types
+
+/// typical `ExprCreator` defined with 32-bit variable literals.
+pub type ExprCreator32 = ExprCreator<i32>;
+/// typical `ExprCreator` defined with pointer sized variable literals.
+pub type ExprCreatorSys = ExprCreator<isize>;
 
 #[cfg(test)]
 mod tests {

@@ -70,7 +70,7 @@ pub use writer::{
 pub mod boolexpr;
 pub use boolexpr::{bool_ite, BoolEqual, BoolImpl, ExprNode as BoolExprNode};
 pub mod boolexpr_creator;
-pub use boolexpr_creator::ExprCreator;
+pub use boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 mod int_utils;
 pub mod intexpr;
 pub use intexpr::{
