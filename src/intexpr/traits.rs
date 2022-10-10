@@ -33,11 +33,16 @@ use super::*;
 use crate::{impl_int_ipty, impl_int_ipty_ty1, impl_int_upty, impl_int_upty_ty1};
 use crate::{BoolEqual, BoolExprNode, BoolImpl, ExprCreator, VarLit};
 
-/// Equality operator for boolean expressions and boolean words.
+/// Equality operator for integer expressions.
+///
+/// It defined for IntExprNode and DynIntExprNode. Type `Rhs` can be various than Self.
+/// This trait also defines `Output` that can be different than Self.
 pub trait IntEqual<Rhs = Self> {
     type Output;
 
+    /// A method to make equality.
     fn equal(self, rhs: Rhs) -> Self::Output;
+    /// A method to make inequality.
     fn nequal(self, rhs: Rhs) -> Self::Output;
 }
 
@@ -60,16 +65,24 @@ macro_rules! int_equal_impl {
 impl_int_upty!(int_equal_impl);
 impl_int_ipty!(int_equal_impl);
 
+/// Orderings for integer expressions.
+///
+/// It defined for IntExprNode and DynIntExprNode. Type `Rhs` can be various than Self.
+/// This trait also defines `Output` that can be different than Self.
 pub trait IntOrd<Rhs = Self> {
     type Output;
 
+    /// A method to make 'less than'.
     fn less_than(self, rhs: Rhs) -> Self::Output;
+    /// A method to make 'less or equal'.
     fn less_equal(self, rhs: Rhs) -> Self::Output;
+    /// A method to make 'greater than'.
     fn greater_than(self, rhs: Rhs) -> Self::Output;
+    /// A method to make 'greater or equal'.
     fn greater_equal(self, rhs: Rhs) -> Self::Output;
 }
 
-/// Equality operator for integers.
+/// Ordering operators for integers.
 macro_rules! int_ord_impl {
     ($t: ty) => {
         impl IntOrd for $t {
@@ -94,14 +107,21 @@ macro_rules! int_ord_impl {
 impl_int_upty!(int_ord_impl);
 impl_int_ipty!(int_ord_impl);
 
+/// Trait to make object from primitive integer (constant).
 pub trait IntConstant<T: VarLit, U> {
     fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Self;
 }
 
+/// Trait to get a bit value from object and get number of bits for object.
+///
+/// It defined for IntExprNode and DynIntExprNode. The defines `Output` that can be
+/// BoolExprNode.
 pub trait BitVal {
     type Output;
 
+    /// Get number of bits of object.
     fn bitnum(self) -> usize;
+    /// Get bit value.
     fn bit(self, n: usize) -> Self::Output;
 }
 
@@ -153,7 +173,11 @@ macro_rules! impl_int_bitval_ipty {
 
 impl_int_ipty!(impl_int_bitval_ipty);
 
+/// Special trait to make BitMask from boolean expression.
+///
+/// A bitmask can have all bits set or zeroed. It defined only for IntExprNode.
 pub trait BitMask<T> {
+    /// Make bit-mask from boolean expression.
     fn bitmask(bit: T) -> Self;
 }
 
@@ -176,9 +200,14 @@ macro_rules! impl_int_bitmask_pty {
 impl_int_upty!(impl_int_bitmask_pty);
 impl_int_ipty!(impl_int_bitmask_pty);
 
+/// Trait to make full multiplication.
+///
+/// Full multiplication generates output have twice size of input arguments.
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait FullMul<Rhs = Self> {
     type Output;
 
+    /// A method to make full multiplication.
     fn fullmul(self, rhs: Rhs) -> Self::Output;
 }
 
@@ -213,10 +242,20 @@ impl_int_fullmul_pty_pty_simple!(isize, i64);
 impl_int_fullmul_pty_pty_simple!(isize, i128);
 impl_int_fullmul_pty_pty_simple!(i64, i128);
 
+/// Trait to make division and remainder (modulo) in one operation.
+///
+/// Due to division or remainder needs some condition to evaluate, the method divmod
+/// returns result of division, result of remainder and condition to evaluate these operation.
+/// Same condition is a boolean expression describes these condtions.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait DivMod<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
+    /// A method to make division and remainder.
     fn divmod(self, rhs: Rhs) -> (Self::Output, Self::Output, Self::OutputCond);
 }
 
@@ -240,33 +279,56 @@ macro_rules! impl_int_divmod_pty_pty {
 impl_int_upty!(impl_int_divmod_pty_pty);
 impl_int_ipty!(impl_int_divmod_pty_pty);
 
+/// Trait to modular addition.
+///
+/// A modular addition make this same addition like processor addition - it returns
+/// truncated sum of two arguments.
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntModAdd<Rhs = Self> {
     type Output;
 
+    /// A method to make modular addition.
     fn mod_add(self, rhs: Rhs) -> Self::Output;
 }
 
+/// Trait to modular subtraction.
+///
+/// A modular subtraction make this same subtraction like processor's subtraction - it returns
+/// truncated difference.
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntModSub<Rhs = Self> {
     type Output;
 
+    /// A method to make modular subtraction.
     fn mod_sub(self, rhs: Rhs) -> Self::Output;
 }
 
+/// Trait to modular multiplication.
+///
+/// A modular multiplication make this same truncated multiplication to size of input argument.
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntModMul<Rhs = Self> {
     type Output;
 
+    /// A method to make modular multiplication.
     fn mod_mul(self, rhs: Rhs) -> Self::Output;
 }
 
+/// Trait to modular addition and assignment. Similar to AddAssign.
 pub trait IntModAddAssign<Rhs = Self> {
+    /// A method to modular addition and assignment.
     fn mod_add_assign(&mut self, rhs: Rhs);
 }
 
+/// Trait to modular subtraction and assignment. Similar to SubAssign.
 pub trait IntModSubAssign<Rhs = Self> {
+    /// A method to modular subtraction and assignment.
     fn mod_sub_assign(&mut self, rhs: Rhs);
 }
 
+/// Trait to modular multiplication and assignment. Similar to MulAssign.
 pub trait IntModMulAssign<Rhs = Self> {
+    /// A method to modular multiplication and assignment.
     fn mod_mul_assign(&mut self, rhs: Rhs);
 }
 
@@ -325,9 +387,16 @@ macro_rules! impl_int_mod_arith_pty_pty {
 impl_int_upty!(impl_int_mod_arith_pty_pty);
 impl_int_ipty!(impl_int_mod_arith_pty_pty);
 
+/// Trait to modular negation.
+///
+/// A modular negation just make negation ignoring wrong result for minimal value
+/// (for example for 8-bit is -128). It can be used internally for some expressions.
+/// Generally should be avoided.
+/// It defined for signed IntExprNode and signed DynIntExprNode.
 pub trait IntModNeg {
     type Output;
 
+    /// A method to make modular negation.
     fn mod_neg(self) -> Self::Output;
 }
 
@@ -346,24 +415,53 @@ macro_rules! impl_int_mod_neg_pty {
 
 impl_int_ipty!(impl_int_mod_neg_pty);
 
+/// Trait to modular addition with condition.
+///
+/// A `cond_add` just returns result of modular addition and condition when no overflow happened.
+/// This condition can force evaluation only if result is in input size type.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntCondAdd<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
+    /// A method to make conditional addition.
     fn cond_add(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
+/// Trait to modular subtraction with condition.
+///
+/// A `cond_sub` just returns result of modular subtraction and condition when
+/// no overflow happened.
+/// This condition can force evaluation only if result is in input size type.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntCondSub<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
+    /// A method to make conditional subtraction.
     fn cond_sub(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
+/// Trait to modular multiplication with condition.
+///
+/// A `cond_mul` just returns result of modular multiplication and condition when
+/// no overflow happened.
+/// This condition can force evaluation only if result is in input size type.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntCondMul<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
+    /// A method to make conditional multiplication.
     fn cond_mul(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
@@ -407,8 +505,17 @@ macro_rules! impl_int_cond_arith_pty_pty {
 impl_int_upty!(impl_int_cond_arith_pty_pty);
 impl_int_ipty!(impl_int_cond_arith_pty_pty);
 
+/// Trait to modular negation with condition.
+///
+/// A `cond_neg` just returns result of modular negation and condition when
+/// no overflow happened.
+/// This condition can force evaluation only if result is in input size type.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for signed IntExprNode and signed DynIntExprNode.
 pub trait IntCondNeg {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
     fn cond_neg(self) -> (Self::Output, Self::OutputCond);
@@ -431,15 +538,31 @@ macro_rules! impl_int_cond_neg_pty {
 
 impl_int_ipty!(impl_int_cond_neg_pty);
 
+/// Trait to left shift with condition.
+///
+/// A `cond_shl` just returns result of modular multiplication and condition when
+/// no right argument is lower than number of bits of left argument.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntCondShl<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
     fn cond_shl(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
 }
 
+/// Trait to right shift with condition.
+///
+/// A `cond_shr` just returns result of modular multiplication and condition when
+/// no right argument is lower than number of bits of left argument.
+/// This condition should be used to force condition in boolean formulae:
+/// it can be done by adding condition to root of conjunction (ANDs).
+/// It defined for IntExprNode and DynIntExprNode.
 pub trait IntCondShr<Rhs = Self> {
     type Output;
+    /// Type of output condition.
     type OutputCond;
 
     fn cond_shr(self, rhs: Rhs) -> (Self::Output, Self::OutputCond);
