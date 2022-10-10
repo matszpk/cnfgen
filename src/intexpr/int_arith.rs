@@ -534,14 +534,9 @@ where
     type Output = ExprNode<T, operator_aliases::Sum<N, N>, true>;
 
     fn fullmul(self, rhs: Self) -> ExprNode<T, operator_aliases::Sum<N, N>, true> {
-        let ua = self.clone().abs();
-        let ub = rhs.clone().abs();
-        let res = ua.fullmul(ub);
-        int_ite(
-            self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1),
-            res.clone().as_signed().mod_neg(),
-            res.as_signed(),
-        )
+        let expsign = self.bit(N::USIZE - 1) ^ rhs.bit(N::USIZE - 1);
+        let res = self.abs().fullmul(rhs.abs());
+        int_ite(expsign, res.clone().as_signed().mod_neg(), res.as_signed())
     }
 }
 
@@ -1445,6 +1440,7 @@ mod tests {
         x2: ExprNode<isize, U10, true>,
     ) -> ExprNode<isize, U20, true> {
         let exp_ec = x1.creator.clone();
+        let expsign = x1.bit(9) ^ x2.bit(9);
         let ux1 = x1.clone().abs();
         let ux2 = x2.clone().abs();
         let mut matrix = gen_dadda_matrix(exp_ec.clone(), &ux1.indexes, &ux2.indexes, 20);
@@ -1452,7 +1448,7 @@ mod tests {
             creator: exp_ec.clone(),
             indexes: GenericArray::clone_from_slice(&gen_dadda_mult(exp_ec.clone(), &mut matrix)),
         };
-        int_ite(x1.bit(9) ^ x2.bit(9), temp.clone().mod_neg(), temp)
+        int_ite(expsign, temp.clone().mod_neg(), temp)
     }
 
     #[test]

@@ -856,14 +856,9 @@ where
 
     fn fullmul(self, rhs: Self) -> Self::Output {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
-        let ua = self.clone().abs();
-        let ub = rhs.clone().abs();
-        let res = ua.fullmul(ub);
-        dynint_ite(
-            self.bit(self.indexes.len() - 1) ^ rhs.bit(self.indexes.len() - 1),
-            res.clone().as_signed().mod_neg(),
-            res.as_signed(),
-        )
+        let expsign = self.bit(self.indexes.len() - 1) ^ rhs.bit(self.indexes.len() - 1);
+        let res = self.abs().fullmul(rhs.abs());
+        dynint_ite(expsign, res.clone().as_signed().mod_neg(), res.as_signed())
     }
 }
 
