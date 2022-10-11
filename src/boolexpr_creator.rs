@@ -871,9 +871,9 @@ where
 
 // types
 
-/// typical `ExprCreator` defined with 32-bit variable literals.
+/// Typical `ExprCreator` defined with 32-bit variable literals.
 pub type ExprCreator32 = ExprCreator<i32>;
-/// typical `ExprCreator` defined with pointer sized variable literals.
+/// Typical `ExprCreator` defined with pointer sized variable literals.
 pub type ExprCreatorSys = ExprCreator<isize>;
 
 #[cfg(test)]

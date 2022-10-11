@@ -401,19 +401,31 @@ impl_int_ty1_lt_ty2!(impl_int_from);
 
 // types
 
+/// IntExprNode for unsinged 8-bit integer.
 pub type U8ExprNode<T> = IntExprNode<T, U8, false>;
+/// IntExprNode for unsinged 16-bit integer.
 pub type U16ExprNode<T> = IntExprNode<T, U16, false>;
+/// IntExprNode for unsinged 32-bit integer.
 pub type U32ExprNode<T> = IntExprNode<T, U32, false>;
+/// IntExprNode for unsinged 64-bit integer.
 pub type U64ExprNode<T> = IntExprNode<T, U64, false>;
+/// IntExprNode for unsinged 128-bit integer.
 pub type U128ExprNode<T> = IntExprNode<T, U128, false>;
 
+/// IntExprNode for unsinged integer with various size.
 pub type UExprNode<T, N> = IntExprNode<T, N, false>;
+/// IntExprNode for singed integer with various size.
 pub type IExprNode<T, N> = IntExprNode<T, N, true>;
 
+/// IntExprNode for singed 8-bit integer.
 pub type I8ExprNode<T> = IntExprNode<T, U8, true>;
+/// IntExprNode for singed 16-bit integer.
 pub type I16ExprNode<T> = IntExprNode<T, U16, true>;
+/// IntExprNode for singed 32-bit integer.
 pub type I32ExprNode<T> = IntExprNode<T, U32, true>;
+/// IntExprNode for singed 64-bit integer.
 pub type I64ExprNode<T> = IntExprNode<T, U64, true>;
+/// IntExprNode for singed 128-bit integer.
 pub type I128ExprNode<T> = IntExprNode<T, U128, true>;
 
 /// Returns result of the If-Then-Else (ITE) - integer version.

@@ -543,7 +543,9 @@ where
 
 // types
 
+/// DynIntExprNode for unsinged integer.
 pub type UDynExprNode<T> = DynIntExprNode<T, false>;
+/// DynIntExprNode for singed integer.
 pub type IDynExprNode<T> = DynIntExprNode<T, true>;
 
 #[cfg(test)]
