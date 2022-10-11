@@ -21,7 +21,7 @@
 //! The module to generate CNF clauses from boolean expressions.
 //!
 //! This module contains traits and main structure to operate on boolean expressions:
-//! `ExprNode` (`BoolExprNode` in library). The same `ExprNode` can be used in following way:
+//! `BoolExprNode`. The same `BoolExprNode` can be used in following way:
 //!
 //! ```
 //! use cnfgen::{BoolImpl, BoolEqual, BoolExprNode, CNFError, CNFWriter, ExprCreator32};
@@ -53,7 +53,7 @@ use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 /// Equality operator for boolean expressions and boolean words.
 ///
-/// It defined for ExprNode (BoolExprNode). Type `Rhs` can be various than Self.
+/// It defined for BoolExprNode. Type `Rhs` can be various than Self.
 /// This trait also defines `Output` that can be different than Self.
 pub trait BoolEqual<Rhs = Self> {
     type Output;
@@ -73,7 +73,7 @@ impl BoolEqual for bool {
 
 /// Material implication `(!self | rhs)` operator for boolean expressions and boolean words.
 ///
-/// It defined for ExprNode (BoolExprNode). Type `Rhs` can be various than Self.
+/// It defined for BoolExprNode (BoolExprNode). Type `Rhs` can be various than Self.
 /// This trait also defines `Output` that can be different than Self.
 pub trait BoolImpl<Rhs = Self> {
     type Output;
@@ -106,12 +106,12 @@ impl BoolImpl for bool {
 /// This implementation provides some simplification when an expression node will be joined with
 /// literal or value or this same expression node (example: `v1 ^ true` => `!v1`).
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit + Debug> {
+pub struct BoolExprNode<T: VarLit + Debug> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) index: usize,
 }
 
-impl<T> ExprNode<T>
+impl<T> BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -121,13 +121,13 @@ where
 {
     #[inline]
     pub(super) fn new(creator: Rc<RefCell<ExprCreator<T>>>, index: usize) -> Self {
-        ExprNode { creator, index }
+        BoolExprNode { creator, index }
     }
 
     /// Creates single value as expression node.
     #[inline]
     pub fn single_value(creator: Rc<RefCell<ExprCreator<T>>>, v: bool) -> Self {
-        ExprNode {
+        BoolExprNode {
             creator,
             index: v.into(),
         }
@@ -136,7 +136,7 @@ where
     /// Creates single literal as expression node.
     pub fn single(creator: Rc<RefCell<ExprCreator<T>>>, l: impl Into<Literal<T>>) -> Self {
         let index = creator.borrow_mut().single(l);
-        ExprNode { creator, index }
+        BoolExprNode { creator, index }
     }
 
     // Creates new variable as expression node.
@@ -146,7 +146,7 @@ where
             let l = creator.new_variable();
             creator.single(l)
         };
-        ExprNode { creator, index }
+        BoolExprNode { creator, index }
     }
 
     /// Returns literal value if exists
@@ -186,8 +186,8 @@ where
     }
 }
 
-/// An implementation Not for ExprNode.
-impl<T> Not for ExprNode<T>
+/// An implementation Not for BoolExprNode.
+impl<T> Not for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -203,8 +203,8 @@ where
             creator.nodes[self.index]
         };
         match node1 {
-            Node::Single(l) => ExprNode::single(self.creator, !l),
-            Node::Negated(index1) => ExprNode {
+            Node::Single(l) => BoolExprNode::single(self.creator, !l),
+            Node::Negated(index1) => BoolExprNode {
                 creator: self.creator,
                 index: index1,
             },
@@ -216,7 +216,7 @@ where
                         _ => creator.new_not(self.index),
                     }
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -228,8 +228,8 @@ where
 macro_rules! new_op_impl {
     // for argeqres - if None then use self
     ($t:ident, $u:ident, $v:ident, $argeqres:expr, $argnegres:expr) => {
-        /// An implementation operator for ExprNode.
-        impl<T> $t for ExprNode<T>
+        /// An implementation operator for BoolExprNode.
+        impl<T> $t for BoolExprNode<T>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -243,7 +243,7 @@ macro_rules! new_op_impl {
                 assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
                 if self.index == rhs.index {
                     if let Some(t) = $argeqres {
-                        return ExprNode::single_value(self.creator, t);
+                        return BoolExprNode::single_value(self.creator, t);
                     } else {
                         return self;
                     }
@@ -255,7 +255,7 @@ macro_rules! new_op_impl {
                 };
                 if node2 == Node::Negated(self.index) || node1 == Node::Negated(rhs.index) {
                     if let Some(t) = $argnegres {
-                        return ExprNode::single_value(self.creator, t);
+                        return BoolExprNode::single_value(self.creator, t);
                     } else {
                         return rhs; // for implication
                     }
@@ -274,7 +274,7 @@ macro_rules! new_op_impl {
                     } else {
                         // complicated
                         let index = self.creator.borrow_mut().$u(self.index, rhs.index);
-                        ExprNode {
+                        BoolExprNode {
                             creator: self.creator,
                             index,
                         }
@@ -292,8 +292,8 @@ new_op_impl!(BitXor, new_xor, bitxor, Some(false), Some(true));
 new_op_impl!(BoolEqual, new_equal, bequal, Some(true), Some(false));
 new_op_impl!(BoolImpl, new_impl, imp, Some(true), None::<bool>);
 
-/// An implementation BitAnd for ExprNode where rhs is Literal.
-impl<T, U> BitAnd<U> for ExprNode<T>
+/// An implementation BitAnd for BoolExprNode where rhs is Literal.
+impl<T, U> BitAnd<U> for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -302,7 +302,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
     fn bitand(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
@@ -311,19 +311,19 @@ where
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1 & v2);
+                        return BoolExprNode::single(self.creator, v1 & v2);
                     } else {
-                        return v1 & ExprNode::single(self.creator, lit2);
+                        return v1 & BoolExprNode::single(self.creator, lit2);
                     }
                 } else if lit1 == lit2 {
                     return self;
                 } else if lit1 == !lit2 {
-                    return ExprNode::single_value(self.creator, false);
+                    return BoolExprNode::single_value(self.creator, false);
                 }
             }
         }
         match lit2 {
-            Literal::Value(false) => ExprNode {
+            Literal::Value(false) => BoolExprNode {
                 creator: self.creator,
                 index: 0,
             },
@@ -334,7 +334,7 @@ where
                     let index = creator.single(l);
                     creator.new_and(self.index, index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -343,8 +343,8 @@ where
     }
 }
 
-/// An implementation BitAnd for Literal where rhs is ExprNode.
-impl<T> BitAnd<ExprNode<T>> for Literal<T>
+/// An implementation BitAnd for Literal where rhs is BoolExprNode.
+impl<T> BitAnd<BoolExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -352,20 +352,20 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
-    fn bitand(self, rhs: ExprNode<T>) -> Self::Output {
+    fn bitand(self, rhs: BoolExprNode<T>) -> Self::Output {
         rhs.bitand(self)
     }
 }
 
 macro_rules! new_op_l_xn_impl {
     ($t:ty, $u: ident, $v: ident) => {
-        /// An implementation operator for value where rhs is ExprNode.
-        impl $u<ExprNode<$t>> for $t {
-            type Output = ExprNode<$t>;
+        /// An implementation operator for value where rhs is BoolExprNode.
+        impl $u<BoolExprNode<$t>> for $t {
+            type Output = BoolExprNode<$t>;
 
-            fn $v(self, rhs: ExprNode<$t>) -> Self::Output {
+            fn $v(self, rhs: BoolExprNode<$t>) -> Self::Output {
                 rhs.$v(Literal::from(self))
             }
         }
@@ -374,8 +374,8 @@ macro_rules! new_op_l_xn_impl {
 
 macro_rules! new_all_op_l_xn_impls {
     ($u: ident, $v: ident) => {
-        /// An implementation operator for boolean where rhs is ExprNode.
-        impl<T> $u<ExprNode<T>> for bool
+        /// An implementation operator for boolean where rhs is BoolExprNode.
+        impl<T> $u<BoolExprNode<T>> for bool
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -383,9 +383,9 @@ macro_rules! new_all_op_l_xn_impls {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
         {
-            type Output = ExprNode<T>;
+            type Output = BoolExprNode<T>;
 
-            fn $v(self, rhs: ExprNode<T>) -> Self::Output {
+            fn $v(self, rhs: BoolExprNode<T>) -> Self::Output {
                 rhs.$v(Literal::from(self))
             }
         }
@@ -399,8 +399,8 @@ macro_rules! new_all_op_l_xn_impls {
 
 new_all_op_l_xn_impls!(BitAnd, bitand);
 
-/// An implementation BitOr for ExprNode where rhs is Literal.
-impl<T, U> BitOr<U> for ExprNode<T>
+/// An implementation BitOr for BoolExprNode where rhs is Literal.
+impl<T, U> BitOr<U> for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -409,7 +409,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
     fn bitor(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
@@ -418,20 +418,20 @@ where
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1 | v2);
+                        return BoolExprNode::single(self.creator, v1 | v2);
                     } else {
-                        return v1 | ExprNode::single(self.creator, lit2);
+                        return v1 | BoolExprNode::single(self.creator, lit2);
                     }
                 } else if lit1 == lit2 {
                     return self;
                 } else if lit1 == !lit2 {
-                    return ExprNode::single_value(self.creator, true);
+                    return BoolExprNode::single_value(self.creator, true);
                 }
             }
         }
         match lit2 {
             Literal::Value(false) => self,
-            Literal::Value(true) => ExprNode {
+            Literal::Value(true) => BoolExprNode {
                 creator: self.creator,
                 index: 1,
             },
@@ -441,7 +441,7 @@ where
                     let index = creator.single(l);
                     creator.new_or(self.index, index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -450,8 +450,8 @@ where
     }
 }
 
-/// An implementation BitOr for Literal where rhs is ExprNode.
-impl<T: VarLit> BitOr<ExprNode<T>> for Literal<T>
+/// An implementation BitOr for Literal where rhs is BoolExprNode.
+impl<T: VarLit> BitOr<BoolExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -459,17 +459,17 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
-    fn bitor(self, rhs: ExprNode<T>) -> Self::Output {
+    fn bitor(self, rhs: BoolExprNode<T>) -> Self::Output {
         rhs.bitor(self)
     }
 }
 
 new_all_op_l_xn_impls!(BitOr, bitor);
 
-/// An implementation BitXor for ExprNode where rhs is Literal.
-impl<T, U> BitXor<U> for ExprNode<T>
+/// An implementation BitXor for BoolExprNode where rhs is Literal.
+impl<T, U> BitXor<U> for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -478,7 +478,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
     fn bitxor(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
@@ -487,14 +487,14 @@ where
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1 ^ v2);
+                        return BoolExprNode::single(self.creator, v1 ^ v2);
                     } else {
-                        return v1 ^ ExprNode::single(self.creator, lit2);
+                        return v1 ^ BoolExprNode::single(self.creator, lit2);
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single_value(self.creator, false);
+                    return BoolExprNode::single_value(self.creator, false);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single_value(self.creator, true);
+                    return BoolExprNode::single_value(self.creator, true);
                 }
             }
         }
@@ -507,7 +507,7 @@ where
                     let index = creator.single(l);
                     creator.new_xor(self.index, index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -516,8 +516,8 @@ where
     }
 }
 
-/// An implementation BitXor for Literal where rhs is ExprNode.
-impl<T> BitXor<ExprNode<T>> for Literal<T>
+/// An implementation BitXor for Literal where rhs is BoolExprNode.
+impl<T> BitXor<BoolExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -525,17 +525,17 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
-    fn bitxor(self, rhs: ExprNode<T>) -> Self::Output {
+    fn bitxor(self, rhs: BoolExprNode<T>) -> Self::Output {
         rhs.bitxor(self)
     }
 }
 
 new_all_op_l_xn_impls!(BitXor, bitxor);
 
-/// An implementation BoolEqual for ExprNode where rhs is Literal.
-impl<T, U> BoolEqual<U> for ExprNode<T>
+/// An implementation BoolEqual for BoolExprNode where rhs is Literal.
+impl<T, U> BoolEqual<U> for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -544,7 +544,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
     fn bequal(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
@@ -553,14 +553,14 @@ where
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1.bequal(v2));
+                        return BoolExprNode::single(self.creator, v1.bequal(v2));
                     } else {
-                        return v1.bequal(ExprNode::single(self.creator, lit2));
+                        return v1.bequal(BoolExprNode::single(self.creator, lit2));
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single_value(self.creator, true);
+                    return BoolExprNode::single_value(self.creator, true);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single_value(self.creator, false);
+                    return BoolExprNode::single_value(self.creator, false);
                 }
             }
         }
@@ -573,7 +573,7 @@ where
                     let index = creator.single(l);
                     creator.new_equal(self.index, index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -582,8 +582,8 @@ where
     }
 }
 
-/// An implementation BoolEqual for Literal where rhs is ExprNode.
-impl<T> BoolEqual<ExprNode<T>> for Literal<T>
+/// An implementation BoolEqual for Literal where rhs is BoolExprNode.
+impl<T> BoolEqual<BoolExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -591,17 +591,17 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
-    fn bequal(self, rhs: ExprNode<T>) -> Self::Output {
+    fn bequal(self, rhs: BoolExprNode<T>) -> Self::Output {
         rhs.bequal(self)
     }
 }
 
 new_all_op_l_xn_impls!(BoolEqual, bequal);
 
-/// An implementation BoolImpl for ExprNode where rhs is Literal.
-impl<T, U> BoolImpl<U> for ExprNode<T>
+/// An implementation BoolImpl for BoolExprNode where rhs is Literal.
+impl<T, U> BoolImpl<U> for BoolExprNode<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -610,7 +610,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
     fn imp(self, rhs: U) -> Self::Output {
         let lit2 = rhs.into();
@@ -619,20 +619,20 @@ where
             if let Node::Single(lit1) = node1 {
                 if let Literal::Value(v1) = lit1 {
                     if let Literal::Value(v2) = lit2 {
-                        return ExprNode::single(self.creator, v1.imp(v2));
+                        return BoolExprNode::single(self.creator, v1.imp(v2));
                     } else {
-                        return v1.imp(ExprNode::single(self.creator, lit2));
+                        return v1.imp(BoolExprNode::single(self.creator, lit2));
                     }
                 } else if lit1 == lit2 {
-                    return ExprNode::single_value(self.creator, true);
+                    return BoolExprNode::single_value(self.creator, true);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(self.creator, lit2);
+                    return BoolExprNode::single(self.creator, lit2);
                 }
             }
         }
         match lit2 {
             Literal::Value(false) => !self,
-            Literal::Value(true) => ExprNode {
+            Literal::Value(true) => BoolExprNode {
                 creator: self.creator,
                 index: 1,
             },
@@ -642,7 +642,7 @@ where
                     let index = creator.single(l);
                     creator.new_impl(self.index, index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: self.creator,
                     index,
                 }
@@ -651,8 +651,8 @@ where
     }
 }
 
-/// An implementation BoolImpl for Literal where rhs is ExprNode.
-impl<T> BoolImpl<ExprNode<T>> for Literal<T>
+/// An implementation BoolImpl for Literal where rhs is BoolExprNode.
+impl<T> BoolImpl<BoolExprNode<T>> for Literal<T>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -660,22 +660,22 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T>;
+    type Output = BoolExprNode<T>;
 
-    fn imp(self, rhs: ExprNode<T>) -> Self::Output {
+    fn imp(self, rhs: BoolExprNode<T>) -> Self::Output {
         let lit1 = self;
         {
             let node2 = rhs.creator.borrow().nodes[rhs.index];
             if let Node::Single(lit2) = node2 {
                 if lit1 == lit2 {
-                    return ExprNode::single_value(rhs.creator, true);
+                    return BoolExprNode::single_value(rhs.creator, true);
                 } else if lit1 == !lit2 {
-                    return ExprNode::single(rhs.creator, lit2);
+                    return BoolExprNode::single(rhs.creator, lit2);
                 }
             }
         }
         match lit1 {
-            Literal::Value(false) => ExprNode {
+            Literal::Value(false) => BoolExprNode {
                 creator: rhs.creator,
                 index: 1,
             },
@@ -686,7 +686,7 @@ where
                     let index = creator.single(l);
                     creator.new_impl(index, rhs.index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: rhs.creator,
                     index,
                 }
@@ -695,15 +695,15 @@ where
     }
 }
 
-/// An implementation BoolImpl for bool where rhs is ExprNode.
-impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
-    type Output = ExprNode<T>;
+/// An implementation BoolImpl for bool where rhs is BoolExprNode.
+impl<T: VarLit + Debug> BoolImpl<BoolExprNode<T>> for bool {
+    type Output = BoolExprNode<T>;
 
-    fn imp(self, rhs: ExprNode<T>) -> Self::Output {
+    fn imp(self, rhs: BoolExprNode<T>) -> Self::Output {
         if self {
             rhs
         } else {
-            ExprNode {
+            BoolExprNode {
                 creator: rhs.creator,
                 index: 1,
             }
@@ -713,19 +713,19 @@ impl<T: VarLit + Debug> BoolImpl<ExprNode<T>> for bool {
 
 macro_rules! new_impl_imp_impls {
     ($ty: ty) => {
-        /// An implementation BoolImpl for value where rhs is ExprNode.
-        impl BoolImpl<ExprNode<$ty>> for $ty {
-            type Output = ExprNode<$ty>;
+        /// An implementation BoolImpl for value where rhs is BoolExprNode.
+        impl BoolImpl<BoolExprNode<$ty>> for $ty {
+            type Output = BoolExprNode<$ty>;
 
-            fn imp(self, rhs: ExprNode<$ty>) -> Self::Output {
+            fn imp(self, rhs: BoolExprNode<$ty>) -> Self::Output {
                 let lit1 = Literal::from(self);
                 {
                     let node2 = rhs.creator.borrow().nodes[rhs.index];
                     if let Node::Single(lit2) = node2 {
                         if lit1 == lit2 {
-                            return ExprNode::single_value(rhs.creator, true);
+                            return BoolExprNode::single_value(rhs.creator, true);
                         } else if lit1 == !lit2 {
-                            return ExprNode::single(rhs.creator, lit2);
+                            return BoolExprNode::single(rhs.creator, lit2);
                         }
                     }
                 }
@@ -734,7 +734,7 @@ macro_rules! new_impl_imp_impls {
                     let index = creator.single(self);
                     creator.new_impl(index, rhs.index)
                 };
-                ExprNode {
+                BoolExprNode {
                     creator: rhs.creator,
                     index,
                 }
@@ -751,7 +751,7 @@ new_impl_imp_impls!(isize);
 
 macro_rules! impl_op_assign {
     ($trait:ident, $op_assign:ident, $op:ident) => {
-        impl<T> $trait for ExprNode<T>
+        impl<T> $trait for BoolExprNode<T>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -759,12 +759,12 @@ macro_rules! impl_op_assign {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
         {
-            fn $op_assign(&mut self, rhs: ExprNode<T>) {
+            fn $op_assign(&mut self, rhs: BoolExprNode<T>) {
                 *self = self.clone().$op(rhs);
             }
         }
 
-        impl<T, U> $trait<U> for ExprNode<T>
+        impl<T, U> $trait<U> for BoolExprNode<T>
         where
             T: VarLit + Neg<Output = T> + Debug,
             U: Into<Literal<T>>,
@@ -824,10 +824,10 @@ where
 }
 
 pub fn opt_full_adder<T>(
-    a: ExprNode<T>,
-    b: ExprNode<T>,
-    c: ExprNode<T>,
-) -> (ExprNode<T>, ExprNode<T>)
+    a: BoolExprNode<T>,
+    b: BoolExprNode<T>,
+    c: BoolExprNode<T>,
+) -> (BoolExprNode<T>, BoolExprNode<T>)
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -851,8 +851,8 @@ mod tests {
     #[test]
     fn test_expr_node_varlit() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
         let xp1 = !v1.clone() & v2.clone();
         assert_eq!(v1.varlit(), Some(1));
         assert_eq!(v2.varlit(), Some(2));
@@ -862,9 +862,9 @@ mod tests {
     #[test]
     fn test_expr_nodes() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let xp1 = !v1.clone() & v2.clone();
         let _ = xp1.clone() | !v3.clone() ^ (v1.clone() | v2.clone());
         assert_eq!(
@@ -915,9 +915,9 @@ mod tests {
     #[test]
     fn test_expr_nodes_lits_1() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let v4x = ec.borrow_mut().new_variable();
         let v5x = ec.borrow_mut().new_variable();
         let _ = Literal::from(v5x)
@@ -953,9 +953,9 @@ mod tests {
     #[test]
     fn test_expr_nodes_lits_2() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let v4x = ec.borrow_mut().new_variable().varlit().unwrap();
         let v5x = ec.borrow_mut().new_variable().varlit().unwrap();
         let _ = v5x | (v1.clone() ^ true) | (true ^ v2) | (v3 & true) | (v4x & v1) | false;
@@ -986,9 +986,9 @@ mod tests {
     #[test]
     fn test_expr_nodes_lits_3() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
         let v2 = ec.borrow_mut().new_variable().varlit().unwrap();
-        let v3 = ExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let _ = v2.bequal((!v1).bequal(Literal::from(v2).bequal(v3)));
         assert_eq!(
             ExprCreator {
@@ -1012,9 +1012,9 @@ mod tests {
     #[test]
     fn test_expr_nodes_lits_imp_equal() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let _ = v3.clone().bequal(v1.imp(v2.bequal(v3)));
         assert_eq!(
             ExprCreator {
@@ -1037,9 +1037,9 @@ mod tests {
     #[test]
     fn test_expr_nodes_lits_imp_equal_2() {
         let ec = ExprCreator::<isize>::new();
-        let _ = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let _ = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let _ = v3.clone().bequal(1.imp(v2.bequal(v3)));
         assert_eq!(
             ExprCreator {
@@ -1063,8 +1063,8 @@ mod tests {
     fn test_expr_nodes_not_simpls() {
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
             let xp1 = v1.imp(v2.clone());
             let xp2 = !xp1.clone();
             let _ = xp2.clone() & v2 & !xp2.clone();
@@ -1088,8 +1088,8 @@ mod tests {
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
             let np1 = !v1.clone();
             let _ = np1.clone() & v2 & !np1.clone();
             assert_eq!(!np1.clone(), v1);
@@ -1112,10 +1112,10 @@ mod tests {
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let np1 = ExprNode::single(ec.clone(), true);
+            let np1 = BoolExprNode::single(ec.clone(), true);
             let np2 = !np1.clone();
             let np3 = !np2.clone();
-            assert_eq!(np2, ExprNode::single(ec.clone(), false));
+            assert_eq!(np2, BoolExprNode::single(ec.clone(), false));
             assert_eq!(np3, np1);
             assert_eq!(
                 ExprCreator {
@@ -1145,11 +1145,11 @@ mod tests {
         ($op:ident, $tt:expr, $v1f:expr, $fv1:expr, $v1t:expr, $tv1:expr, $nv1v1:expr, $v1nv1:expr,
          $v1v1: expr, $xpxp: expr, $nxpxp: expr, $xpnxp: expr) => {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
+            let v1 = BoolExprNode::variable(ec.clone());
             let nv1 = !v1.clone();
-            let xpfalse = ExprNode::single(ec.clone(), false);
-            let xptrue = ExprNode::single(ec.clone(), true);
-            let v2 = ExprNode::variable(ec.clone());
+            let xpfalse = BoolExprNode::single(ec.clone(), false);
+            let xptrue = BoolExprNode::single(ec.clone(), true);
+            let v2 = BoolExprNode::variable(ec.clone());
             let xp = v1.clone() & v2.clone();
             let nxp = !(xp.clone());
 
@@ -1248,10 +1248,10 @@ mod tests {
     #[test]
     fn test_expr_op_assign() {
         let ec = ExprCreator::<isize>::new();
-        let mut v1 = ExprNode::variable(ec.clone());
-        let mut v2 = ExprNode::variable(ec.clone());
-        let mut v3 = ExprNode::variable(ec.clone());
-        let v4 = ExprNode::variable(ec.clone());
+        let mut v1 = BoolExprNode::variable(ec.clone());
+        let mut v2 = BoolExprNode::variable(ec.clone());
+        let mut v3 = BoolExprNode::variable(ec.clone());
+        let v4 = BoolExprNode::variable(ec.clone());
         v1 &= v4.clone();
         v2 |= v4.clone();
         v3 ^= v4;
@@ -1280,10 +1280,10 @@ mod tests {
     #[test]
     fn test_expr_op_assign_lit() {
         let ec = ExprCreator::<isize>::new();
-        let mut v1 = ExprNode::variable(ec.clone());
-        let mut v2 = ExprNode::variable(ec.clone());
-        let mut v3 = ExprNode::variable(ec.clone());
-        let v4 = ExprNode::variable(ec.clone()).varlit().unwrap();
+        let mut v1 = BoolExprNode::variable(ec.clone());
+        let mut v2 = BoolExprNode::variable(ec.clone());
+        let mut v3 = BoolExprNode::variable(ec.clone());
+        let v4 = BoolExprNode::variable(ec.clone()).varlit().unwrap();
         v1 &= Literal::from(v4);
         v2 |= Literal::from(v4);
         v3 ^= Literal::from(v4);
@@ -1312,9 +1312,9 @@ mod tests {
     #[test]
     fn test_expr_bool_ite() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let _ = bool_ite(v1, v2, v3);
         assert_eq!(
             ExprCreator {
@@ -1338,8 +1338,8 @@ mod tests {
     #[test]
     fn test_expr_half_adder() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
         let (s, c) = half_adder(v1, v2);
         assert_eq!(4, s.index);
         assert_eq!(5, c.index);
@@ -1362,9 +1362,9 @@ mod tests {
     #[test]
     fn test_expr_full_adder() {
         let ec = ExprCreator::<isize>::new();
-        let v1 = ExprNode::variable(ec.clone());
-        let v2 = ExprNode::variable(ec.clone());
-        let v3 = ExprNode::variable(ec.clone());
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
         let (s, c) = full_adder(v1, v2, v3);
         assert_eq!(6, s.index);
         assert_eq!(9, c.index);
@@ -1403,27 +1403,27 @@ mod tests {
         };
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(v1, v2, ExprNode::single_value(ec.clone(), false));
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, v2, BoolExprNode::single_value(ec.clone(), false));
             assert_eq!(4, s.index);
             assert_eq!(5, c.index);
             assert_eq!(exp_ec, *ec.borrow());
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(v1, ExprNode::single_value(ec.clone(), false), v2);
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, BoolExprNode::single_value(ec.clone(), false), v2);
             assert_eq!(4, s.index);
             assert_eq!(5, c.index);
             assert_eq!(exp_ec, *ec.borrow());
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(ExprNode::single_value(ec.clone(), false), v1, v2);
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(BoolExprNode::single_value(ec.clone(), false), v1, v2);
             assert_eq!(4, s.index);
             assert_eq!(5, c.index);
             assert_eq!(exp_ec, *ec.borrow());
@@ -1443,27 +1443,27 @@ mod tests {
         };
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(v1, v2, ExprNode::single_value(ec.clone(), true));
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, v2, BoolExprNode::single_value(ec.clone(), true));
             assert_eq!(5, s.index);
             assert_eq!(7, c.index);
             assert_eq!(exp_ec, *ec.borrow());
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(v1, ExprNode::single_value(ec.clone(), true), v2);
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(v1, BoolExprNode::single_value(ec.clone(), true), v2);
             assert_eq!(5, s.index);
             assert_eq!(7, c.index);
             assert_eq!(exp_ec, *ec.borrow());
         }
         {
             let ec = ExprCreator::<isize>::new();
-            let v1 = ExprNode::variable(ec.clone());
-            let v2 = ExprNode::variable(ec.clone());
-            let (s, c) = opt_full_adder(ExprNode::single_value(ec.clone(), true), v1, v2);
+            let v1 = BoolExprNode::variable(ec.clone());
+            let v2 = BoolExprNode::variable(ec.clone());
+            let (s, c) = opt_full_adder(BoolExprNode::single_value(ec.clone(), true), v1, v2);
             assert_eq!(5, s.index);
             assert_eq!(7, c.index);
             assert_eq!(exp_ec, *ec.borrow());
@@ -1474,9 +1474,9 @@ mod tests {
     fn test_expr_node_write() {
         let ec = ExprCreator::<isize>::new();
         let mut v = vec![];
-        v.push(ExprNode::single(ec.clone(), false));
+        v.push(BoolExprNode::single(ec.clone(), false));
         for _ in 0..2 {
-            v.push(ExprNode::variable(ec.clone()));
+            v.push(BoolExprNode::variable(ec.clone()));
         }
         let xp = v[1].clone() & v[2].clone();
         let mut cnf_writer = CNFWriter::new(vec![]);
@@ -1506,10 +1506,10 @@ pub(crate) mod test_utils {
     pub(crate) fn alloc_boolvars(
         ec: Rc<RefCell<ExprCreator<isize>>>,
         var_count: isize,
-    ) -> Vec<ExprNode<isize>> {
+    ) -> Vec<BoolExprNode<isize>> {
         (0..var_count)
             .into_iter()
-            .map(|_| ExprNode::variable(ec.clone()))
+            .map(|_| BoolExprNode::variable(ec.clone()))
             .collect::<Vec<_>>()
     }
 }
