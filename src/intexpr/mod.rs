@@ -27,11 +27,13 @@
 //!
 //! Three generic parameters determines type of IntExprNode.
 //! The first T parameter is just variable literal type - it can be omitted.
-//! The secodn parameter is typed integer (from typenum crate) that determine number of bits
+//! The second parameter is typed integer (from typenum crate) that determine number of bits
 //! of integer. The last parameter is sign - true if signed integer or false if unsigned integer.
 //! Type of IntExprNode can be written in form: `IntExprNode<i32, U12, false>` - 
 //! IntExprNode for 12-bit unsigned integer with 32-bit variable literals.
-//! 
+//!
+//! ## Operations on expression nodes.
+//!
 //! An IntExprNode provides many operations:
 //!
 //! * absolute value - `abs()` only for signed IntExprNode.
@@ -92,6 +94,12 @@
 //!
 //! Division and remainder just returns additional condition that will be satisified if
 //! right argument is not zero.
+//!
+//! ## Conversion between types.
+//!
+//! It is possible conversion between various IntExprNodes that have various sizes and signs.
+//! Conversions are implemented by using standard `From` and `TryFrom` traits.
+//! Conversion from lesser IntExprNode into greater IntExprNode if source are unsigned.
 
 use std::cell::RefCell;
 use std::cmp;

@@ -18,7 +18,25 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The module to generate CNF clauses from integer expressions.
+//! The module to generate CNF clauses from dynamic integer expressions.
+//!
+//! This module contains traits and main structure to operate on integer expressions:
+//! `DynIntExprNode`. It is similar to IntExprNode, but have some specific features.
+//! Size of integer can be defined dynamically at runtime. This type can be used while
+//! writing generators which generates formulae from source in higher-level language likes
+//! CVC4.
+//!
+//! Two generic parameters determines type of IntExprNode.
+//! The first T parameter is just variable literal type - it can be omitted.
+//! The second parameter is sign - true if signed integer or false if unsigned integer.
+//! Type of DynIntExprNode can be written in form: `DynIntExprNode<i32, false>` - 
+//! DynIntExprNode for unsigned integer with 32-bit variable literals.
+//! You can use `IDynExprNode` or `UDynExprNode` to omit second parameter.
+//!
+//! Operations on this expression node are similar to operations that can be done on
+//! IntExprNode, except integer constant that can't be joined with DynIntExprNode.
+//!
+//! Look up module `intexpr` to figure out about possible operations.
 
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -41,8 +59,17 @@ use crate::{impl_int_ipty, impl_int_upty};
 pub mod arith;
 pub use arith::*;
 
-// DynIntExprNode - main node
-//
+/// The main structure that represents dynamic integer expression, subexpression or integer value.
+///
+/// It joined with the ExprCreator that holds all expressions.
+/// Creation of new expression is naturally simple thanks operators. However, expression nodes
+/// must be cloned before using in other expressions if they will be used more than once.
+/// Simple examples:
+///
+/// * `(x1 << x2).mod_add(x3.clone()).equal(x3)`
+/// * `x1.clone().fullmul(x1).mod_add(x2.clone().fullmul(x2))`
+///
+/// The size of DynIntExprNode can be determined at runtime.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DynIntExprNode<T: VarLit + Debug, const SIGN: bool> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
