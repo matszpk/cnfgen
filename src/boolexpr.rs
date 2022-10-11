@@ -49,7 +49,8 @@ use std::io::Write;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use std::rc::Rc;
 
-use crate::boolexpr_creator::{ExprCreator, Node};
+pub use crate::boolexpr_creator::ExprCreator;
+use crate::boolexpr_creator::Node;
 
 use crate::writer::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 

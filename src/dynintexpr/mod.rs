@@ -28,9 +28,9 @@ use std::rc::Rc;
 use generic_array::*;
 
 use crate::boolexpr::{half_adder, BoolEqual, BoolExprNode, BoolImpl};
-use crate::boolexpr_creator::ExprCreator;
+pub use crate::boolexpr_creator::ExprCreator;
 use crate::int_utils::*;
-use crate::intexpr::{
+pub use crate::intexpr::{
     BitVal, DivMod, FullMul, IntCondAdd, IntCondMul, IntCondNeg, IntCondShl, IntCondShr,
     IntCondSub, IntEqual, IntError, IntExprNode, IntModAdd, IntModAddAssign, IntModMul,
     IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
