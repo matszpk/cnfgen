@@ -84,8 +84,8 @@ pub use intexpr::{
 pub mod dynintexpr;
 mod intmacros;
 pub use dynintexpr::{
-    dynint_ite, dynint_table, ExprNode as DynIntExprNode, IDynExprNode, TryFromNSized,
-    TryIntConstantN, UDynExprNode,
+    dynint_ite, dynint_table, DynIntExprNode, IDynExprNode, TryFromNSized, TryIntConstantN,
+    UDynExprNode,
 };
 
 pub use generic_array;

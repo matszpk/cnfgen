@@ -31,7 +31,7 @@ use super::*;
 
 macro_rules! impl_dynint_bitop {
     ($trait:ident, $op:ident) => {
-        impl<T, const SIGN: bool> $trait for ExprNode<T, SIGN>
+        impl<T, const SIGN: bool> $trait for DynIntExprNode<T, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -43,7 +43,7 @@ macro_rules! impl_dynint_bitop {
 
             fn $op(self, rhs: Self) -> Self::Output {
                 assert_eq!(self.indexes.len(), rhs.indexes.len());
-                ExprNode {
+                DynIntExprNode {
                     creator: self.creator.clone(),
                     indexes: (0..self.indexes.len())
                         .into_iter()
@@ -61,7 +61,7 @@ impl_dynint_bitop!(BitXor, bitxor);
 
 macro_rules! impl_dynint_bitop_assign {
     ($trait:ident, $op:ident, $op_assign:ident) => {
-        impl<T, const SIGN: bool> $trait for ExprNode<T, SIGN>
+        impl<T, const SIGN: bool> $trait for DynIntExprNode<T, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -81,7 +81,7 @@ impl_dynint_bitop_assign!(BitOrAssign, bitor, bitor_assign);
 impl_dynint_bitop_assign!(BitXorAssign, bitxor, bitxor_assign);
 
 /// Not trait implementation.
-impl<T, const SIGN: bool> Not for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> Not for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -92,7 +92,7 @@ where
     type Output = Self;
 
     fn not(self) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator.clone(),
             indexes: (0..self.indexes.len())
                 .into_iter()
@@ -104,7 +104,8 @@ where
 
 // shift operations
 
-impl<T, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool, const SIGN2: bool> Shl<DynIntExprNode<T, SIGN2>>
+    for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -114,7 +115,7 @@ where
 {
     type Output = Self;
 
-    fn shl(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
+    fn shl(self, rhs: DynIntExprNode<T, SIGN2>) -> Self::Output {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
@@ -127,7 +128,7 @@ where
         }
         let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -141,25 +142,25 @@ where
 }
 
 /// Shift left implementation.
-impl<T, const SIGN: bool> IntCondShl<ExprNode<T, false>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondShl<DynIntExprNode<T, false>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, false>: TryIntConstantN<T, usize>,
+    DynIntExprNode<T, false>: TryIntConstantN<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shl(self, rhs: ExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shl(self, rhs: DynIntExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
         let nbits = cmp::min(nbits, n2);
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -168,30 +169,30 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
+        let nexpr = DynIntExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
 
-impl<T, const SIGN: bool> IntCondShl<ExprNode<T, true>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondShl<DynIntExprNode<T, true>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, true>: TryIntConstantN<T, isize>,
+    DynIntExprNode<T, true>: TryIntConstantN<T, isize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shl(self, rhs: ExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shl(self, rhs: DynIntExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
         let nbits = cmp::min(nbits, n2 - 1);
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -201,14 +202,14 @@ where
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
         let nexpr =
-            ExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
+            DynIntExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
 
 macro_rules! impl_dynint_shl_imm {
     ($ty:ty) => {
-        impl<T, const SIGN: bool> Shl<$ty> for ExprNode<T, SIGN>
+        impl<T, const SIGN: bool> Shl<$ty> for DynIntExprNode<T, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -228,7 +229,7 @@ macro_rules! impl_dynint_shl_imm {
                 let usize_rhs = rhs as usize;
                 let mut output = vec![0; n];
                 output[usize_rhs..].copy_from_slice(&self.indexes[0..(n - usize_rhs)]);
-                ExprNode {
+                DynIntExprNode {
                     creator: self.creator,
                     indexes: output,
                 }
@@ -241,7 +242,8 @@ impl_int_upty!(impl_dynint_shl_imm);
 impl_int_ipty!(impl_dynint_shl_imm);
 
 /// Shift right implementation.
-impl<T, const SIGN: bool, const SIGN2: bool> Shr<ExprNode<T, SIGN2>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool, const SIGN2: bool> Shr<DynIntExprNode<T, SIGN2>>
+    for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -251,7 +253,7 @@ where
 {
     type Output = Self;
 
-    fn shr(self, rhs: ExprNode<T, SIGN2>) -> Self::Output {
+    fn shr(self, rhs: DynIntExprNode<T, SIGN2>) -> Self::Output {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
@@ -264,7 +266,7 @@ where
         }
         let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -278,25 +280,25 @@ where
 }
 
 /// Shift right implementation.
-impl<T, const SIGN: bool> IntCondShr<ExprNode<T, false>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondShr<DynIntExprNode<T, false>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, false>: TryIntConstantN<T, usize>,
+    DynIntExprNode<T, false>: TryIntConstantN<T, usize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shr(self, rhs: ExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shr(self, rhs: DynIntExprNode<T, false>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
         let nbits = cmp::min(nbits, n2);
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -305,30 +307,30 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
+        let nexpr = DynIntExprNode::<T, false>::try_constant_n(self.creator, n2, n - 1).unwrap();
         (output, rhs.less_equal(nexpr))
     }
 }
 
-impl<T, const SIGN: bool> IntCondShr<ExprNode<T, true>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondShr<DynIntExprNode<T, true>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    ExprNode<T, true>: TryIntConstantN<T, isize>,
+    DynIntExprNode<T, true>: TryIntConstantN<T, isize>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shr(self, rhs: ExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shr(self, rhs: DynIntExprNode<T, true>) -> (Self::Output, Self::OutputCond) {
         let n = self.indexes.len();
         let n2 = rhs.indexes.len();
         let nbits = calc_log_bits(n);
         let nbits = cmp::min(nbits, n2 - 1);
 
-        let mut input = ExprNode {
+        let mut input = DynIntExprNode {
             creator: self.creator.clone(),
             indexes: vec![0; n],
         };
@@ -338,14 +340,14 @@ where
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
         let nexpr =
-            ExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
+            DynIntExprNode::<T, true>::try_constant_n(self.creator, n2, (n - 1) as isize).unwrap();
         (output, (!rhs.bit(n2 - 1)) & rhs.less_equal(nexpr))
     }
 }
 
 macro_rules! impl_dynint_shr_imm {
     ($ty:ty) => {
-        impl<T, const SIGN: bool> Shr<$ty> for ExprNode<T, SIGN>
+        impl<T, const SIGN: bool> Shr<$ty> for DynIntExprNode<T, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -372,7 +374,7 @@ macro_rules! impl_dynint_shr_imm {
                     n
                 ];
                 output[0..(n - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
-                ExprNode {
+                DynIntExprNode {
                     creator: self.creator,
                     indexes: output,
                 }
@@ -387,8 +389,8 @@ impl_int_ipty!(impl_dynint_shr_imm);
 // ShlAssign
 macro_rules! impl_dynint_shx_assign {
     ($trait:ident, $op:ident, $op_assign:ident, $macro:ident) => {
-        impl<T, const SIGN: bool, const SIGN2: bool> $trait<ExprNode<T, SIGN2>>
-            for ExprNode<T, SIGN>
+        impl<T, const SIGN: bool, const SIGN2: bool> $trait<DynIntExprNode<T, SIGN2>>
+            for DynIntExprNode<T, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -396,14 +398,14 @@ macro_rules! impl_dynint_shx_assign {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
         {
-            fn $op_assign(&mut self, rhs: ExprNode<T, SIGN2>) {
+            fn $op_assign(&mut self, rhs: DynIntExprNode<T, SIGN2>) {
                 *self = self.clone().$op(rhs)
             }
         }
 
         macro_rules! $macro {
             ($ty:ty) => {
-                impl<T, const SIGN: bool> $trait<$ty> for ExprNode<T, SIGN>
+                impl<T, const SIGN: bool> $trait<$ty> for DynIntExprNode<T, SIGN>
                 where
                     T: VarLit + Neg<Output = T> + Debug,
                     isize: TryFrom<T>,
@@ -429,9 +431,9 @@ impl_dynint_shx_assign!(ShrAssign, shr, shr_assign, impl_dynint_shr_assign_imm);
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn dynint_ite<T, const SIGN: bool>(
     c: BoolExprNode<T>,
-    t: ExprNode<T, SIGN>,
-    e: ExprNode<T, SIGN>,
-) -> ExprNode<T, SIGN>
+    t: DynIntExprNode<T, SIGN>,
+    e: DynIntExprNode<T, SIGN>,
+) -> DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -439,21 +441,21 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    (ExprNode::<T, SIGN>::filled_expr(t.len(), c.clone()) & t.clone())
-        | (ExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
+    (DynIntExprNode::<T, SIGN>::filled_expr(t.len(), c.clone()) & t.clone())
+        | (DynIntExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
 }
 
 pub fn dynint_table<T, I, const SIGN: bool>(
-    index: ExprNode<T, SIGN>,
+    index: DynIntExprNode<T, SIGN>,
     table_iter: I,
-) -> ExprNode<T, SIGN>
+) -> DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    I: IntoIterator<Item = ExprNode<T, SIGN>>,
+    I: IntoIterator<Item = DynIntExprNode<T, SIGN>>,
 {
     let mut ites = vec![];
     let mut iter = table_iter.into_iter();
@@ -478,7 +480,7 @@ where
         }
         ites.resize(
             ites.len() >> 1,
-            ExprNode::filled(index.creator.clone(), ites[0].len(), false),
+            DynIntExprNode::filled(index.creator.clone(), ites[0].len(), false),
         );
     }
 
@@ -487,7 +489,7 @@ where
 
 // absolute value
 
-impl<T> ExprNode<T, true>
+impl<T> DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -496,7 +498,7 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     /// Calculation of an absolute value. It returns unsigned integer.
-    pub fn abs(self) -> ExprNode<T, false> {
+    pub fn abs(self) -> DynIntExprNode<T, false> {
         // if sign then -self else self
         dynint_ite(
             self.bit(self.indexes.len() - 1),
@@ -510,7 +512,7 @@ where
 //////////
 // Add/Sub implementation
 
-impl<T, const SIGN: bool> ExprNode<T, SIGN>
+impl<T, const SIGN: bool> DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -524,7 +526,7 @@ where
         let mut output = vec![0; self.indexes.len()];
         let (c, _) = helper_addc_cout(&mut output, &self, &rhs, in_carry);
         (
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator,
                 indexes: output,
             },
@@ -537,7 +539,7 @@ where
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_addc(&mut output, &self, &rhs, in_carry);
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: output,
         }
@@ -548,7 +550,7 @@ where
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let mut output = vec![0; self.indexes.len()];
         helper_subc(&mut output, &self, &rhs, in_carry);
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: output,
         }
@@ -566,14 +568,14 @@ where
             };
         }
         output[n - 1] = (self.bit(n - 1) ^ c).index;
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: output,
         }
     }
 }
 
-impl<T, const SIGN: bool> IntModAdd<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModAdd<DynIntExprNode<T, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -592,14 +594,14 @@ where
             &rhs,
             BoolExprNode::single_value(self.creator.clone(), false),
         );
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: output,
         }
     }
 }
 
-impl<T, const SIGN: bool> IntCondAdd<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondAdd<DynIntExprNode<T, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -620,7 +622,7 @@ where
             BoolExprNode::single_value(self.creator.clone(), false),
         );
         (
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator,
                 indexes: output,
             },
@@ -634,7 +636,7 @@ where
     }
 }
 
-impl<T, const SIGN: bool> IntModSub<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModSub<DynIntExprNode<T, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -653,14 +655,14 @@ where
             &rhs,
             BoolExprNode::single_value(self.creator.clone(), true),
         );
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: output,
         }
     }
 }
 
-impl<T, const SIGN: bool> IntCondSub<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntCondSub<DynIntExprNode<T, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -681,7 +683,7 @@ where
             BoolExprNode::single_value(self.creator.clone(), true),
         );
         (
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator,
                 indexes: output,
             },
@@ -698,7 +700,7 @@ where
 impl_dynint_bitop_assign!(IntModAddAssign, mod_add, mod_add_assign);
 impl_dynint_bitop_assign!(IntModSubAssign, mod_sub, mod_sub_assign);
 
-impl<T> IntModNeg for ExprNode<T, true>
+impl<T> IntModNeg for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -714,7 +716,7 @@ where
     }
 }
 
-impl<T> IntCondNeg for ExprNode<T, true>
+impl<T> IntCondNeg for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -736,7 +738,7 @@ where
 
 /// Most advanced: multiplication.
 
-impl<T, const SIGN: bool> IntModMul<ExprNode<T, SIGN>> for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntModMul<DynIntExprNode<T, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -755,7 +757,7 @@ where
             self.indexes.len(),
         );
         let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: res,
         }
@@ -764,7 +766,7 @@ where
 
 impl_dynint_bitop_assign!(IntModMulAssign, mod_mul, mod_mul_assign);
 
-impl<T> IntCondMul<ExprNode<T, false>> for ExprNode<T, false>
+impl<T> IntCondMul<DynIntExprNode<T, false>> for DynIntExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -780,21 +782,21 @@ where
         let n = self.indexes.len();
         let mut matrix = gen_dadda_matrix(self.creator.clone(), &self.indexes, &rhs.indexes, 2 * n);
         let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        let reshi = ExprNode::<T, false> {
+        let reshi = DynIntExprNode::<T, false> {
             creator: self.creator.clone(),
             indexes: Vec::from(&res[n..]),
         };
         (
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator.clone(),
                 indexes: Vec::from(&res[0..n]),
             },
-            reshi.equal(ExprNode::filled(self.creator, n, false)),
+            reshi.equal(DynIntExprNode::filled(self.creator, n, false)),
         )
     }
 }
 
-impl<T> IntCondMul<ExprNode<T, true>> for ExprNode<T, true>
+impl<T> IntCondMul<DynIntExprNode<T, true>> for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -818,14 +820,15 @@ where
         let ressign = res.bit(n - 1);
         (
             res.clone(),
-            resc & (expsign.bequal(ressign) | res.equal(ExprNode::filled(self.creator, n, false))),
+            resc & (expsign.bequal(ressign)
+                | res.equal(DynIntExprNode::filled(self.creator, n, false))),
         )
     }
 }
 
 /// Full multiplication
 
-impl<T> FullMul<ExprNode<T, false>> for ExprNode<T, false>
+impl<T> FullMul<DynIntExprNode<T, false>> for DynIntExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -833,7 +836,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T, false>;
+    type Output = DynIntExprNode<T, false>;
 
     fn fullmul(self, rhs: Self) -> Self::Output {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
@@ -844,14 +847,14 @@ where
             2 * self.indexes.len(),
         );
         let res = gen_dadda_mult(self.creator.clone(), &mut matrix);
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator,
             indexes: res,
         }
     }
 }
 
-impl<T> FullMul<ExprNode<T, true>> for ExprNode<T, true>
+impl<T> FullMul<DynIntExprNode<T, true>> for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -859,7 +862,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    type Output = ExprNode<T, true>;
+    type Output = DynIntExprNode<T, true>;
 
     fn fullmul(self, rhs: Self) -> Self::Output {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
@@ -871,7 +874,7 @@ where
 
 // DivMod - dividion and remainder all in one
 
-impl<T> DivMod<ExprNode<T, false>> for ExprNode<T, false>
+impl<T> DivMod<DynIntExprNode<T, false>> for DynIntExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -885,17 +888,17 @@ where
     fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
         let n = self.indexes.len();
-        let divres = ExprNode::<T, false>::variable(self.creator.clone(), n);
+        let divres = DynIntExprNode::<T, false>::variable(self.creator.clone(), n);
         let mut matrix =
             gen_dadda_matrix(self.creator.clone(), &rhs.indexes, &divres.indexes, 2 * n);
         let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
 
         // modv - division modulo
-        let modv = ExprNode::<T, false>::variable(self.creator.clone(), n);
+        let modv = DynIntExprNode::<T, false>::variable(self.creator.clone(), n);
         let modv_cond = modv.clone().less_than(rhs);
 
         // add modulo to mulres
-        let (mulres_lo, carry) = ExprNode::<T, false> {
+        let (mulres_lo, carry) = DynIntExprNode::<T, false> {
             creator: self.creator.clone(),
             indexes: Vec::from(&mulres[0..n]),
         }
@@ -903,7 +906,7 @@ where
             modv.clone(),
             BoolExprNode::single_value(self.creator.clone(), false),
         );
-        let mulres_hi = ExprNode::<T, false> {
+        let mulres_hi = DynIntExprNode::<T, false> {
             creator: self.creator.clone(),
             indexes: Vec::from(&mulres[n..]),
         }
@@ -911,13 +914,13 @@ where
         // condition for mulres - mulres_lo = self,  mulres_hi = 0
         let creator = self.creator.clone();
         let mulres_cond =
-            mulres_lo.equal(self) & mulres_hi.equal(ExprNode::filled(creator, n, false));
+            mulres_lo.equal(self) & mulres_hi.equal(DynIntExprNode::filled(creator, n, false));
 
         (divres, modv, modv_cond & mulres_cond)
     }
 }
 
-impl<T> DivMod<ExprNode<T, true>> for ExprNode<T, true>
+impl<T> DivMod<DynIntExprNode<T, true>> for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -946,14 +949,14 @@ where
             divres.clone(),
             dynint_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
             cond & (exp_divsign.bequal(divres_sign)
-                | divres.equal(ExprNode::<T, true>::filled(self.creator, n, false))),
+                | divres.equal(DynIntExprNode::<T, true>::filled(self.creator, n, false))),
         )
     }
 }
 
 macro_rules! impl_dynint_div_mod {
     ($sign:expr) => {
-        impl<T> Div<ExprNode<T, $sign>> for ExprNode<T, $sign>
+        impl<T> Div<DynIntExprNode<T, $sign>> for DynIntExprNode<T, $sign>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -969,7 +972,7 @@ macro_rules! impl_dynint_div_mod {
             }
         }
 
-        impl<T> Rem<ExprNode<T, $sign>> for ExprNode<T, $sign>
+        impl<T> Rem<DynIntExprNode<T, $sign>> for DynIntExprNode<T, $sign>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -999,10 +1002,10 @@ mod tests {
     macro_rules! test_expr_node_binaryop {
         ($sign:expr, $op:ident, $op_assign:ident) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x4 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x4 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let res = x1.$op(x2);
             res_x3.$op_assign(x4);
 
@@ -1038,7 +1041,7 @@ mod tests {
     #[test]
     fn test_expr_node_not() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
         let res = !x1;
 
         let exp_ec = ExprCreator::new();
@@ -1053,8 +1056,8 @@ mod tests {
     fn test_expr_node_dynint_ite() {
         let ec = ExprCreator::new();
         let c = BoolExprNode::<isize>::variable(ec.clone());
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
-        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
         let res = dynint_ite(c, x1, x2);
 
         let exp_ec = ExprCreator::new();
@@ -1070,10 +1073,10 @@ mod tests {
     #[test]
     fn test_expr_node_dynint_table() {
         let ec = ExprCreator::new();
-        let idx = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let idx = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
         let values = (0..(1 << 5))
             .into_iter()
-            .map(|_| ExprNode::<isize, false>::variable(ec.clone(), 10))
+            .map(|_| DynIntExprNode::<isize, false>::variable(ec.clone(), 10))
             .collect::<Vec<_>>();
         let res = dynint_table(idx, values);
 
@@ -1092,10 +1095,10 @@ mod tests {
     macro_rules! test_expr_node_shiftop {
         ($sign:expr, $op:ident, $op_assign:ident) => {{
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x2 = ExprNode::<isize, false>::variable(ec.clone(), 4);
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x4 = ExprNode::<isize, false>::variable(ec.clone(), 4);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 4);
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = DynIntExprNode::<isize, false>::variable(ec.clone(), 4);
             let res = x1.$op(x2);
             res_x3.$op_assign(x4);
 
@@ -1114,10 +1117,10 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x2 = ExprNode::<isize, false>::variable(ec.clone(), 3);
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x4 = ExprNode::<isize, false>::variable(ec.clone(), 3);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 3);
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = DynIntExprNode::<isize, false>::variable(ec.clone(), 3);
             let res = x1.$op(x2);
             res_x3.$op_assign(x4);
 
@@ -1136,15 +1139,15 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x2 = ExprNode::<isize, true>::try_from_n(
-                ExprNode::<isize, false>::variable(ec.clone(), 4),
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 4),
                 5,
             )
             .unwrap();
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x4 = ExprNode::<isize, true>::try_from_n(
-                ExprNode::<isize, false>::variable(ec.clone(), 4),
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 4),
                 5,
             )
             .unwrap();
@@ -1170,15 +1173,15 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x2 = ExprNode::<isize, true>::try_from_n(
-                ExprNode::<isize, false>::variable(ec.clone(), 3),
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 3),
                 4,
             )
             .unwrap();
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let x4 = ExprNode::<isize, true>::try_from_n(
-                ExprNode::<isize, false>::variable(ec.clone(), 3),
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x4 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 3),
                 4,
             )
             .unwrap();
@@ -1204,8 +1207,8 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
             let res = x1.$op(11u8);
             res_x3.$op_assign(10u8);
 
@@ -1222,8 +1225,8 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
-            let mut res_x3 = ExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let mut res_x3 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
             let res = x1.$op(11i8);
             res_x3.$op_assign(10i8);
 
@@ -1254,8 +1257,8 @@ mod tests {
     macro_rules! test_expr_node_cond_shl_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), $bits);
-            let x2 = ExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), $bits);
+            let x2 = DynIntExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
             let (res, resc) = x1.cond_shl(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1293,8 +1296,8 @@ mod tests {
     macro_rules! test_expr_node_cond_shr_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), $bits);
-            let x2 = ExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), $bits);
+            let x2 = DynIntExprNode::<isize, $signrhs>::variable(ec.clone(), $bits2);
             let (res, resc) = x1.cond_shr(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1332,8 +1335,8 @@ mod tests {
     #[test]
     fn test_expr_node_addc_with_carry() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
-        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
         let c = BoolExprNode::<isize>::variable(ec.clone());
         let (res, resc) = x1.addc_with_carry(x2, c);
 
@@ -1351,8 +1354,8 @@ mod tests {
     macro_rules! test_expr_node_arith_carry {
         ($sign:expr, $op:ident) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let c = BoolExprNode::<isize>::variable(ec.clone());
             let res = x1.$op(x2, c);
 
@@ -1380,7 +1383,7 @@ mod tests {
     #[test]
     fn test_expr_node_addc_same_carry() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 10);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
         let c = BoolExprNode::<isize>::variable(ec.clone());
         let res = x1.add_same_carry(c);
 
@@ -1408,8 +1411,8 @@ mod tests {
     macro_rules! test_expr_node_condop {
         ($sign:expr, $op:ident) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let (res, resc) = x1.$op(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1438,9 +1441,9 @@ mod tests {
     #[test]
     fn test_expr_node_unaryops() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, true>::variable(ec.clone(), 10);
-        let x2 = ExprNode::<isize, true>::variable(ec.clone(), 10);
-        let x3 = ExprNode::<isize, true>::variable(ec.clone(), 10);
+        let x1 = DynIntExprNode::<isize, true>::variable(ec.clone(), 10);
+        let x2 = DynIntExprNode::<isize, true>::variable(ec.clone(), 10);
+        let x3 = DynIntExprNode::<isize, true>::variable(ec.clone(), 10);
         let resabs = x1.abs();
         let resneg = x2.mod_neg();
         let (resneg2, resneg2c) = x3.cond_neg();
@@ -1475,8 +1478,8 @@ mod tests {
     macro_rules! test_expr_node_fullmul {
         ($sign:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let res = x1.fullmul(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1498,8 +1501,8 @@ mod tests {
     macro_rules! test_expr_node_divmod {
         ($sign:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let (resdiv, resmod, rescond) = x1.divmod(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1523,8 +1526,8 @@ mod tests {
     macro_rules! test_expr_node_divop {
         ($sign:expr, $op:ident) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
-            let x2 = ExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
+            let x2 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 10);
             let (res, resc) = x1.$op(x2);
 
             let exp_ec = ExprCreator::new();

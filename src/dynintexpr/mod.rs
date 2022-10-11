@@ -41,15 +41,15 @@ use crate::{
 pub mod arith;
 pub use arith::*;
 
-// ExprNode - main node
+// DynIntExprNode - main node
 //
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExprNode<T: VarLit + Debug, const SIGN: bool> {
+pub struct DynIntExprNode<T: VarLit + Debug, const SIGN: bool> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
     pub(super) indexes: Vec<usize>,
 }
 
-impl<T, const SIGN: bool> ExprNode<T, SIGN>
+impl<T, const SIGN: bool> DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -72,7 +72,7 @@ where
                 })
                 .collect::<Vec<_>>()
         };
-        ExprNode { creator, indexes }
+        DynIntExprNode { creator, indexes }
     }
 
     /// Creates integer from boolean expressions. An argument is object convertible into
@@ -91,7 +91,7 @@ where
                 x.index
             })
             .collect::<Vec<_>>();
-        ExprNode {
+        DynIntExprNode {
             creator: creator.unwrap(),
             indexes,
         }
@@ -103,7 +103,7 @@ where
         n: usize,
         v: impl Into<Literal<T>>,
     ) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: creator.clone(),
             indexes: vec![creator.borrow_mut().single(v); n],
         }
@@ -111,23 +111,23 @@ where
 
     /// Creates filled integer from from a boolean value. `n` is number of bits.
     pub fn filled_expr(n: usize, v: BoolExprNode<T>) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: v.creator.clone(),
             indexes: vec![v.index; n],
         }
     }
 
     /// Casts integer into unsigned integer.
-    pub fn as_unsigned(self) -> ExprNode<T, false> {
-        ExprNode {
+    pub fn as_unsigned(self) -> DynIntExprNode<T, false> {
+        DynIntExprNode {
             creator: self.creator,
             indexes: self.indexes,
         }
     }
 
     /// Casts integer into signed integer.
-    pub fn as_signed(self) -> ExprNode<T, true> {
-        ExprNode {
+    pub fn as_signed(self) -> DynIntExprNode<T, true> {
+        DynIntExprNode {
             creator: self.creator,
             indexes: self.indexes,
         }
@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<T> ExprNode<T, false>
+impl<T> DynIntExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -156,7 +156,7 @@ where
 {
     /// Creates integer that contains `n` bits starting from `start`.
     pub fn subvalue(&self, start: usize, n: usize) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator.clone(),
             indexes: Vec::from(&self.indexes[start..start + n]),
         }
@@ -165,7 +165,7 @@ where
     /// Creates integer that contains selected bits. List of bits given in
     /// object that can be converted into iterator of indexes.
     pub fn select_bits(&self, iter: impl IntoIterator<Item = usize>) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator.clone(),
             indexes: iter
                 .into_iter()
@@ -177,7 +177,7 @@ where
     /// Creates integer of concatenation of self and `rest`.
     pub fn concat(self, rest: Self) -> Self {
         assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rest.creator));
-        ExprNode {
+        DynIntExprNode {
             creator: self.creator.clone(),
             indexes: self
                 .indexes
@@ -190,11 +190,11 @@ where
     /// Splits integer into two parts: the first with `k` bits and second with rest of bits.
     pub fn split(self, k: usize) -> (Self, Self) {
         (
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator.clone(),
                 indexes: Vec::from(&self.indexes[0..k]),
             },
-            ExprNode {
+            DynIntExprNode {
                 creator: self.creator.clone(),
                 indexes: Vec::from(&self.indexes[k..]),
             },
@@ -202,7 +202,7 @@ where
     }
 }
 
-/// Trait to convert DynExprNode to other DynExprNode with different number of bits.
+/// Trait to convert DynDynIntExprNode to other DynDynIntExprNode with different number of bits.
 pub trait TryFromNSized<T>: Sized {
     type Error;
 
@@ -211,22 +211,22 @@ pub trait TryFromNSized<T>: Sized {
     fn try_from_n(input: T, n: usize) -> Result<Self, Self::Error>;
 }
 
-impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, false> {
+impl<T: VarLit> TryFromNSized<DynIntExprNode<T, false>> for DynIntExprNode<T, false> {
     type Error = IntError;
 
-    fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
+    fn try_from_n(input: DynIntExprNode<T, false>, n: usize) -> Result<Self, IntError> {
         if n < input.indexes.len() {
             if !input.indexes.iter().skip(n).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes: Vec::from(&input.indexes[0..n]),
             })
         } else {
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes,
             })
@@ -234,15 +234,15 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, false> {
     }
 }
 
-impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false> {
+impl<T: VarLit> TryFromNSized<DynIntExprNode<T, true>> for DynIntExprNode<T, false> {
     type Error = IntError;
 
-    fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
+    fn try_from_n(input: DynIntExprNode<T, true>, n: usize) -> Result<Self, IntError> {
         if n < input.indexes.len() {
             if !input.indexes.iter().skip(n).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes: Vec::from(&input.indexes[0..n]),
             })
@@ -252,7 +252,7 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false> {
             }
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes,
             })
@@ -260,22 +260,22 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, false> {
     }
 }
 
-impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true> {
+impl<T: VarLit> TryFromNSized<DynIntExprNode<T, false>> for DynIntExprNode<T, true> {
     type Error = IntError;
 
-    fn try_from_n(input: ExprNode<T, false>, n: usize) -> Result<Self, IntError> {
+    fn try_from_n(input: DynIntExprNode<T, false>, n: usize) -> Result<Self, IntError> {
         if n <= input.indexes.len() {
             if !input.indexes.iter().skip(n - 1).all(|x| *x == 0) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes: Vec::from(&input.indexes[0..n]),
             })
         } else {
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, 0);
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes,
             })
@@ -283,16 +283,16 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, false>> for ExprNode<T, true> {
     }
 }
 
-impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true> {
+impl<T: VarLit> TryFromNSized<DynIntExprNode<T, true>> for DynIntExprNode<T, true> {
     type Error = IntError;
 
-    fn try_from_n(input: ExprNode<T, true>, n: usize) -> Result<Self, IntError> {
+    fn try_from_n(input: DynIntExprNode<T, true>, n: usize) -> Result<Self, IntError> {
         if n < input.indexes.len() {
             let last_idx = input.indexes[n - 1];
             if !input.indexes.iter().skip(n).all(|x| last_idx == *x) {
                 return Err(IntError::BitOverflow);
             }
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes: Vec::from(&input.indexes[0..n]),
             })
@@ -300,7 +300,7 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true> {
             let last = *input.indexes.last().unwrap();
             let mut indexes = Vec::from(input.indexes.as_slice());
             indexes.resize(n, last);
-            Ok(ExprNode {
+            Ok(DynIntExprNode {
                 creator: input.creator,
                 indexes,
             })
@@ -308,13 +308,13 @@ impl<T: VarLit> TryFromNSized<ExprNode<T, true>> for ExprNode<T, true> {
     }
 }
 
-impl<T, N, const SIGN: bool> From<IntExprNode<T, N, SIGN>> for ExprNode<T, SIGN>
+impl<T, N, const SIGN: bool> From<IntExprNode<T, N, SIGN>> for DynIntExprNode<T, SIGN>
 where
     T: VarLit,
     N: ArrayLength<usize>,
 {
     fn from(v: IntExprNode<T, N, SIGN>) -> Self {
-        ExprNode {
+        DynIntExprNode {
             creator: v.creator,
             indexes: Vec::from(v.indexes.as_slice()),
         }
@@ -335,7 +335,7 @@ pub trait TryIntConstantN<T: VarLit, U>: Sized {
 
 macro_rules! impl_int_try_uconstant_n {
     ($pty:ty) => {
-        impl<T: VarLit> TryIntConstantN<T, $pty> for ExprNode<T, false> {
+        impl<T: VarLit> TryIntConstantN<T, $pty> for DynIntExprNode<T, false> {
             fn try_constant_n(
                 creator: Rc<RefCell<ExprCreator<T>>>,
                 n: usize,
@@ -346,7 +346,7 @@ macro_rules! impl_int_try_uconstant_n {
                 {
                     return Err(IntError::BitOverflow);
                 }
-                Ok(ExprNode {
+                Ok(DynIntExprNode {
                     creator,
                     indexes: (0..n)
                         .into_iter()
@@ -369,7 +369,7 @@ impl_int_upty!(impl_int_try_uconstant_n);
 
 macro_rules! impl_int_try_iconstant_n {
     ($pty:ty) => {
-        impl<T: VarLit> TryIntConstantN<T, $pty> for ExprNode<T, true> {
+        impl<T: VarLit> TryIntConstantN<T, $pty> for DynIntExprNode<T, true> {
             fn try_constant_n(
                 creator: Rc<RefCell<ExprCreator<T>>>,
                 n: usize,
@@ -383,7 +383,7 @@ macro_rules! impl_int_try_iconstant_n {
                         return Err(IntError::BitOverflow);
                     }
                 }
-                Ok(ExprNode {
+                Ok(DynIntExprNode {
                     creator,
                     indexes: (0..n)
                         .into_iter()
@@ -404,7 +404,7 @@ macro_rules! impl_int_try_iconstant_n {
 
 impl_int_ipty!(impl_int_try_iconstant_n);
 
-impl<'a, T, const SIGN: bool> BitVal for &'a ExprNode<T, SIGN>
+impl<'a, T, const SIGN: bool> BitVal for &'a DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -426,7 +426,7 @@ where
 // ///////////////////
 // IntEqual
 
-impl<T, const SIGN: bool> IntEqual for ExprNode<T, SIGN>
+impl<T, const SIGN: bool> IntEqual for DynIntExprNode<T, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -455,7 +455,7 @@ where
     }
 }
 
-impl<T> IntOrd for ExprNode<T, false>
+impl<T> IntOrd for DynIntExprNode<T, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -492,7 +492,7 @@ where
     }
 }
 
-impl<T> IntOrd for ExprNode<T, true>
+impl<T> IntOrd for DynIntExprNode<T, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -543,8 +543,8 @@ where
 
 // types
 
-pub type UDynExprNode<T> = ExprNode<T, false>;
-pub type IDynExprNode<T> = ExprNode<T, true>;
+pub type UDynExprNode<T> = DynIntExprNode<T, false>;
+pub type IDynExprNode<T> = DynIntExprNode<T, true>;
 
 #[cfg(test)]
 mod tests {
@@ -556,11 +556,11 @@ mod tests {
     #[test]
     fn test_expr_node() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 7);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 7);
         assert_eq!([2, 3, 4, 5, 6, 7, 8], *x1.indexes);
         assert_eq!([2, 3, 4, 5, 6, 7, 8], *(x1.clone().as_signed()).indexes);
         assert_eq!([2, 3, 4, 5, 6, 7, 8], *(x1.as_unsigned()).indexes);
-        let x2 = ExprNode::<isize, true>::variable(ec.clone(), 7);
+        let x2 = DynIntExprNode::<isize, true>::variable(ec.clone(), 7);
         assert_eq!([9, 10, 11, 12, 13, 14, 15], *x2.indexes);
         assert_eq!(
             [9, 10, 11, 12, 13, 14, 15],
@@ -569,12 +569,12 @@ mod tests {
         assert_eq!([9, 10, 11, 12, 13, 14, 15], *(x2.as_signed()).indexes);
 
         let b1 = BoolExprNode::variable(ec.clone());
-        let x3 = ExprNode::<isize, false>::filled(ec.clone(), 4, b1.varlit().unwrap());
+        let x3 = DynIntExprNode::<isize, false>::filled(ec.clone(), 4, b1.varlit().unwrap());
         assert_eq!([16, 16, 16, 16], *x3.indexes);
         let b1 = BoolExprNode::variable(ec.clone());
         let b2 = BoolExprNode::variable(ec.clone());
         let bxp = b1.clone() ^ b2.clone();
-        let x4 = ExprNode::<isize, false>::filled_expr(4, bxp.clone());
+        let x4 = DynIntExprNode::<isize, false>::filled_expr(4, bxp.clone());
         assert_eq!(
             iter::repeat(bxp.index)
                 .take(4)
@@ -597,7 +597,7 @@ mod tests {
             b2 | b3 | b4,
         ];
 
-        let x5 = ExprNode::<isize, false>::from_boolexprs(bxps.clone());
+        let x5 = DynIntExprNode::<isize, false>::from_boolexprs(bxps.clone());
         assert_eq!(
             bxps.iter().map(|x| x.index).collect::<Vec<_>>().as_slice(),
             x5.indexes.as_slice()
@@ -607,13 +607,13 @@ mod tests {
     #[test]
     fn test_expr_node_manip() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 16);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 16);
         let x2 = x1.subvalue(7, 6);
         assert_eq!([9, 10, 11, 12, 13, 14], *x2.indexes);
         let x3 = x1.select_bits([3, 8, 9, 0, 3, 4, 12, 14, 15]);
         assert_eq!([5, 10, 11, 2, 5, 6, 14, 16, 17], *x3.indexes);
 
-        let y1 = ExprNode::<isize, false>::variable(ec.clone(), 8);
+        let y1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 8);
         let z1 = x1.clone().concat(y1.clone());
         assert_eq!(
             (2..(2 + 24)).into_iter().collect::<Vec<usize>>().as_slice(),
@@ -644,7 +644,7 @@ mod tests {
     fn test_expr_node_from_int_expr_node() {
         let ec = ExprCreator::new();
         let ix1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
-        let dix1 = ExprNode::<isize, false>::from(ix1.clone());
+        let dix1 = DynIntExprNode::<isize, false>::from(ix1.clone());
         assert_eq!(ix1.indexes.as_slice(), dix1.indexes.as_slice());
     }
 
@@ -652,15 +652,15 @@ mod tests {
     fn test_expr_node_try_from_n_uncond() {
         let ec = ExprCreator::new();
         // Unsigned N -> Unsigned N+X
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 8);
-        let x2 = ExprNode::<isize, false>::try_from_n(x1.clone(), 14).unwrap();
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 8);
+        let x2 = DynIntExprNode::<isize, false>::try_from_n(x1.clone(), 14).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *x2.indexes);
         // Unsigned N -> Signed N+X
-        let ix2 = ExprNode::<isize, true>::try_from_n(x1.clone(), 14).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(x1.clone(), 14).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0], *ix2.indexes);
-        let ix1 = ExprNode::<isize, true>::variable(ec.clone(), 8);
+        let ix1 = DynIntExprNode::<isize, true>::variable(ec.clone(), 8);
         // Signed N, where SIGN=var -> Signed N+X
-        let ix2 = ExprNode::<isize, true>::try_from_n(ix1.clone(), 12).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 12).unwrap();
         assert_eq!(
             [10, 11, 12, 13, 14, 15, 16, 17, 17, 17, 17, 17],
             *ix2.indexes
@@ -670,165 +670,168 @@ mod tests {
     #[test]
     fn test_expr_node_try_from_n() {
         let ec = ExprCreator::new();
-        let ix1 = ExprNode::<isize, true>::try_from_n(
-            ExprNode::<isize, false>::variable(ec.clone(), 7),
+        let ix1 = DynIntExprNode::<isize, true>::try_from_n(
+            DynIntExprNode::<isize, false>::variable(ec.clone(), 7),
             8,
         )
         .unwrap();
         // Signed N, SIGN=0 -> Unsigned N
-        let x1 = ExprNode::<isize, false>::try_from_n(ix1.clone(), 8).unwrap();
+        let x1 = DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 8).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 0], *x1.indexes);
         // Signed N, SIGN=0 -> Unsigned N+X
-        let x2 = ExprNode::<isize, false>::try_from_n(ix1.clone(), 9).unwrap();
+        let x2 = DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 9).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 0, 0], *x2.indexes);
-        let x2 = ExprNode::<isize, false>::try_from_n(ix1, 10).unwrap();
+        let x2 = DynIntExprNode::<isize, false>::try_from_n(ix1, 10).unwrap();
         assert_eq!([2, 3, 4, 5, 6, 7, 8, 0, 0, 0], *x2.indexes);
 
-        let ix1 = ExprNode::<isize, true>::try_from_n(
-            ExprNode::<isize, true>::variable(ec.clone(), 7),
+        let ix1 = DynIntExprNode::<isize, true>::try_from_n(
+            DynIntExprNode::<isize, true>::variable(ec.clone(), 7),
             8,
         )
         .unwrap();
         // Signed N, SIGN=var -> Unsigned N
         assert_eq!(
             Err("Value can be negative".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 8).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 8).map_err(|x| x.to_string())
         );
         // Signed N, SIGN=var -> Unsigned N+X
         assert_eq!(
             Err("Value can be negative".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 9).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 9).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Value can be negative".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1, 10).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1, 10).map_err(|x| x.to_string())
         );
 
-        let x1 = ExprNode::<isize, false>::try_from_n(
-            ExprNode::<isize, false>::variable(ec.clone(), 7),
+        let x1 = DynIntExprNode::<isize, false>::try_from_n(
+            DynIntExprNode::<isize, false>::variable(ec.clone(), 7),
             8,
         )
         .unwrap();
         // Unsigned N, LAST=0 -> Signed N
-        let ix2 = ExprNode::<isize, true>::try_from_n(x1.clone(), 8).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(x1.clone(), 8).unwrap();
         assert_eq!([16, 17, 18, 19, 20, 21, 22, 0], *ix2.indexes);
         // Unsigned N, LAST=0 -> Signed N+X
-        let ix2 = ExprNode::<isize, true>::try_from_n(x1.clone(), 9).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(x1.clone(), 9).unwrap();
         assert_eq!([16, 17, 18, 19, 20, 21, 22, 0, 0], *ix2.indexes);
 
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 8);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 8);
         // Unsinged N, LAST=var -> Signed N+X
-        let ix2 = ExprNode::<isize, true>::try_from_n(x1.clone(), 9).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(x1.clone(), 9).unwrap();
         assert_eq!([23, 24, 25, 26, 27, 28, 29, 30, 0], *ix2.indexes);
         // Unsinged N, LAST=var -> Signed N
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(x1.clone(), 8).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(x1.clone(), 8).map_err(|x| x.to_string())
         );
 
         //
         // V[N-X..] = 0, LASTS = 0
-        let ux1 = ExprNode::<isize, false>::try_from_n(
-            ExprNode::<isize, false>::variable(ec.clone(), 6),
+        let ux1 = DynIntExprNode::<isize, false>::try_from_n(
+            DynIntExprNode::<isize, false>::variable(ec.clone(), 6),
             8,
         )
         .unwrap();
         // Unsigned N, LASTS=0 -> Unsigned N-X
-        let x2 = ExprNode::<isize, false>::try_from_n(ux1.clone(), 6).unwrap();
+        let x2 = DynIntExprNode::<isize, false>::try_from_n(ux1.clone(), 6).unwrap();
         assert_eq!([31, 32, 33, 34, 35, 36], *x2.indexes);
         // Unsigned N, LASTS=0, V[N-X-1]=var -> Unsigned N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ux1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ux1.clone(), 5).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ux1.clone(), 4).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ux1.clone(), 4).map_err(|x| x.to_string())
         );
-        let ix2 = ExprNode::<isize, true>::try_from_n(ux1.clone(), 7).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(ux1.clone(), 7).unwrap();
         // Unsigned N, LASTS=0 -> Signed N-X+1
         assert_eq!([31, 32, 33, 34, 35, 36, 0], *ix2.indexes);
         // Unsigned N, LASTS=0 -> Signed N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ux1.clone(), 6).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ux1.clone(), 6).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ux1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ux1.clone(), 5).map_err(|x| x.to_string())
         );
 
-        let ix1 = ExprNode::<isize, true>::try_from_n(
-            ExprNode::<isize, false>::variable(ec.clone(), 6),
+        let ix1 = DynIntExprNode::<isize, true>::try_from_n(
+            DynIntExprNode::<isize, false>::variable(ec.clone(), 6),
             8,
         )
         .unwrap();
         // Signed N, LASTS=0 -> Unsigned N-X
-        let x2 = ExprNode::<isize, false>::try_from_n(ix1.clone(), 6).unwrap();
+        let x2 = DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 6).unwrap();
         assert_eq!([37, 38, 39, 40, 41, 42], *x2.indexes);
         // Signed N, LASTS=0 -> Unsigned N-X-1
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
         // Signed N, LASTS=0 -> Signed N-X+1
-        let ix2 = ExprNode::<isize, true>::try_from_n(ix1.clone(), 7).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 7).unwrap();
         assert_eq!([37, 38, 39, 40, 41, 42, 0], *ix2.indexes);
         // Signed N, LASTS=0 -> Signed N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ix1.clone(), 6).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 6).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
 
         // constvar - this same var for all LASTS bits
-        let ix1 = ExprNode::<isize, true>::try_from_n(
-            ExprNode::<isize, true>::variable(ec.clone(), 6),
+        let ix1 = DynIntExprNode::<isize, true>::try_from_n(
+            DynIntExprNode::<isize, true>::variable(ec.clone(), 6),
             8,
         )
         .unwrap();
         // Signed N, LASTS=constvar -> Unsigned N-X
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 6).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 6).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
         // Signed N, LASTS=constvar -> Unsigned N-X+1
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, false>::try_from_n(ix1.clone(), 7).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, false>::try_from_n(ix1.clone(), 7).map_err(|x| x.to_string())
         );
-        let ix2 = ExprNode::<isize, true>::try_from_n(ix1.clone(), 6).unwrap();
+        let ix2 = DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 6).unwrap();
         // Signed N, LASTS=constvar -> Signed N-X
         assert_eq!([43, 44, 45, 46, 47, 48], *ix2.indexes);
         // Signed N, LASTS=constvar -> Signed N-X-1
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
         assert_eq!(
             Err("Bit overflow".to_string()),
-            ExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
+            DynIntExprNode::<isize, true>::try_from_n(ix1.clone(), 5).map_err(|x| x.to_string())
         );
     }
 
     #[test]
     fn test_expr_node_try_int_constant_n() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::try_constant_n(ec.clone(), 9, 0b11011001u16).unwrap();
+        let x1 =
+            DynIntExprNode::<isize, false>::try_constant_n(ec.clone(), 9, 0b11011001u16).unwrap();
         assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, true>::try_constant_n(ec.clone(), 8, 0b00111001i16).unwrap();
+        let x1 =
+            DynIntExprNode::<isize, true>::try_constant_n(ec.clone(), 8, 0b00111001i16).unwrap();
         assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, true>::try_constant_n(ec.clone(), 10, -15i8).unwrap();
+        let x1 = DynIntExprNode::<isize, true>::try_constant_n(ec.clone(), 10, -15i8).unwrap();
         assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
         let x1 =
-            ExprNode::<isize, false>::try_constant_n(ec.clone(), 64, 1848549293434211u64).unwrap();
+            DynIntExprNode::<isize, false>::try_constant_n(ec.clone(), 64, 1848549293434211u64)
+                .unwrap();
         assert_eq!(
             (0..64)
                 .into_iter()
@@ -837,26 +840,26 @@ mod tests {
                 .as_slice(),
             x1.indexes.as_slice()
         );
-        let x1 = ExprNode::<isize, true>::try_constant_n(ec.clone(), 1, 0i64).unwrap();
+        let x1 = DynIntExprNode::<isize, true>::try_constant_n(ec.clone(), 1, 0i64).unwrap();
         assert_eq!([0], *x1.indexes);
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, false>::try_constant_n(ec.clone(), 4, 14u16 | (1u16 << i))
+                DynIntExprNode::<isize, false>::try_constant_n(ec.clone(), 4, 14u16 | (1u16 << i))
                     .map_err(|x| x.to_string())
             );
         }
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, true>::try_constant_n(ec.clone(), 4, 6i16 | (1i16 << i))
+                DynIntExprNode::<isize, true>::try_constant_n(ec.clone(), 4, 6i16 | (1i16 << i))
                     .map_err(|x| x.to_string())
             );
         }
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, true>::try_constant_n(ec.clone(), 4, (-6i16) ^ (1i16 << i))
+                DynIntExprNode::<isize, true>::try_constant_n(ec.clone(), 4, (-6i16) ^ (1i16 << i))
                     .map_err(|x| x.to_string())
             );
         }
@@ -865,20 +868,20 @@ mod tests {
     #[test]
     fn test_expr_node_bitval() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 7);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 7);
         assert_eq!(x1.bit(2), BoolExprNode::single(ec.clone(), 3));
         assert_eq!(x1.bit(6), BoolExprNode::single(ec.clone(), 7));
-        let x1 = ExprNode::<isize, true>::variable(ec.clone(), 7);
+        let x1 = DynIntExprNode::<isize, true>::variable(ec.clone(), 7);
         assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
     }
 
     #[test]
     fn test_expr_node_int_equal() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, false>::variable(ec.clone(), 5);
-        let x2 = ExprNode::<isize, false>::variable(ec.clone(), 5);
-        let x3 = ExprNode::<isize, false>::variable(ec.clone(), 5);
-        let x4 = ExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x3 = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let x4 = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
         let reseq = x1.equal(x2);
         let resne = x3.nequal(x4);
 
@@ -900,7 +903,7 @@ mod tests {
             let ec = ExprCreator::new();
             let xv = (0..8)
                 .into_iter()
-                .map(|_| ExprNode::<isize, $sign>::variable(ec.clone(), 5))
+                .map(|_| DynIntExprNode::<isize, $sign>::variable(ec.clone(), 5))
                 .collect::<Vec<_>>();
             let reslt = xv[0].clone().less_than(xv[1].clone());
             let resle = xv[2].clone().less_equal(xv[3].clone());
