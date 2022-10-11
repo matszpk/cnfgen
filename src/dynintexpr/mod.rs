@@ -29,7 +29,7 @@
 //! Two generic parameters determines type of IntExprNode.
 //! The first T parameter is just variable literal type - it can be omitted.
 //! The second parameter is sign - true if signed integer or false if unsigned integer.
-//! Type of DynIntExprNode can be written in form: `DynIntExprNode<i32, false>` - 
+//! Type of DynIntExprNode can be written in form: `DynIntExprNode<i32, false>` -
 //! DynIntExprNode for unsigned integer with 32-bit variable literals.
 //! You can use `IDynExprNode` or `UDynExprNode` to omit second parameter.
 //!
@@ -37,6 +37,12 @@
 //! IntExprNode, except integer constant that can't be joined with DynIntExprNode.
 //!
 //! Look up module `intexpr` to figure out about possible operations.
+//!
+//! ## Conversion between types.
+//!
+//! It is possible conversion between various DynIntExprNodes that have various sizes and signs.
+//! Conversions are implemented by using `TryFromNSized` traits which define
+//! a method 'try_from_n` where argument `n` defines bits of destination.
 
 use std::cell::RefCell;
 use std::fmt::Debug;

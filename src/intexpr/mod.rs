@@ -29,7 +29,7 @@
 //! The first T parameter is just variable literal type - it can be omitted.
 //! The second parameter is typed integer (from typenum crate) that determine number of bits
 //! of integer. The last parameter is sign - true if signed integer or false if unsigned integer.
-//! Type of IntExprNode can be written in form: `IntExprNode<i32, U12, false>` - 
+//! Type of IntExprNode can be written in form: `IntExprNode<i32, U12, false>` -
 //! IntExprNode for 12-bit unsigned integer with 32-bit variable literals.
 //!
 //! ## Operations on expression nodes.
