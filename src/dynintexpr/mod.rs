@@ -333,7 +333,7 @@ pub trait TryIntConstantN<T: VarLit, U>: Sized {
     ) -> Result<Self, IntError>;
 }
 
-macro_rules! impl_int_try_uconstant {
+macro_rules! impl_int_try_uconstant_n {
     ($pty:ty) => {
         impl<T: VarLit> TryIntConstantN<T, $pty> for ExprNode<T, false> {
             fn try_constant_n(
@@ -365,9 +365,9 @@ macro_rules! impl_int_try_uconstant {
     };
 }
 
-impl_int_upty!(impl_int_try_uconstant);
+impl_int_upty!(impl_int_try_uconstant_n);
 
-macro_rules! impl_int_try_iconstant {
+macro_rules! impl_int_try_iconstant_n {
     ($pty:ty) => {
         impl<T: VarLit> TryIntConstantN<T, $pty> for ExprNode<T, true> {
             fn try_constant_n(
@@ -402,7 +402,7 @@ macro_rules! impl_int_try_iconstant {
     };
 }
 
-impl_int_ipty!(impl_int_try_iconstant);
+impl_int_ipty!(impl_int_try_iconstant_n);
 
 impl<'a, T, const SIGN: bool> BitVal for &'a ExprNode<T, SIGN>
 where
@@ -819,7 +819,7 @@ mod tests {
     }
 
     #[test]
-    fn test_expr_node_try_int_constant() {
+    fn test_expr_node_try_int_constant_n() {
         let ec = ExprCreator::new();
         let x1 = ExprNode::<isize, false>::try_constant_n(ec.clone(), 9, 0b11011001u16).unwrap();
         assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);

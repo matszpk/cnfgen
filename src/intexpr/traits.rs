@@ -688,6 +688,81 @@ macro_rules! impl_int_iconstant {
 
 impl_int_ipty_ty1!(impl_int_iconstant);
 
+macro_rules! impl_int_try_uconstant {
+    ($pty:ty) => {
+        impl<T, N> TryIntConstant<T, $pty> for ExprNode<T, N, false>
+        where
+            T: VarLit,
+            N: ArrayLength<usize>,
+        {
+            fn try_constant(
+                creator: Rc<RefCell<ExprCreator<T>>>,
+                v: $pty,
+            ) -> Result<Self, IntError> {
+                let n = N::USIZE;
+                let bits = <$pty>::BITS as usize;
+                if n < bits && (v & ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n)) != 0
+                {
+                    return Err(IntError::BitOverflow);
+                }
+                Ok(ExprNode {
+                    creator,
+                    indexes: GenericArray::from_exact_iter((0..n).into_iter().map(|x| {
+                        // return 1 - true node index, 0 - false node index
+                        if x < bits {
+                            usize::from((v & (1 << x)) != 0)
+                        } else {
+                            0
+                        }
+                    }))
+                    .unwrap(),
+                })
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_try_uconstant);
+
+macro_rules! impl_int_try_iconstant {
+    ($pty:ty) => {
+        impl<T, N> TryIntConstant<T, $pty> for ExprNode<T, N, true>
+        where
+            T: VarLit,
+            N: ArrayLength<usize>,
+        {
+            fn try_constant(
+                creator: Rc<RefCell<ExprCreator<T>>>,
+                v: $pty,
+            ) -> Result<Self, IntError> {
+                let n = N::USIZE;
+                let bits = <$pty>::BITS as usize;
+                if n < bits {
+                    let mask = ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n);
+                    let signmask = if v < 0 { mask } else { 0 };
+                    if (v & mask) != signmask {
+                        return Err(IntError::BitOverflow);
+                    }
+                }
+                Ok(ExprNode {
+                    creator,
+                    indexes: GenericArray::from_exact_iter((0..n).into_iter().map(|x| {
+                        // return 1 - true node index, 0 - false node index
+                        if x < bits {
+                            usize::from((v & (1 << x)) != 0)
+                        } else {
+                            usize::from((v & (1 << ((<$pty>::BITS - 1) as usize))) != 0)
+                        }
+                    }))
+                    .unwrap(),
+                })
+            }
+        }
+    };
+}
+
+impl_int_ipty!(impl_int_try_iconstant);
+
 // ///////////////////
 // IntEqual
 
@@ -1168,6 +1243,50 @@ mod tests {
                 .as_slice(),
             x1.indexes.as_slice()
         );
+    }
+
+    #[test]
+    fn test_expr_node_try_int_constant() {
+        let ec = ExprCreator::new();
+        let x1 = ExprNode::<isize, U9, false>::try_constant(ec.clone(), 0b11011001u16).unwrap();
+        assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U8, true>::try_constant(ec.clone(), 0b00111001i16).unwrap();
+        assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
+        let x1 = ExprNode::<isize, U10, true>::try_constant(ec.clone(), -15i8).unwrap();
+        assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
+        let x1 =
+            ExprNode::<isize, U64, false>::try_constant(ec.clone(), 1848549293434211u64).unwrap();
+        assert_eq!(
+            (0..64)
+                .into_iter()
+                .map(|x| ((1848549293434211u64 >> x) & 1) as usize)
+                .collect::<Vec<_>>()
+                .as_slice(),
+            x1.indexes.as_slice()
+        );
+        let x1 = ExprNode::<isize, U1, true>::try_constant(ec.clone(), 0i64).unwrap();
+        assert_eq!([0], *x1.indexes);
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, U4, false>::try_constant(ec.clone(), 14u16 | (1u16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, U4, true>::try_constant(ec.clone(), 6i16 | (1i16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
+        for i in 4..16 {
+            assert_eq!(
+                Err("Bit overflow".to_string()),
+                ExprNode::<isize, U4, true>::try_constant(ec.clone(), (-6i16) ^ (1i16 << i))
+                    .map_err(|x| x.to_string())
+            );
+        }
     }
 
     #[test]
