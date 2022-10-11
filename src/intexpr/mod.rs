@@ -134,6 +134,7 @@ pub enum IntError {
     /// A value can be negative - it can be happened when convert signed value into unsigned.
     #[error("Value can be negative")]
     CanBeNegative,
+    /// If bits number if mismatch for example: while conversion from DynIntExprNode.
     #[error("Bit number mismatch")]
     BitsMismatch,
 }
