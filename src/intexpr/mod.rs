@@ -36,6 +36,8 @@
 //!
 //! An IntExprNode provides many operations:
 //!
+//! * equality - returns true if two expressions are equal.
+//! * inequalities - less, less or equal, greater, greater or equal.
 //! * absolute value - `abs()` only for signed IntExprNode.
 //! * bitwise arithmentic - bitwise AND, OR, XOR and NOT by using standard operators.
 //! * modular arithmetic - addition, subtraction, negation, multiplication.
@@ -100,6 +102,11 @@
 //! It is possible conversion between various IntExprNodes that have various sizes and signs.
 //! Conversions are implemented by using standard `From` and `TryFrom` traits.
 //! Conversion from lesser IntExprNode into greater IntExprNode if source are unsigned.
+//!
+//! ## Other operations.
+//!
+//! IntExprNode provides other operations like concatenation of bits, splitting into two
+//! shorter IntExprNodes, casting to signed or unsigned and selection of bits of IntExprNodes.
 
 use std::cell::RefCell;
 use std::cmp;
