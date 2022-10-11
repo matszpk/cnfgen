@@ -31,7 +31,7 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use crate::boolexpr::{half_adder, BoolExprNode};
-pub use crate::boolexpr_creator::ExprCreator;
+pub use crate::boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 use crate::dynintexpr::DynIntExprNode;
 use crate::int_utils::*;
 use crate::writer::{Literal, VarLit};
