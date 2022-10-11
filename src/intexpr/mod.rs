@@ -62,7 +62,7 @@
 //! fn write_diophantic_equation() -> Result<(), CNFError> {
 //!     // define ExprCreator.
 //!     let creator = ExprCreator32::new();
-//!     // define variables.
+//!     // define variables - signed 32-bit wide.
 //!     let x = I32ExprNode::variable(creator.clone());
 //!     let y = I32ExprNode::variable(creator.clone());
 //!     let z = I32ExprNode::variable(creator.clone());

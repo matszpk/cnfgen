@@ -35,6 +35,39 @@
 //!
 //! Operations on this expression node are similar to operations that can be done on
 //! IntExprNode, except integer constant that can't be joined with DynIntExprNode.
+//! However, it is possible conversion from integer into DynIntExprNode thanks
+//! `TryIntConstantN` trait that provides method to that conversion.
+//!
+//! The simple example of usage:
+//! ```
+//! use cnfgen::boolexpr::*;
+//! use cnfgen::dynintexpr::*;
+//! use cnfgen::writer::{CNFError, CNFWriter};
+//! use std::io;
+//! fn write_diophantic_equation() -> Result<(), CNFError> {
+//!     // define ExprCreator.
+//!     let creator = ExprCreator32::new();
+//!     // define variables - signed 200-bit wide.
+//!     let x = IDynExprNode::variable(creator.clone(), 200);
+//!     let y = IDynExprNode::variable(creator.clone(), 200);
+//!     let z = IDynExprNode::variable(creator.clone(), 200);
+//!     // define equation: x^2 + y^2 - 77*z^2 = 0
+//!     let powx = x.clone().fullmul(x);  // x^2
+//!     let powy = y.clone().fullmul(y);  // y^2
+//!     let powz = z.clone().fullmul(z);  // z^2
+//!     let v77 = IDynExprNode::try_constant_n(creator.clone(), 400, 77).unwrap();
+//!     // We use cond_mul to get product and required condition to avoid overflow.
+//!     let (prod, cond0) = powz.cond_mul(v77);
+//!     // Similary, we use conditional addition and conditional subtraction.
+//!     let (sum1, cond1) = powx.cond_add(powy);
+//!     let (diff2, cond2) = sum1.cond_sub(prod);
+//!     // define final formulae with required conditions.
+//!     let zero = IDynExprNode::try_constant_n(creator.clone(), 400, 0).unwrap();
+//!     let formulae: BoolExprNode<_> = diff2.equal(zero) & cond0 & cond1 & cond2;
+//!     // write CNF to stdout.
+//!     formulae.write(&mut CNFWriter::new(io::stdout()))
+//! }
+//! ```
 //!
 //! Look up module `intexpr` to figure out about possible operations.
 //!
