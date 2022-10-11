@@ -138,6 +138,7 @@ impl_int_bitop!($, BitXor, bitxor, impl_int_bitxor_pty, impl_int_bitxor_upty, im
 
 // macro helpers for binary operation and assign traits.
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_bitop_assign {
     ($d:tt, $trait:ident, $op_assign:ident, $op:ident, $macro_gen:ident, $macro_upty:ident,
             $macro_ipty:ident) => {

@@ -20,8 +20,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module with macro helpers.
 
-/// Macro helper
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_ty1_lt_ty2 {
     ($impl_mac:ident) => {
         // 1 < 0b1Y
@@ -668,8 +668,8 @@ macro_rules! impl_int_ty1_lt_ty2 {
     };
 }
 
-/// Macro helper
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_upty_ty1 {
     ($impl_mac:ident) => {
         $impl_mac!(
@@ -884,6 +884,7 @@ macro_rules! impl_int_upty_ty1 {
 
 /// Macro helper
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_ipty_ty1 {
     ($impl_mac:ident) => {
         $impl_mac!(
@@ -1096,8 +1097,8 @@ macro_rules! impl_int_ipty_ty1 {
     };
 }
 
-/// Macro helper.
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_upty {
     ($impl_mac:ident) => {
         $impl_mac!(u8);
@@ -1109,8 +1110,8 @@ macro_rules! impl_int_upty {
     };
 }
 
-/// Macro helper.
 #[macro_export]
+#[doc(hidden)]
 macro_rules! impl_int_ipty {
     ($impl_mac:ident) => {
         $impl_mac!(i8);
