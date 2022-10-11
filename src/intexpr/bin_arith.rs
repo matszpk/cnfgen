@@ -38,7 +38,7 @@ use crate::{impl_int_ipty, impl_int_ipty_ty1, impl_int_upty, impl_int_upty_ty1};
 macro_rules! impl_int_bitop {
     ($d:tt, $trait:ident, $op:ident, $macro_gen:ident, $macro_upty:ident, $macro_ipty:ident) => {
         /// Binary operation traits implementation.
-        impl<T, N, const SIGN: bool> $trait for ExprNode<T, N, SIGN>
+        impl<T, N, const SIGN: bool> $trait for IntExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -50,7 +50,7 @@ macro_rules! impl_int_bitop {
             type Output = Self;
 
             fn $op(self, rhs: Self) -> Self::Output {
-                ExprNode {
+                IntExprNode {
                     creator: self.creator.clone(),
                     indexes: GenericArray::from_exact_iter(
                         (0..N::USIZE)
@@ -65,7 +65,7 @@ macro_rules! impl_int_bitop {
         macro_rules! $macro_gen {
                     ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
                         /// Binary operation traits implementation.
-                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for IntExprNode<T, $ty, $sign>
                         where
                             T: VarLit + Neg<Output = T> + Debug,
                             isize: TryFrom<T>,
@@ -77,7 +77,7 @@ macro_rules! impl_int_bitop {
                             type Output = Self;
 
                             fn $op(self, rhs: $pty) -> Self::Output {
-                                ExprNode {
+                                IntExprNode {
                                     creator: self.creator.clone(),
                                     indexes: GenericArray::from_exact_iter(
                                         (0..<$ty>::USIZE)
@@ -90,7 +90,7 @@ macro_rules! impl_int_bitop {
                         }
 
                         /// Binary operation traits implementation.
-                        impl<T, $d( $d gparams ),* > $trait<ExprNode<T, $ty, $sign>> for $pty
+                        impl<T, $d( $d gparams ),* > $trait<IntExprNode<T, $ty, $sign>> for $pty
                         where
                             T: VarLit + Neg<Output = T> + Debug,
                             isize: TryFrom<T>,
@@ -99,10 +99,10 @@ macro_rules! impl_int_bitop {
                             <isize as TryFrom<T>>::Error: Debug,
                             $ty: ArrayLength<usize>,
                         {
-                            type Output = ExprNode<T, $ty, $sign>;
+                            type Output = IntExprNode<T, $ty, $sign>;
 
-                            fn $op(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
-                                ExprNode {
+                            fn $op(self, rhs: IntExprNode<T, $ty, $sign>) -> Self::Output {
+                                IntExprNode {
                                     creator: rhs.creator.clone(),
                                     indexes: GenericArray::from_exact_iter(
                                         (0..<$ty>::USIZE)
@@ -142,7 +142,7 @@ macro_rules! impl_int_bitop_assign {
     ($d:tt, $trait:ident, $op_assign:ident, $op:ident, $macro_gen:ident, $macro_upty:ident,
             $macro_ipty:ident) => {
         /// Binary operation and assign traits implementation.
-        impl<T, N, const SIGN: bool> $trait for ExprNode<T, N, SIGN>
+        impl<T, N, const SIGN: bool> $trait for IntExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -159,7 +159,7 @@ macro_rules! impl_int_bitop_assign {
         macro_rules! $macro_gen {
                     ($sign:expr, $pty:ty, $ty:ty, $d($d gparams:ident),*) => {
                         /// Binary operation and assign traits implementation.
-                        impl<T, $d( $d gparams ),* > $trait< $pty > for ExprNode<T, $ty, $sign>
+                        impl<T, $d( $d gparams ),* > $trait< $pty > for IntExprNode<T, $ty, $sign>
                         where
                             T: VarLit + Neg<Output = T> + Debug,
                             isize: TryFrom<T>,
@@ -199,7 +199,7 @@ impl_int_bitop_assign!($, BitXorAssign, bitxor_assign, bitxor, impl_int_bitxor_a
         impl_int_bitxor_assign_upty, impl_int_bitxor_assign_ipty);
 
 /// Not trait implementation.
-impl<T, N, const SIGN: bool> Not for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> Not for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -211,7 +211,7 @@ where
     type Output = Self;
 
     fn not(self) -> Self {
-        ExprNode {
+        IntExprNode {
             creator: self.creator.clone(),
             indexes: GenericArray::from_exact_iter(
                 (0..N::USIZE).into_iter().map(|x| (!self.bit(x)).index),
@@ -222,8 +222,8 @@ where
 }
 
 /// Shift left implementation.
-impl<T, N, N2, const SIGN: bool, const SIGN2: bool> Shl<ExprNode<T, N2, SIGN2>>
-    for ExprNode<T, N, SIGN>
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> Shl<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -235,7 +235,7 @@ where
 {
     type Output = Self;
 
-    fn shl(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
+    fn shl(self, rhs: IntExprNode<T, N2, SIGN2>) -> Self::Output {
         let nbits = Self::LOG_BITS;
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
@@ -246,7 +246,7 @@ where
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
 
-        let mut input = ExprNode {
+        let mut input = IntExprNode {
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
@@ -261,7 +261,7 @@ where
 
 macro_rules! impl_int_shl_imm {
     ($ty:ty) => {
-        impl<T, N, const SIGN: bool> Shl<$ty> for ExprNode<T, N, SIGN>
+        impl<T, N, const SIGN: bool> Shl<$ty> for IntExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -281,7 +281,7 @@ macro_rules! impl_int_shl_imm {
                 let usize_rhs = rhs as usize;
                 let mut output = GenericArray::default();
                 output[usize_rhs..].copy_from_slice(&self.indexes[0..(N::USIZE - usize_rhs)]);
-                ExprNode {
+                IntExprNode {
                     creator: self.creator,
                     indexes: output,
                 }
@@ -295,7 +295,7 @@ impl_int_ipty!(impl_int_shl_imm);
 
 macro_rules! impl_int_shl_self_imm {
     ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> Shl<ExprNode<T, N, SIGN>> for $ty
+        impl<T, N, const SIGN: bool> Shl<IntExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -303,12 +303,12 @@ macro_rules! impl_int_shl_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
         {
-            type Output = ExprNode<T, $bits, $sign>;
+            type Output = IntExprNode<T, $bits, $sign>;
 
-            fn shl(self, rhs: ExprNode<T, N, SIGN>) -> Self::Output {
-                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) << rhs
+            fn shl(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) << rhs
             }
         }
     };
@@ -335,8 +335,8 @@ impl_int_shl_self_imm!(true, i64, U64);
 impl_int_shl_self_imm!(true, i128, U128);
 
 /// Shift left implementation.
-impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShl<ExprNode<T, N2, SIGN2>>
-    for ExprNode<T, N, SIGN>
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShl<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -345,18 +345,18 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
     N2: ArrayLength<usize>,
-    ExprNode<T, N2, SIGN2>: TryFrom<ExprNode<T, U64, false>>,
-    <ExprNode<T, N2, SIGN2> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
-    ExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+    IntExprNode<T, N2, SIGN2>: TryFrom<IntExprNode<T, U64, false>>,
+    <IntExprNode<T, N2, SIGN2> as TryFrom<IntExprNode<T, U64, false>>>::Error: Debug,
+    IntExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shl(self, rhs: ExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shl(self, rhs: IntExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
         let nbits = Self::LOG_BITS;
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
 
-        let mut input = ExprNode::<T, N, SIGN> {
+        let mut input = IntExprNode::<T, N, SIGN> {
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
@@ -365,7 +365,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_left(&mut output.indexes, &input, rhs.bit(i), i);
         }
-        let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
+        let nexpr = IntExprNode::<T, N2, SIGN2>::try_from(IntExprNode::<T, U64, false>::constant(
             self.creator,
             N::U64 - 1,
         ))
@@ -381,7 +381,7 @@ where
 
 macro_rules! impl_int_cond_shl_self_imm {
     ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> IntCondShl<ExprNode<T, N, SIGN>> for $ty
+        impl<T, N, const SIGN: bool> IntCondShl<IntExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -389,16 +389,16 @@ macro_rules! impl_int_cond_shl_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
-            ExprNode<T, N, SIGN>: TryFrom<ExprNode<T, U64, false>>,
-            <ExprNode<T, N, SIGN> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
-            ExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            IntExprNode<T, N, SIGN>: TryFrom<IntExprNode<T, U64, false>>,
+            <IntExprNode<T, N, SIGN> as TryFrom<IntExprNode<T, U64, false>>>::Error: Debug,
+            IntExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
         {
-            type Output = ExprNode<T, $bits, $sign>;
+            type Output = IntExprNode<T, $bits, $sign>;
             type OutputCond = BoolExprNode<T>;
 
-            fn cond_shl(self, rhs: ExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
-                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shl(rhs)
+            fn cond_shl(self, rhs: IntExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shl(rhs)
             }
         }
     };
@@ -425,8 +425,8 @@ impl_int_cond_shl_self_imm!(true, i64, U64);
 impl_int_cond_shl_self_imm!(true, i128, U128);
 
 /// Shift right implementation.
-impl<T, N, const SIGN: bool, N2, const SIGN2: bool> Shr<ExprNode<T, N2, SIGN2>>
-    for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool, N2, const SIGN2: bool> Shr<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -438,7 +438,7 @@ where
 {
     type Output = Self;
 
-    fn shr(self, rhs: ExprNode<T, N2, SIGN2>) -> Self::Output {
+    fn shr(self, rhs: IntExprNode<T, N2, SIGN2>) -> Self::Output {
         let nbits = Self::LOG_BITS;
         // check whether zeroes in sign and in unused bits in Rhs
         if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
@@ -449,7 +449,7 @@ where
         }
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
 
-        let mut input = ExprNode {
+        let mut input = IntExprNode {
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
@@ -464,7 +464,7 @@ where
 
 macro_rules! impl_int_shr_imm {
     ($ty:ty) => {
-        impl<T, N, const SIGN: bool> Shr<$ty> for ExprNode<T, N, SIGN>
+        impl<T, N, const SIGN: bool> Shr<$ty> for IntExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -492,7 +492,7 @@ macro_rules! impl_int_shr_imm {
                 )
                 .unwrap();
                 output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
-                ExprNode {
+                IntExprNode {
                     creator: self.creator,
                     indexes: output,
                 }
@@ -506,7 +506,7 @@ impl_int_ipty!(impl_int_shr_imm);
 
 macro_rules! impl_int_shr_self_imm {
     ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> Shr<ExprNode<T, N, SIGN>> for $ty
+        impl<T, N, const SIGN: bool> Shr<IntExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -514,12 +514,12 @@ macro_rules! impl_int_shr_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
         {
-            type Output = ExprNode<T, $bits, $sign>;
+            type Output = IntExprNode<T, $bits, $sign>;
 
-            fn shr(self, rhs: ExprNode<T, N, SIGN>) -> Self::Output {
-                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) >> rhs
+            fn shr(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self) >> rhs
             }
         }
     };
@@ -546,8 +546,8 @@ impl_int_shr_self_imm!(true, i64, U64);
 impl_int_shr_self_imm!(true, i128, U128);
 
 /// Shift right implementation.
-impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShr<ExprNode<T, N2, SIGN2>>
-    for ExprNode<T, N, SIGN>
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntCondShr<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -556,18 +556,18 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     N: ArrayLength<usize>,
     N2: ArrayLength<usize>,
-    ExprNode<T, N2, SIGN2>: TryFrom<ExprNode<T, U64, false>>,
-    <ExprNode<T, N2, SIGN2> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
-    ExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
+    IntExprNode<T, N2, SIGN2>: TryFrom<IntExprNode<T, U64, false>>,
+    <IntExprNode<T, N2, SIGN2> as TryFrom<IntExprNode<T, U64, false>>>::Error: Debug,
+    IntExprNode<T, N2, SIGN2>: IntOrd<Output = BoolExprNode<T>>,
 {
     type Output = Self;
     type OutputCond = BoolExprNode<T>;
 
-    fn cond_shr(self, rhs: ExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
+    fn cond_shr(self, rhs: IntExprNode<T, N2, SIGN2>) -> (Self::Output, Self::OutputCond) {
         let nbits = Self::LOG_BITS;
         let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
 
-        let mut input = ExprNode::<T, N, SIGN> {
+        let mut input = IntExprNode::<T, N, SIGN> {
             creator: self.creator.clone(),
             indexes: GenericArray::default(),
         };
@@ -576,7 +576,7 @@ where
             std::mem::swap(&mut input, &mut output);
             iter_shift_right(&mut output.indexes, &input, rhs.bit(i), i, SIGN);
         }
-        let nexpr = ExprNode::<T, N2, SIGN2>::try_from(ExprNode::<T, U64, false>::constant(
+        let nexpr = IntExprNode::<T, N2, SIGN2>::try_from(IntExprNode::<T, U64, false>::constant(
             self.creator,
             N::U64 - 1,
         ))
@@ -592,7 +592,7 @@ where
 
 macro_rules! impl_int_cond_shr_self_imm {
     ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> IntCondShr<ExprNode<T, N, SIGN>> for $ty
+        impl<T, N, const SIGN: bool> IntCondShr<IntExprNode<T, N, SIGN>> for $ty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -600,16 +600,16 @@ macro_rules! impl_int_cond_shr_self_imm {
             <T as TryFrom<usize>>::Error: Debug,
             <isize as TryFrom<T>>::Error: Debug,
             N: ArrayLength<usize>,
-            ExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
-            ExprNode<T, N, SIGN>: TryFrom<ExprNode<T, U64, false>>,
-            <ExprNode<T, N, SIGN> as TryFrom<ExprNode<T, U64, false>>>::Error: Debug,
-            ExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+            IntExprNode<T, N, SIGN>: TryFrom<IntExprNode<T, U64, false>>,
+            <IntExprNode<T, N, SIGN> as TryFrom<IntExprNode<T, U64, false>>>::Error: Debug,
+            IntExprNode<T, N, SIGN>: IntOrd<Output = BoolExprNode<T>>,
         {
-            type Output = ExprNode<T, $bits, $sign>;
+            type Output = IntExprNode<T, $bits, $sign>;
             type OutputCond = BoolExprNode<T>;
 
-            fn cond_shr(self, rhs: ExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
-                ExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shr(rhs)
+            fn cond_shr(self, rhs: IntExprNode<T, N, SIGN>) -> (Self::Output, Self::OutputCond) {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).cond_shr(rhs)
             }
         }
     };
@@ -638,8 +638,8 @@ impl_int_cond_shr_self_imm!(true, i128, U128);
 // ShlAssign
 macro_rules! impl_int_shx_assign {
     ($trait:ident, $op:ident, $op_assign:ident, $macro:ident) => {
-        impl<T, N, const SIGN: bool, N2, const SIGN2: bool> $trait<ExprNode<T, N2, SIGN2>>
-            for ExprNode<T, N, SIGN>
+        impl<T, N, const SIGN: bool, N2, const SIGN2: bool> $trait<IntExprNode<T, N2, SIGN2>>
+            for IntExprNode<T, N, SIGN>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -649,14 +649,14 @@ macro_rules! impl_int_shx_assign {
             N: ArrayLength<usize>,
             N2: ArrayLength<usize>,
         {
-            fn $op_assign(&mut self, rhs: ExprNode<T, N2, SIGN2>) {
+            fn $op_assign(&mut self, rhs: IntExprNode<T, N2, SIGN2>) {
                 *self = self.clone().$op(rhs)
             }
         }
 
         macro_rules! $macro {
             ($ty:ty) => {
-                impl<T, N, const SIGN: bool> $trait<$ty> for ExprNode<T, N, SIGN>
+                impl<T, N, const SIGN: bool> $trait<$ty> for IntExprNode<T, N, SIGN>
                 where
                     T: VarLit + Neg<Output = T> + Debug,
                     isize: TryFrom<T>,
@@ -689,8 +689,8 @@ mod tests {
     macro_rules! test_expr_node_bitop {
         ($op:ident) => {{
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U6, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U6, false>::variable(ec.clone());
             let res = x1.$op(x2);
 
             let exp_ec = ExprCreator::new();
@@ -706,7 +706,7 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
             let res = x1.$op(141);
 
             let exp_ec = ExprCreator::new();
@@ -722,7 +722,7 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             let res = (-46).$op(x1);
 
             let exp_ec = ExprCreator::new();
@@ -755,8 +755,8 @@ mod tests {
     macro_rules! test_expr_node_bitop_assign {
         ($op:ident, $op_assign:ident) => {{
             let ec = ExprCreator::new();
-            let mut x1 = ExprNode::<isize, U6, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U6, false>::variable(ec.clone());
+            let mut x1 = IntExprNode::<isize, U6, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U6, false>::variable(ec.clone());
             x1.$op_assign(x2);
 
             let exp_ec = ExprCreator::new();
@@ -772,7 +772,7 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let mut x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let mut x1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
             x1.$op_assign(141);
 
             let exp_ec = ExprCreator::new();
@@ -788,7 +788,7 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let mut x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let mut x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             x1.$op_assign(-43);
 
             let exp_ec = ExprCreator::new();
@@ -821,7 +821,7 @@ mod tests {
     #[test]
     fn test_expr_node_not() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
+        let x1 = IntExprNode::<isize, U5, false>::variable(ec.clone());
         let res = !x1;
 
         let exp_ec = ExprCreator::new();
@@ -860,16 +860,16 @@ mod tests {
     macro_rules! test_expr_node_shl_assign_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec2.clone()),
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec2.clone()),
             );
             x1_out <<= x2;
 
@@ -893,10 +893,10 @@ mod tests {
     macro_rules! test_expr_node_shl_imm_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
+            let res: IntExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 3);
@@ -919,11 +919,11 @@ mod tests {
     macro_rules! test_expr_node_shl_assign_rhs_imm {
         ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let res = x1 << (($shift) as $rhs_pty);
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
             x1_out <<= (($shift) as $rhs_pty);
 
             let exp_ec = ExprCreator::new();
@@ -946,16 +946,16 @@ mod tests {
     macro_rules! test_expr_node_shl_assign_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res = x1 << x2;
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec2.clone()),
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec2.clone()),
             );
             x1_out <<= x2;
 
@@ -981,10 +981,10 @@ mod tests {
     macro_rules! test_expr_node_shl_imm_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
+            let res: IntExprNode<isize, $ty, $sign> = ($imm as $pty) << x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 5);
@@ -1028,8 +1028,8 @@ mod tests {
         {
             // check if rhs have lower number of bits
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U2, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U2, false>::variable(ec.clone());
             let res = x1 << x2;
 
             let exp_ec = ExprCreator::new();
@@ -1065,8 +1065,8 @@ mod tests {
         {
             // check if rhs have lower number of bits
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U32, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U32, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U3, false>::variable(ec.clone());
             let res = x1 << x2;
 
             let exp_ec = ExprCreator::new();
@@ -1121,16 +1121,16 @@ mod tests {
     macro_rules! test_expr_node_shr_assign_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
             );
             let res = x1 >> x2;
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec2.clone()),
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec2.clone()),
             );
             x1_out >>= x2;
 
@@ -1155,10 +1155,10 @@ mod tests {
     macro_rules! test_expr_node_shr_imm_3 {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U3, false>::variable(ec.clone()),
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) >> x2;
+            let res: IntExprNode<isize, $ty, $sign> = ($imm as $pty) >> x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 3);
@@ -1181,11 +1181,11 @@ mod tests {
     macro_rules! test_expr_node_shr_assign_rhs_imm {
         ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
             let res = x1 >> (($shift) as $rhs_pty);
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
             x1_out >>= (($shift) as $rhs_pty);
 
             let exp_ec = ExprCreator::new();
@@ -1212,16 +1212,16 @@ mod tests {
     macro_rules! test_expr_node_shr_assign_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
             );
             let res = x1 >> x2;
 
             let ec2 = ExprCreator::new();
-            let mut x1_out = ExprNode::<isize, $ty, $sign>::variable(ec2.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec2.clone()),
+            let mut x1_out = IntExprNode::<isize, $ty, $sign>::variable(ec2.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec2.clone()),
             );
             x1_out >>= x2;
 
@@ -1250,10 +1250,10 @@ mod tests {
     macro_rules! test_expr_node_shr_imm_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $pty:ty, $torhs:ty, $bits:expr, $imm:expr) => {
             let ec = ExprCreator::new();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from(
-                ExprNode::<isize, U5, false>::variable(ec.clone()),
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
             );
-            let res: ExprNode<isize, $ty, $sign> = ($imm as $pty) >> x2;
+            let res: IntExprNode<isize, $ty, $sign> = ($imm as $pty) >> x2;
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), 5);
@@ -1298,8 +1298,8 @@ mod tests {
         {
             // check if rhs have lower number of bits
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U8, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U2, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U2, false>::variable(ec.clone());
             let res = x1 >> x2;
 
             let exp_ec = ExprCreator::new();
@@ -1337,8 +1337,8 @@ mod tests {
         {
             // check if rhs have lower number of bits
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U32, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U3, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U32, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U3, false>::variable(ec.clone());
             let res = x1 >> x2;
 
             let exp_ec = ExprCreator::new();
@@ -1366,8 +1366,8 @@ mod tests {
     macro_rules! test_expr_node_cond_shl_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
             let (res, resc) = x1.cond_shl(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1380,13 +1380,13 @@ mod tests {
                 .into_iter()
                 .map(|x| x.index)
                 .collect::<Vec<_>>();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from_boolexprs(
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from_boolexprs(
                 (0..$bits2).into_iter().map(|x| bvs[$bits + x].clone()),
             )
             .unwrap();
             let tempc = x2.less_equal(
-                ExprNode::<isize, $torhs, $signrhs>::try_from(
-                    ExprNode::<isize, U32, false>::constant(exp_ec.clone(), ($bits - 1) as u32),
+                IntExprNode::<isize, $torhs, $signrhs>::try_from(
+                    IntExprNode::<isize, U32, false>::constant(exp_ec.clone(), ($bits - 1) as u32),
                 )
                 .unwrap(),
             );
@@ -1426,8 +1426,8 @@ mod tests {
     macro_rules! test_expr_node_cond_shr_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, $ty, $sign>::variable(ec.clone());
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
             let (res, resc) = x1.cond_shr(x2);
 
             let exp_ec = ExprCreator::new();
@@ -1443,13 +1443,13 @@ mod tests {
                 .into_iter()
                 .map(|x| x.index)
                 .collect::<Vec<_>>();
-            let x2 = ExprNode::<isize, $torhs, $signrhs>::from_boolexprs(
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from_boolexprs(
                 (0..$bits2).into_iter().map(|x| bvs[$bits + x].clone()),
             )
             .unwrap();
             let tempc = x2.less_equal(
-                ExprNode::<isize, $torhs, $signrhs>::try_from(
-                    ExprNode::<isize, U32, false>::constant(exp_ec.clone(), ($bits - 1) as u32),
+                IntExprNode::<isize, $torhs, $signrhs>::try_from(
+                    IntExprNode::<isize, U32, false>::constant(exp_ec.clone(), ($bits - 1) as u32),
                 )
                 .unwrap(),
             );

@@ -35,7 +35,7 @@ use crate::{BoolEqual, BoolExprNode, BoolImpl, ExprCreator, VarLit};
 
 /// Equality operator for integer expressions.
 ///
-/// It defined for IntExprNode and DynIntExprNode. Type `Rhs` can be various than Self.
+/// It defined for IntIntExprNode and DynIntIntExprNode. Type `Rhs` can be various than Self.
 /// This trait also defines `Output` that can be different than Self.
 pub trait IntEqual<Rhs = Self> {
     type Output;
@@ -67,7 +67,7 @@ impl_int_ipty!(int_equal_impl);
 
 /// Orderings for integer expressions.
 ///
-/// It defined for IntExprNode and DynIntExprNode. Type `Rhs` can be various than Self.
+/// It defined for IntIntExprNode and DynIntIntExprNode. Type `Rhs` can be various than Self.
 /// This trait also defines `Output` that can be different than Self.
 pub trait IntOrd<Rhs = Self> {
     type Output;
@@ -119,7 +119,7 @@ pub trait TryIntConstant<T: VarLit, U>: Sized {
 
 /// Trait to get a bit value from object and get number of bits for object.
 ///
-/// It defined for IntExprNode and DynIntExprNode. The defines `Output` that can be
+/// It defined for IntIntExprNode and DynIntIntExprNode. The defines `Output` that can be
 /// BoolExprNode.
 pub trait BitVal {
     type Output;
@@ -180,7 +180,7 @@ impl_int_ipty!(impl_int_bitval_ipty);
 
 /// Special trait to make BitMask from boolean expression.
 ///
-/// A bitmask can have all bits set or zeroed. It defined only for IntExprNode.
+/// A bitmask can have all bits set or zeroed. It defined only for IntIntExprNode.
 pub trait BitMask<T> {
     /// Make bit-mask from boolean expression.
     fn bitmask(bit: T) -> Self;
@@ -208,7 +208,7 @@ impl_int_ipty!(impl_int_bitmask_pty);
 /// Trait to make full multiplication.
 ///
 /// Full multiplication generates output have twice size of input arguments.
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait FullMul<Rhs = Self> {
     type Output;
 
@@ -254,7 +254,7 @@ impl_int_fullmul_pty_pty_simple!(i64, i128);
 /// Same condition is a boolean expression describes these condtions.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait DivMod<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -288,7 +288,7 @@ impl_int_ipty!(impl_int_divmod_pty_pty);
 ///
 /// A modular addition make this same addition like processor addition - it returns
 /// truncated sum of two arguments.
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntModAdd<Rhs = Self> {
     type Output;
 
@@ -300,7 +300,7 @@ pub trait IntModAdd<Rhs = Self> {
 ///
 /// A modular subtraction make this same subtraction like processor's subtraction - it returns
 /// truncated difference.
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntModSub<Rhs = Self> {
     type Output;
 
@@ -311,7 +311,7 @@ pub trait IntModSub<Rhs = Self> {
 /// Trait to modular multiplication.
 ///
 /// A modular multiplication make this same truncated multiplication to size of input argument.
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntModMul<Rhs = Self> {
     type Output;
 
@@ -397,7 +397,7 @@ impl_int_ipty!(impl_int_mod_arith_pty_pty);
 /// A modular negation just make negation ignoring wrong result for minimal value
 /// (for example for 8-bit is -128). It can be used internally for some expressions.
 /// Generally should be avoided.
-/// It defined for signed IntExprNode and signed DynIntExprNode.
+/// It defined for signed IntIntExprNode and signed DynIntIntExprNode.
 pub trait IntModNeg {
     type Output;
 
@@ -426,7 +426,7 @@ impl_int_ipty!(impl_int_mod_neg_pty);
 /// This condition can force evaluation only if result is in input size type.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntCondAdd<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -443,7 +443,7 @@ pub trait IntCondAdd<Rhs = Self> {
 /// This condition can force evaluation only if result is in input size type.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntCondSub<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -460,7 +460,7 @@ pub trait IntCondSub<Rhs = Self> {
 /// This condition can force evaluation only if result is in input size type.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntCondMul<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -517,7 +517,7 @@ impl_int_ipty!(impl_int_cond_arith_pty_pty);
 /// This condition can force evaluation only if result is in input size type.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for signed IntExprNode and signed DynIntExprNode.
+/// It defined for signed IntIntExprNode and signed DynIntIntExprNode.
 pub trait IntCondNeg {
     type Output;
     /// Type of output condition.
@@ -549,7 +549,7 @@ impl_int_ipty!(impl_int_cond_neg_pty);
 /// no right argument is lower than number of bits of left argument.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntCondShl<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -564,7 +564,7 @@ pub trait IntCondShl<Rhs = Self> {
 /// no right argument is lower than number of bits of left argument.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
-/// It defined for IntExprNode and DynIntExprNode.
+/// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait IntCondShr<Rhs = Self> {
     type Output;
     /// Type of output condition.
@@ -604,7 +604,7 @@ impl_int_upty!(impl_int_cond_shift_pty_pty);
 // ///////////////////////////////
 // expr node implementation
 
-impl<'a, T, N, const SIGN: bool> BitVal for &'a ExprNode<T, N, SIGN>
+impl<'a, T, N, const SIGN: bool> BitVal for &'a IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -625,7 +625,7 @@ where
     }
 }
 
-impl<T, N, const SIGN: bool> BitMask<BoolExprNode<T>> for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> BitMask<BoolExprNode<T>> for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -635,7 +635,7 @@ where
     N: ArrayLength<usize>,
 {
     fn bitmask(t: BoolExprNode<T>) -> Self {
-        ExprNode {
+        IntExprNode {
             creator: t.creator.clone(),
             indexes: GenericArray::from_exact_iter(iter::repeat(t.index).take(N::USIZE)).unwrap(),
         }
@@ -644,12 +644,12 @@ where
 
 macro_rules! impl_int_uconstant {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, false>
+        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for IntExprNode<T, $ty, false>
         where
             $ty: ArrayLength<usize>,
         {
             fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: $pty) -> Self {
-                ExprNode{ creator, indexes: GenericArray::from_exact_iter(
+                IntExprNode{ creator, indexes: GenericArray::from_exact_iter(
                     (0..<$ty>::USIZE).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
                         if x < <$pty>::BITS as usize {
@@ -666,12 +666,12 @@ impl_int_upty_ty1!(impl_int_uconstant);
 
 macro_rules! impl_int_iconstant {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for ExprNode<T, $ty, true>
+        impl<T: VarLit, $( $gparams ),* > IntConstant<T, $pty> for IntExprNode<T, $ty, true>
         where
             $ty: ArrayLength<usize>,
         {
             fn constant(creator: Rc<RefCell<ExprCreator<T>>>, v: $pty) -> Self {
-                ExprNode{ creator, indexes: GenericArray::from_exact_iter(
+                IntExprNode{ creator, indexes: GenericArray::from_exact_iter(
                     (0..<$ty>::USIZE).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
                         if x < <$pty>::BITS as usize {
@@ -690,7 +690,7 @@ impl_int_ipty_ty1!(impl_int_iconstant);
 
 macro_rules! impl_int_try_uconstant {
     ($pty:ty) => {
-        impl<T, N> TryIntConstant<T, $pty> for ExprNode<T, N, false>
+        impl<T, N> TryIntConstant<T, $pty> for IntExprNode<T, N, false>
         where
             T: VarLit,
             N: ArrayLength<usize>,
@@ -705,7 +705,7 @@ macro_rules! impl_int_try_uconstant {
                 {
                     return Err(IntError::BitOverflow);
                 }
-                Ok(ExprNode {
+                Ok(IntExprNode {
                     creator,
                     indexes: GenericArray::from_exact_iter((0..n).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
@@ -726,7 +726,7 @@ impl_int_upty!(impl_int_try_uconstant);
 
 macro_rules! impl_int_try_iconstant {
     ($pty:ty) => {
-        impl<T, N> TryIntConstant<T, $pty> for ExprNode<T, N, true>
+        impl<T, N> TryIntConstant<T, $pty> for IntExprNode<T, N, true>
         where
             T: VarLit,
             N: ArrayLength<usize>,
@@ -744,7 +744,7 @@ macro_rules! impl_int_try_iconstant {
                         return Err(IntError::BitOverflow);
                     }
                 }
-                Ok(ExprNode {
+                Ok(IntExprNode {
                     creator,
                     indexes: GenericArray::from_exact_iter((0..n).into_iter().map(|x| {
                         // return 1 - true node index, 0 - false node index
@@ -766,7 +766,7 @@ impl_int_ipty!(impl_int_try_iconstant);
 // ///////////////////
 // IntEqual
 
-impl<T, N, const SIGN: bool> IntEqual for ExprNode<T, N, SIGN>
+impl<T, N, const SIGN: bool> IntEqual for IntExprNode<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -796,7 +796,7 @@ where
 
 macro_rules! impl_int_equal_pty {
     ($sign:expr, $pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T, $( $gparams ),* > IntEqual<$pty> for ExprNode<T, $ty, $sign>
+        impl<T, $( $gparams ),* > IntEqual<$pty> for IntExprNode<T, $ty, $sign>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -818,7 +818,7 @@ macro_rules! impl_int_equal_pty {
             }
         }
 
-        impl<T, $( $gparams ),* > IntEqual<ExprNode<T, $ty, $sign>> for $pty
+        impl<T, $( $gparams ),* > IntEqual<IntExprNode<T, $ty, $sign>> for $pty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -829,14 +829,14 @@ macro_rules! impl_int_equal_pty {
         {
             type Output = BoolExprNode<T>;
 
-            fn equal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+            fn equal(self, rhs: IntExprNode<T, $ty, $sign>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, $sign>::constant(creator, self).equal(rhs)
+                IntExprNode::<T, $ty, $sign>::constant(creator, self).equal(rhs)
             }
 
-            fn nequal(self, rhs: ExprNode<T, $ty, $sign>) -> Self::Output {
+            fn nequal(self, rhs: IntExprNode<T, $ty, $sign>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, $sign>::constant(creator, self).nequal(rhs)
+                IntExprNode::<T, $ty, $sign>::constant(creator, self).nequal(rhs)
             }
         }
     }
@@ -859,7 +859,7 @@ impl_int_ipty_ty1!(impl_int_equal_ipty);
 // ///////////////////
 // IntOrd
 
-impl<T, N> IntOrd for ExprNode<T, N, false>
+impl<T, N> IntOrd for IntExprNode<T, N, false>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -895,7 +895,7 @@ where
     }
 }
 
-impl<T, N> IntOrd for ExprNode<T, N, true>
+impl<T, N> IntOrd for IntExprNode<T, N, true>
 where
     T: VarLit + Neg<Output = T> + Debug,
     isize: TryFrom<T>,
@@ -945,7 +945,7 @@ where
 
 macro_rules! impl_int_ord_upty {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T, $( $gparams ),* > IntOrd<$pty> for ExprNode<T, $ty, false>
+        impl<T, $( $gparams ),* > IntOrd<$pty> for IntExprNode<T, $ty, false>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -974,7 +974,7 @@ macro_rules! impl_int_ord_upty {
             }
         }
 
-        impl<T, $( $gparams ),* > IntOrd<ExprNode<T, $ty, false>> for $pty
+        impl<T, $( $gparams ),* > IntOrd<IntExprNode<T, $ty, false>> for $pty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -985,21 +985,21 @@ macro_rules! impl_int_ord_upty {
         {
             type Output = BoolExprNode<T>;
 
-            fn less_than(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+            fn less_than(self, rhs: IntExprNode<T, $ty, false>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, false>::constant(creator, self).less_than(rhs)
+                IntExprNode::<T, $ty, false>::constant(creator, self).less_than(rhs)
             }
-            fn less_equal(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+            fn less_equal(self, rhs: IntExprNode<T, $ty, false>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, false>::constant(creator, self).less_equal(rhs)
+                IntExprNode::<T, $ty, false>::constant(creator, self).less_equal(rhs)
             }
-            fn greater_than(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+            fn greater_than(self, rhs: IntExprNode<T, $ty, false>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, false>::constant(creator, self).greater_than(rhs)
+                IntExprNode::<T, $ty, false>::constant(creator, self).greater_than(rhs)
             }
-            fn greater_equal(self, rhs: ExprNode<T, $ty, false>) -> Self::Output {
+            fn greater_equal(self, rhs: IntExprNode<T, $ty, false>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, false>::constant(creator, self).greater_equal(rhs)
+                IntExprNode::<T, $ty, false>::constant(creator, self).greater_equal(rhs)
             }
         }
     }
@@ -1007,7 +1007,7 @@ macro_rules! impl_int_ord_upty {
 
 macro_rules! impl_int_ord_ipty {
     ($pty:ty, $ty:ty, $($gparams:ident),*) => {
-        impl<T, $( $gparams ),* > IntOrd<$pty> for ExprNode<T, $ty, true>
+        impl<T, $( $gparams ),* > IntOrd<$pty> for IntExprNode<T, $ty, true>
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -1036,7 +1036,7 @@ macro_rules! impl_int_ord_ipty {
             }
         }
 
-        impl<T, $( $gparams ),* > IntOrd<ExprNode<T, $ty, true>> for $pty
+        impl<T, $( $gparams ),* > IntOrd<IntExprNode<T, $ty, true>> for $pty
         where
             T: VarLit + Neg<Output = T> + Debug,
             isize: TryFrom<T>,
@@ -1047,21 +1047,21 @@ macro_rules! impl_int_ord_ipty {
         {
             type Output = BoolExprNode<T>;
 
-            fn less_than(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+            fn less_than(self, rhs: IntExprNode<T, $ty, true>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, true>::constant(creator, self).less_than(rhs)
+                IntExprNode::<T, $ty, true>::constant(creator, self).less_than(rhs)
             }
-            fn less_equal(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+            fn less_equal(self, rhs: IntExprNode<T, $ty, true>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, true>::constant(creator, self).less_equal(rhs)
+                IntExprNode::<T, $ty, true>::constant(creator, self).less_equal(rhs)
             }
-            fn greater_than(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+            fn greater_than(self, rhs: IntExprNode<T, $ty, true>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, true>::constant(creator, self).greater_than(rhs)
+                IntExprNode::<T, $ty, true>::constant(creator, self).greater_than(rhs)
             }
-            fn greater_equal(self, rhs: ExprNode<T, $ty, true>) -> Self::Output {
+            fn greater_equal(self, rhs: IntExprNode<T, $ty, true>) -> Self::Output {
                 let creator = rhs.creator.clone();
-                ExprNode::<T, $ty, true>::constant(creator, self).greater_equal(rhs)
+                IntExprNode::<T, $ty, true>::constant(creator, self).greater_equal(rhs)
             }
         }
     }
@@ -1202,10 +1202,10 @@ mod tests {
     #[test]
     fn test_expr_node_bitval() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, U7, false>::variable(ec.clone());
+        let x1 = IntExprNode::<isize, U7, false>::variable(ec.clone());
         assert_eq!(x1.bit(2), BoolExprNode::single(ec.clone(), 3));
         assert_eq!(x1.bit(6), BoolExprNode::single(ec.clone(), 7));
-        let x1 = ExprNode::<isize, U7, true>::variable(ec.clone());
+        let x1 = IntExprNode::<isize, U7, true>::variable(ec.clone());
         assert_eq!(x1.bit(3), BoolExprNode::single(ec.clone(), 11));
     }
 
@@ -1216,25 +1216,25 @@ mod tests {
         let bx2 = BoolExprNode::variable(ec.clone());
         let bxp1 = bx1 ^ bx2;
         assert_eq!(
-            ExprNode::filled_expr(bxp1.clone()),
-            <ExprNode<isize, U8, false> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
+            IntExprNode::filled_expr(bxp1.clone()),
+            <IntExprNode<isize, U8, false> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
         );
         assert_eq!(
-            ExprNode::filled_expr(bxp1.clone()),
-            <ExprNode<isize, U8, true> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
+            IntExprNode::filled_expr(bxp1.clone()),
+            <IntExprNode<isize, U8, true> as BitMask<BoolExprNode<isize>>>::bitmask(bxp1.clone())
         );
     }
 
     #[test]
     fn test_expr_node_int_constant() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, U9, false>::constant(ec.clone(), 0b11011001);
+        let x1 = IntExprNode::<isize, U9, false>::constant(ec.clone(), 0b11011001);
         assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, U8, true>::constant(ec.clone(), 0b00111001);
+        let x1 = IntExprNode::<isize, U8, true>::constant(ec.clone(), 0b00111001);
         assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, U10, true>::constant(ec.clone(), -15);
+        let x1 = IntExprNode::<isize, U10, true>::constant(ec.clone(), -15);
         assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
-        let x1 = ExprNode::<isize, U64, false>::constant(ec.clone(), 1848549293434211u64);
+        let x1 = IntExprNode::<isize, U64, false>::constant(ec.clone(), 1848549293434211u64);
         assert_eq!(
             (0..64)
                 .into_iter()
@@ -1248,14 +1248,14 @@ mod tests {
     #[test]
     fn test_expr_node_try_int_constant() {
         let ec = ExprCreator::new();
-        let x1 = ExprNode::<isize, U9, false>::try_constant(ec.clone(), 0b11011001u16).unwrap();
+        let x1 = IntExprNode::<isize, U9, false>::try_constant(ec.clone(), 0b11011001u16).unwrap();
         assert_eq!([1, 0, 0, 1, 1, 0, 1, 1, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, U8, true>::try_constant(ec.clone(), 0b00111001i16).unwrap();
+        let x1 = IntExprNode::<isize, U8, true>::try_constant(ec.clone(), 0b00111001i16).unwrap();
         assert_eq!([1, 0, 0, 1, 1, 1, 0, 0], *x1.indexes);
-        let x1 = ExprNode::<isize, U10, true>::try_constant(ec.clone(), -15i8).unwrap();
+        let x1 = IntExprNode::<isize, U10, true>::try_constant(ec.clone(), -15i8).unwrap();
         assert_eq!([1, 0, 0, 0, 1, 1, 1, 1, 1, 1], *x1.indexes);
-        let x1 =
-            ExprNode::<isize, U64, false>::try_constant(ec.clone(), 1848549293434211u64).unwrap();
+        let x1 = IntExprNode::<isize, U64, false>::try_constant(ec.clone(), 1848549293434211u64)
+            .unwrap();
         assert_eq!(
             (0..64)
                 .into_iter()
@@ -1264,26 +1264,26 @@ mod tests {
                 .as_slice(),
             x1.indexes.as_slice()
         );
-        let x1 = ExprNode::<isize, U1, true>::try_constant(ec.clone(), 0i64).unwrap();
+        let x1 = IntExprNode::<isize, U1, true>::try_constant(ec.clone(), 0i64).unwrap();
         assert_eq!([0], *x1.indexes);
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, U4, false>::try_constant(ec.clone(), 14u16 | (1u16 << i))
+                IntExprNode::<isize, U4, false>::try_constant(ec.clone(), 14u16 | (1u16 << i))
                     .map_err(|x| x.to_string())
             );
         }
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, U4, true>::try_constant(ec.clone(), 6i16 | (1i16 << i))
+                IntExprNode::<isize, U4, true>::try_constant(ec.clone(), 6i16 | (1i16 << i))
                     .map_err(|x| x.to_string())
             );
         }
         for i in 4..16 {
             assert_eq!(
                 Err("Bit overflow".to_string()),
-                ExprNode::<isize, U4, true>::try_constant(ec.clone(), (-6i16) ^ (1i16 << i))
+                IntExprNode::<isize, U4, true>::try_constant(ec.clone(), (-6i16) ^ (1i16 << i))
                     .map_err(|x| x.to_string())
             );
         }
@@ -1293,10 +1293,10 @@ mod tests {
     fn test_expr_node_int_equal() {
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U5, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U5, false>::variable(ec.clone());
-            let x3 = ExprNode::<isize, U5, false>::variable(ec.clone());
-            let x4 = ExprNode::<isize, U5, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U5, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U5, false>::variable(ec.clone());
+            let x3 = IntExprNode::<isize, U5, false>::variable(ec.clone());
+            let x4 = IntExprNode::<isize, U5, false>::variable(ec.clone());
             let reseq = x1.equal(x2);
             let resne = x3.nequal(x4);
 
@@ -1341,8 +1341,8 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U9, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U9, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U9, false>::variable(ec.clone());
             let reseq = x1.equal(135);
             let resne = x2.nequal(74);
             assert_eq!(expeq, reseq);
@@ -1351,8 +1351,8 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U9, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U9, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U9, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U9, false>::variable(ec.clone());
             let reseq = 135.equal(x1);
             let resne = 74.nequal(x2);
             assert_eq!(expeq, reseq);
@@ -1382,8 +1382,8 @@ mod tests {
             | !bvs[17].clone();
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U9, true>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U9, true>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U9, true>::variable(ec.clone());
             let reseq = x1.equal(-121);
             let resne = x2.nequal(-54);
             assert_eq!(expeq, reseq);
@@ -1392,8 +1392,8 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U9, true>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U9, true>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U9, true>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U9, true>::variable(ec.clone());
             let reseq = (-121).equal(x1);
             let resne = (-54).nequal(x2);
             assert_eq!(expeq, reseq);
@@ -1425,7 +1425,7 @@ mod tests {
             let ec = ExprCreator::new();
             let xv = (0..8)
                 .into_iter()
-                .map(|_| ExprNode::<isize, U5, false>::variable(ec.clone()))
+                .map(|_| IntExprNode::<isize, U5, false>::variable(ec.clone()))
                 .collect::<Vec<_>>();
             let reslt = xv[0].clone().less_than(xv[1].clone());
             let resle = xv[2].clone().less_equal(xv[3].clone());
@@ -1487,10 +1487,10 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x3 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x4 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x3 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x4 = IntExprNode::<isize, U10, false>::variable(ec.clone());
 
             let reslt = x1.clone().less_than(155);
             let resle = x2.clone().less_equal(51);
@@ -1505,10 +1505,10 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x3 = ExprNode::<isize, U10, false>::variable(ec.clone());
-            let x4 = ExprNode::<isize, U10, false>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x3 = IntExprNode::<isize, U10, false>::variable(ec.clone());
+            let x4 = IntExprNode::<isize, U10, false>::variable(ec.clone());
 
             let reslt = 155.greater_than(x1.clone());
             let resle = 51.greater_equal(x2.clone());
@@ -1529,7 +1529,7 @@ mod tests {
             let ec = ExprCreator::new();
             let xv = (0..8)
                 .into_iter()
-                .map(|_| ExprNode::<isize, U5, true>::variable(ec.clone()))
+                .map(|_| IntExprNode::<isize, U5, true>::variable(ec.clone()))
                 .collect::<Vec<_>>();
             let reslt = xv[0].clone().less_than(xv[1].clone());
             let resle = xv[2].clone().less_equal(xv[3].clone());
@@ -1612,10 +1612,10 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x3 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x4 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x3 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x4 = IntExprNode::<isize, U10, true>::variable(ec.clone());
 
             let reslt = x1.clone().less_than(-42);
             let resle = x2.clone().less_equal(75);
@@ -1630,10 +1630,10 @@ mod tests {
         }
         {
             let ec = ExprCreator::new();
-            let x1 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x2 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x3 = ExprNode::<isize, U10, true>::variable(ec.clone());
-            let x4 = ExprNode::<isize, U10, true>::variable(ec.clone());
+            let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x3 = IntExprNode::<isize, U10, true>::variable(ec.clone());
+            let x4 = IntExprNode::<isize, U10, true>::variable(ec.clone());
 
             let reslt = (-42).greater_than(x1.clone());
             let resle = 75.greater_equal(x2.clone());

@@ -75,11 +75,11 @@ pub use boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 mod int_utils;
 pub mod intexpr;
 pub use intexpr::{
-    int_ite, int_table, BitMask, BitVal, DivMod, ExprNode as IntExprNode, FullMul, I128ExprNode,
-    I16ExprNode, I32ExprNode, I64ExprNode, I8ExprNode, IExprNode, IntCondAdd, IntCondMul,
-    IntCondNeg, IntCondShl, IntCondShr, IntCondSub, IntConstant, IntEqual, IntError, IntModAdd,
-    IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
-    TryIntConstant, U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode, UExprNode,
+    int_ite, int_table, BitMask, BitVal, DivMod, FullMul, I128ExprNode, I16ExprNode, I32ExprNode,
+    I64ExprNode, I8ExprNode, IExprNode, IntCondAdd, IntCondMul, IntCondNeg, IntCondShl, IntCondShr,
+    IntCondSub, IntConstant, IntEqual, IntError, IntExprNode, IntModAdd, IntModAddAssign,
+    IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd, TryIntConstant,
+    U128ExprNode, U16ExprNode, U32ExprNode, U64ExprNode, U8ExprNode, UExprNode,
 };
 pub mod dynintexpr;
 mod intmacros;
