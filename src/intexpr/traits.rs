@@ -30,8 +30,8 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use super::*;
+use crate::boolexpr::{BoolEqual, BoolImpl};
 use crate::{impl_int_ipty, impl_int_ipty_ty1, impl_int_upty, impl_int_upty_ty1};
-use crate::{BoolEqual, BoolExprNode, BoolImpl, ExprCreator, VarLit};
 
 /// Equality operator for integer expressions.
 ///

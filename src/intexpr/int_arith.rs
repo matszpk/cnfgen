@@ -27,8 +27,8 @@ use generic_array::typenum::*;
 use generic_array::*;
 
 use super::*;
+use crate::boolexpr::{BoolEqual, BoolExprNode};
 use crate::{impl_int_ipty_ty1, impl_int_upty_ty1};
-use crate::{BoolEqual, BoolExprNode, VarLit};
 
 impl<T, N: ArrayLength<usize>> IntExprNode<T, N, true>
 where

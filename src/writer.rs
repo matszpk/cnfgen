@@ -38,7 +38,7 @@
 //! The sample usage is simple:
 //!
 //! ```
-//! use cnfgen::{CNFError, CNFWriter}; // use from library
+//! use cnfgen::writer::{CNFError, CNFWriter};
 //! fn simple_writer() -> Result<(), CNFError> {
 //!     use std::io;
 //!     let mut writer = CNFWriter::new(io::stdout());

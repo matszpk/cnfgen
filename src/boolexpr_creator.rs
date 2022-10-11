@@ -40,7 +40,7 @@ macro_rules! test_println {
     ($($arg:tt)*) => {};
 }
 
-use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
+use crate::writer::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Node<T: VarLit + Debug> {
@@ -879,7 +879,8 @@ pub type ExprCreatorSys = ExprCreator<isize>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
+    use crate::boolexpr::{BoolEqual, BoolExprNode, BoolImpl};
+    use crate::intexpr::{IntEqual, IntExprNode, IntOrd};
 
     macro_rules! expr_creator_testcase {
         ($ec: ident, $v: ident, $vars: expr, $expr: tt, $res: expr) => {

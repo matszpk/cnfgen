@@ -996,7 +996,7 @@ impl_dynint_div_mod!(true);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{int_ite, int_table, IntExprNode};
+    use crate::intexpr::{int_ite, int_table, IntExprNode};
     use generic_array::typenum::*;
 
     macro_rules! test_expr_node_binaryop {

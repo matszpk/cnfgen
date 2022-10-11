@@ -25,8 +25,10 @@ use std::fmt::Debug;
 use std::ops::Neg;
 use std::rc::Rc;
 
-use crate::boolexpr::{bool_ite, half_adder, opt_full_adder};
-use crate::{BitVal, BoolExprNode, ExprCreator, VarLit};
+use crate::boolexpr::{bool_ite, half_adder, opt_full_adder, BoolExprNode};
+use crate::boolexpr_creator::ExprCreator;
+use crate::intexpr::BitVal;
+use crate::writer::VarLit;
 
 pub(super) fn gen_dadda_mult<T>(
     creator: Rc<RefCell<ExprCreator<T>>>,
@@ -337,7 +339,7 @@ mod tests {
     use super::*;
     use crate::boolexpr::test_utils::*;
 
-    use crate::{IntExprNode, IntModAdd};
+    use crate::intexpr::{IntExprNode, IntModAdd};
     use generic_array::typenum::*;
     use generic_array::GenericArray;
 

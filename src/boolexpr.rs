@@ -24,7 +24,9 @@
 //! `BoolExprNode`. The same `BoolExprNode` can be used in following way:
 //!
 //! ```
-//! use cnfgen::{BoolImpl, BoolEqual, BoolExprNode, CNFError, CNFWriter, ExprCreator32};
+//! use cnfgen::boolexpr_creator::ExprCreator32;
+//! use cnfgen::boolexpr::{BoolImpl, BoolEqual, BoolExprNode};
+//! use cnfgen::writer::{CNFError, CNFWriter};
 //! use std::io;
 //! fn simple_expr_generator() -> Result<(), CNFError> {
 //!     // define ExprCreator.
@@ -49,7 +51,7 @@ use std::rc::Rc;
 
 use crate::boolexpr_creator::{ExprCreator, Node};
 
-use crate::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
+use crate::writer::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 /// Equality operator for boolean expressions and boolean words.
 ///

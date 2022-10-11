@@ -30,10 +30,12 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::half_adder;
+use crate::boolexpr::{half_adder, BoolExprNode};
+use crate::boolexpr_creator::ExprCreator;
+use crate::dynintexpr::DynIntExprNode;
 use crate::int_utils::*;
+use crate::writer::{Literal, VarLit};
 use crate::{impl_int_bitop_assign, impl_int_ty1_lt_ty2};
-use crate::{BoolExprNode, DynIntExprNode, ExprCreator, Literal, VarLit};
 
 /// Integer error.
 #[derive(thiserror::Error, Debug)]
@@ -477,7 +479,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::BoolExprNode;
+    use crate::boolexpr::BoolExprNode;
 
     #[test]
     fn test_expr_node() {
@@ -594,7 +596,7 @@ mod tests {
 
     #[test]
     fn test_expr_node_try_from_dynint_expr_node() {
-        use crate::DynIntExprNode;
+        use crate::dynintexpr::DynIntExprNode;
         let ec = ExprCreator::new();
         let dix1 = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
         let ix1 = IntExprNode::<isize, U10, false>::try_from(dix1.clone()).unwrap();

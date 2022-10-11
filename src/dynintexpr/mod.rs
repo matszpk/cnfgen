@@ -27,16 +27,16 @@ use std::rc::Rc;
 
 use generic_array::*;
 
-use crate::boolexpr::half_adder;
+use crate::boolexpr::{half_adder, BoolEqual, BoolExprNode, BoolImpl};
+use crate::boolexpr_creator::ExprCreator;
 use crate::int_utils::*;
-use crate::intexpr::IntError;
-use crate::{impl_int_ipty, impl_int_upty};
-use crate::{
-    BitVal, BoolEqual, BoolExprNode, BoolImpl, DivMod, ExprCreator, FullMul, IntCondAdd,
-    IntCondMul, IntCondNeg, IntCondShl, IntCondShr, IntCondSub, IntEqual, IntExprNode, IntModAdd,
-    IntModAddAssign, IntModMul, IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
-    Literal, VarLit,
+use crate::intexpr::{
+    BitVal, DivMod, FullMul, IntCondAdd, IntCondMul, IntCondNeg, IntCondShl, IntCondShr,
+    IntCondSub, IntEqual, IntError, IntExprNode, IntModAdd, IntModAddAssign, IntModMul,
+    IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
 };
+use crate::writer::{Literal, VarLit};
+use crate::{impl_int_ipty, impl_int_upty};
 
 pub mod arith;
 pub use arith::*;
@@ -549,7 +549,7 @@ pub type IDynExprNode<T> = DynIntExprNode<T, true>;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::IntExprNode;
+    use crate::intexpr::IntExprNode;
     use generic_array::typenum::*;
     use std::iter;
 
