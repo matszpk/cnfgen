@@ -144,6 +144,8 @@ enum OpJoin {
 /// Main purpose of ExprCreator is maintenance state of expression with its variables
 /// during creating that expression by using ExprNode.
 /// An ExprCreator is used with ExprNode to create new expression.
+///
+/// The generic parameter T is variable literal type - it can be signed integer.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ExprCreator<T: VarLit + Debug> {
     pub(super) nodes: Vec<Node<T>>,

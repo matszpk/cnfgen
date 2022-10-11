@@ -18,7 +18,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The module to generate CNF clauses from integer expressions.
+//! The module contains traits to integer expression nodes.
+//!
+//! They provides additional operations that
+//! that can be made on integers.
 
 use std::cell::RefCell;
 use std::fmt::Debug;

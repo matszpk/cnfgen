@@ -445,6 +445,10 @@ where
         | (DynIntExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
 }
 
+/// Returns result of indexing of table with values.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
 pub fn dynint_table<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     table_iter: I,

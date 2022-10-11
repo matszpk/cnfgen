@@ -24,8 +24,7 @@
 //! `BoolExprNode`. The same `BoolExprNode` can be used in following way:
 //!
 //! ```
-//! use cnfgen::boolexpr_creator::ExprCreator32;
-//! use cnfgen::boolexpr::{BoolImpl, BoolEqual, BoolExprNode};
+//! use cnfgen::boolexpr::*;
 //! use cnfgen::writer::{CNFError, CNFWriter};
 //! use std::io;
 //! fn simple_expr_generator() -> Result<(), CNFError> {
@@ -42,6 +41,8 @@
 //!     expr.write(&mut CNFWriter::new(io::stdout()))
 //! }
 //! ```
+//! Same BoolExprNode can be used to build boolean expressions by using operators.
+//! Additional traits provides two extra operators: a material implication and a bolean equality.
 
 use std::cell::RefCell;
 use std::fmt::Debug;
@@ -93,10 +94,9 @@ impl BoolImpl for bool {
     }
 }
 
-/// Main structure that represents expression, subexpression or literal.
+/// The main structure that represents expression, subexpression or literal.
 ///
-/// It joined with
-/// ExprCreator that holds all expressions.
+/// It joined with the ExprCreator that holds all expressions.
 /// Creation of new expression is naturally simple thanks operators. However, expression nodes
 /// must be cloned before using in other expressions if they will be used more than once.
 /// Simple examples:
@@ -108,6 +108,8 @@ impl BoolImpl for bool {
 /// If integer will be given then that integer will represents variable literal.
 /// This implementation provides some simplification when an expression node will be joined with
 /// literal or value or this same expression node (example: `v1 ^ true` => `!v1`).
+///
+/// The generic parameter T is variable literal type - it can be signed integer.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BoolExprNode<T: VarLit + Debug> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
@@ -801,6 +803,7 @@ where
     (c.clone() & t) | ((!c) & e)
 }
 
+/// Returns result of half adder: sum and carry.
 pub fn half_adder<A, B>(a: A, b: B) -> (<A as BitXor<B>>::Output, <A as BitAnd<B>>::Output)
 where
     A: BitAnd<B> + BitXor<B> + Clone,
@@ -809,11 +812,13 @@ where
     (a.clone() ^ b.clone(), a & b)
 }
 
+/// The full adder output.
 pub type FullAdderOutput<A, B, C> = (
     <<A as BitXor<B>>::Output as BitXor<C>>::Output,
     <<<A as BitXor<B>>::Output as BitAnd<C>>::Output as BitOr<<A as BitAnd<B>>::Output>>::Output,
 );
 
+/// Returns result of full adder (with three arguments): sum and carry.
 pub fn full_adder<A, B, C>(a: A, b: B, c: C) -> FullAdderOutput<A, B, C>
 where
     A: BitAnd<B> + BitXor<B> + Clone,
@@ -826,6 +831,7 @@ where
     (s0.clone() ^ c.clone(), (s0 & c) | (a & b))
 }
 
+/// Optimized full adder. Optimize boolean expression if any input is constant boolean value.
 pub fn opt_full_adder<T>(
     a: BoolExprNode<T>,
     b: BoolExprNode<T>,

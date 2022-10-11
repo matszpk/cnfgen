@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The module to generate CNF clauses from integer expressions.
+//! The module contains arithmetic operations definitions. 
 
 use std::fmt::Debug;
 use std::ops::{Div, Neg, Rem};

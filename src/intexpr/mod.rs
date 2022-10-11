@@ -19,6 +19,79 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to generate CNF clauses from integer expressions.
+//!
+//! This module contains traits and main structure to operate on integer expressions:
+//! `IntExprNode`. An IntExprNode just holds boolean expression for every bit of integer.
+//! You can use defined type of IntExprNode or just define your integer by supplying
+//! generic parameters.
+//!
+//! Three generic parameters determines type of IntExprNode.
+//! The first T parameter is just variable literal type - it can be omitted.
+//! The secodn parameter is typed integer (from typenum crate) that determine number of bits
+//! of integer. The last parameter is sign - true if signed integer or false if unsigned integer.
+//! Type of IntExprNode can be written in form: `IntExprNode<i32, U12, false>` - 
+//! IntExprNode for 12-bit unsigned integer with 32-bit variable literals.
+//! 
+//! An IntExprNode provides many operations:
+//!
+//! * absolute value - `abs()` only for signed IntExprNode.
+//! * bitwise arithmentic - bitwise AND, OR, XOR and NOT by using standard operators.
+//! * modular arithmetic - addition, subtraction, negation, multiplication.
+//! * conditional arithmentic - modular arithmentic that provides condition.
+//! * shifts - left and right shifts.
+//! * conditional shifts - left and right.
+//! * full multiplication - full multiplication that returns full product.
+//! * division and remainder (modulo) - returns quotient, remainder and required condition.
+//!
+//! Many operations are defined through additional traits in this module.
+//! These traits and basic operations are implemented for expression nodes and integers -
+//! it possible to use integer as self or as an argument with expression node like:
+//! `332.mod_mul(x1)`. The method `constant` provide simple way to convert integer
+//! into an expression node (IntExprNode).
+//!
+//! The simple example of usage:
+//! ```
+//! use cnfgen::boolexpr::*;
+//! use cnfgen::intexpr::*;
+//! use cnfgen::writer::{CNFError, CNFWriter};
+//! use std::io;
+//! fn write_diophantic_equation() -> Result<(), CNFError> {
+//!     // define ExprCreator.
+//!     let creator = ExprCreator32::new();
+//!     // define variables.
+//!     let x = I32ExprNode::variable(creator.clone());
+//!     let y = I32ExprNode::variable(creator.clone());
+//!     let z = I32ExprNode::variable(creator.clone());
+//!     // define equation: x^2 + y^2 - 77*z^2 = 0
+//!     let powx = x.clone().fullmul(x);  // x^2
+//!     let powy = y.clone().fullmul(y);  // y^2
+//!     let powz = z.clone().fullmul(z);  // z^2
+//!     // We use cond_mul to get product and required condition to avoid overflow.
+//!     let (prod, cond0) = powz.cond_mul(77i64);
+//!     // Similary, we use conditional addition and conditional subtraction.
+//!     let (sum1, cond1) = powx.cond_add(powy);
+//!     let (diff2, cond2) = sum1.cond_sub(prod);
+//!     // define final formulae with required conditions.
+//!     let formulae: BoolExprNode<_> = diff2.equal(0) & cond0 & cond1 & cond2;
+//!     // write CNF to stdout.
+//!     formulae.write(&mut CNFWriter::new(io::stdout()))
+//! }
+//! ```
+//!
+//! ## Conditional operations.
+//!
+//! Conditional operations defined by `IntCondXXX` traits is specific type of operations that
+//! provide additional condition as an boolean expression. This condition is satisfiable when
+//! no overflow encountered while evaluating operation. It can supplied at root of final
+//! expression to force evaluate an operation without unexpected overflow like in this
+//! simple example that generates diophantic equation.
+//!
+//! The condition in conditional shifting
+//! just will be satisfied when shift (right argument) value is lower than number of
+//! bits of left argument.
+//!
+//! Division and remainder just returns additional condition that will be satisified if
+//! right argument is not zero.
 
 use std::cell::RefCell;
 use std::cmp;
@@ -57,8 +130,20 @@ pub use bin_arith::*;
 pub mod int_arith;
 pub use int_arith::*;
 
-// IntExprNode - main node
-//
+/// The main structure that represents integer expression, subexpression or integer value.
+///
+/// It joined with the ExprCreator that holds all expressions.
+/// Creation of new expression is naturally simple thanks operators. However, expression nodes
+/// must be cloned before using in other expressions if they will be used more than once.
+/// Simple examples:
+///
+/// * `(x1 << x2).mod_add(x3.clone()).equal(x3)`
+/// * `x1.clone().fullmul(x1).mod_add(x2.clone().fullmul(x2))`
+///
+/// Integer expression nodes can be used with integer values or variables that will represents
+/// constant integer value in an expression. Simple example: `4u8<<x1`.
+/// Due to some limitations only some configurations of integer size and IntExprNode sizes
+/// are possible.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct IntExprNode<T: VarLit + Debug, N: ArrayLength<usize>, const SIGN: bool> {
     pub(super) creator: Rc<RefCell<ExprCreator<T>>>,
@@ -444,6 +529,10 @@ where
         | (<E as BitMask<<C as Not>::Output>>::bitmask(!c) & e)
 }
 
+/// Returns result of indexing of table with values.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
 pub fn int_table<T, N, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,
