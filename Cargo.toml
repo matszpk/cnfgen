@@ -6,7 +6,7 @@ version = "0.2.1"
 edition = "2021"
 description = "Generate DIMACS CNF formulae from operations"
 repository = "https://github.com/matszpk/cnfgen"
-documentation = "https://docs.rs/cnfgen
+documentation = "https://docs.rs/cnfgen"
 keywords = ["cnf", "logic", "cnfgen", "SAT"]
 categories = ["science", "logic", "mathematics"]
 

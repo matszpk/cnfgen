@@ -1108,6 +1108,14 @@ mod tests {
         assert_eq!(25u16.bit(4), true);
         assert_eq!(25u16.bit(19), false);
         assert_eq!(0xff00u16.bit(19), false);
+        assert_eq!(25i16.bit(1), false);
+        assert_eq!(25i16.bit(4), true);
+        assert_eq!(25i16.bit(15), false);
+        assert_eq!(25i16.bit(19), false);
+        assert_eq!((-25i16).bit(1), true);
+        assert_eq!((-25i16).bit(4), false);
+        assert_eq!((-25i16).bit(14), true);
+        assert_eq!((-25i16).bit(19), true);
     }
 
     #[test]
