@@ -1116,15 +1116,11 @@ mod tests {
         assert_eq!((-25i16).bit(4), false);
         assert_eq!((-25i16).bit(14), true);
         assert_eq!((-25i16).bit(19), true);
+        assert_eq!((-0x100i16).bit(19), true);
     }
 
     #[test]
     fn test_int_bitmask_prim_types() {
-        assert_eq!(25i16.bit(1), false);
-        assert_eq!(25i16.bit(4), true);
-        assert_eq!(25i16.bit(19), false);
-        assert_eq!((-0x100i16).bit(19), true);
-
         assert_eq!(<u16 as BitMask<bool>>::bitmask(false), 0);
         assert_eq!(<u16 as BitMask<bool>>::bitmask(true), 0xffffu16);
         assert_eq!(<i16 as BitMask<bool>>::bitmask(false), 0);
@@ -1137,8 +1133,8 @@ mod tests {
         assert_eq!(71i8.fullmul(-25), 71 * -25);
         assert_eq!(5688u16.fullmul(6241), 5688 * 6241);
         assert_eq!((-5688i16).fullmul(6241), -5688 * 6241);
-        assert_eq!(55812145u32.fullmul(583021521), 55812145 * 583021521);
-        assert_eq!(55812145i32.fullmul(-583021521), 55812145 * -583021521);
+        assert_eq!(55812145u32.fullmul(583021521), 55812145u64 * 583021521u64);
+        assert_eq!(55812145i32.fullmul(-583021521), 55812145i64 * -583021521i64);
     }
 
     #[test]
