@@ -59,7 +59,7 @@
 //! use cnfgen::intexpr::*;
 //! use cnfgen::writer::{CNFError, CNFWriter};
 //! use std::io;
-//! fn write_diophantic_equation() -> Result<(), CNFError> {
+//! fn write_diophantine_equation() -> Result<(), CNFError> {
 //!     // define ExprCreator.
 //!     let creator = ExprCreator32::new();
 //!     // define variables - signed 32-bit wide.
