@@ -408,6 +408,7 @@ macro_rules! impl_int_try_uconstant_n {
                 v: $pty,
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
+                // for n < bits, check whether highest bits are zero.
                 if n < bits && (v & ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n)) != 0
                 {
                     return Err(IntError::BitOverflow);
@@ -443,6 +444,8 @@ macro_rules! impl_int_try_iconstant_n {
             ) -> Result<Self, IntError> {
                 let bits = <$pty>::BITS as usize;
                 if n < bits {
+                    // for n < bits, check whether highest bits are zero if positive number or
+                    // if ones if negative number.
                     let mask = ((((1 as $pty) << (bits - n)).overflowing_sub(1).0) << n);
                     let signmask = if v < 0 { mask } else { 0 };
                     if (v & mask) != signmask {

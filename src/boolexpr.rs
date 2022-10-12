@@ -246,6 +246,7 @@ macro_rules! new_op_impl {
 
             fn $v(self, rhs: Self) -> Self::Output {
                 assert_eq!(Rc::as_ptr(&self.creator), Rc::as_ptr(&rhs.creator));
+                // optimization for v1 op v1.
                 if self.index == rhs.index {
                     if let Some(t) = $argeqres {
                         return BoolExprNode::single_value(self.creator, t);
@@ -258,6 +259,7 @@ macro_rules! new_op_impl {
                     let creator = self.creator.borrow();
                     (creator.nodes[self.index], creator.nodes[rhs.index])
                 };
+                // optimization for v1 op -v1, or -v1 op v1.
                 if node2 == Node::Negated(self.index) || node1 == Node::Negated(rhs.index) {
                     if let Some(t) = $argnegres {
                         return BoolExprNode::single_value(self.creator, t);
