@@ -681,6 +681,8 @@ where
         (
             divres.clone(),
             int_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
+            // condition: from unsiged divmod,
+            // result is zero (sign of result doesn't matter) or sign must be match.
             cond & (exp_divsign.bequal(divres_sign)
                 | divres.equal(IntExprNode::<T, N, true>::filled(self.creator, false))),
         )

@@ -954,6 +954,8 @@ where
         (
             divres.clone(),
             dynint_ite(sign_a, umod.clone().as_signed().mod_neg(), umod.as_signed()),
+            // condition: from unsiged divmod,
+            // result is zero (sign of result doesn't matter) or sign must be match.
             cond & (exp_divsign.bequal(divres_sign)
                 | divres.equal(DynIntExprNode::<T, true>::filled(self.creator, n, false))),
         )
