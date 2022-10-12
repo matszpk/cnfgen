@@ -485,6 +485,8 @@ where
         let ressign = res.bit(N::USIZE - 1);
         (
             res.clone(),
+            // condition: higher part of absolute product must be zero,
+            // result is zero (sign of result doesn't matter) or sign must be match.
             resc & (expsign.bequal(ressign) | res.equal(IntExprNode::filled(self.creator, false))),
         )
     }

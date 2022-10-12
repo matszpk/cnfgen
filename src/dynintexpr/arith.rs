@@ -824,6 +824,8 @@ where
         let ressign = res.bit(n - 1);
         (
             res.clone(),
+            // condition: higher part of absolute product must be zero,
+            // result is zero (sign of result doesn't matter) or sign must be match.
             resc & (expsign.bequal(ressign)
                 | res.equal(DynIntExprNode::filled(self.creator, n, false))),
         )

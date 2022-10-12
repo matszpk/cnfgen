@@ -371,6 +371,7 @@ where
             N::U64 - 1,
         ))
         .unwrap();
+        // condition: for unsinged - just check b <= N-1, for signed: also check sign for b.
         let cond = if SIGN2 {
             (!rhs.bit(N2::USIZE - 1)) & rhs.less_equal(nexpr)
         } else {
@@ -582,6 +583,7 @@ where
             N::U64 - 1,
         ))
         .unwrap();
+        // condition: for unsinged - just check b <= N-1, for signed: also check sign for b.
         let cond = if SIGN2 {
             (!rhs.bit(N2::USIZE - 1)) & rhs.less_equal(nexpr)
         } else {
