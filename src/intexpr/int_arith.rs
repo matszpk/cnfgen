@@ -1150,6 +1150,40 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let (res, resc) = 71u8.cond_add(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(exp_ec.clone());
+            let (exp, tempc) = IntExprNode::<isize, U8, false>::constant(exp_ec.clone(), 71u8)
+                .addc_with_carry(x2, BoolExprNode::single_value(exp_ec.clone(), false));
+            let expc = !tempc;
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let (res, resc) = x2.cond_add(71);
+
+            let exp_ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(exp_ec.clone());
+            let (exp, tempc) = x2.addc_with_carry(
+                IntExprNode::<isize, U8, false>::constant(exp_ec.clone(), 71u8),
+                BoolExprNode::single_value(exp_ec.clone(), false),
+            );
+            let expc = !tempc;
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             let (res, resc) = x1.cond_add(x2);
@@ -1158,6 +1192,28 @@ mod tests {
             let x1 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
             let x2 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
             let mut exp = vec![0; 10];
+            let (expc1, expc2) = helper_addc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), false),
+            );
+            let expc = expc1.bequal(expc2);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, true>::variable(ec.clone());
+            let (res, resc) = (-59i8).cond_add(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U8, true>::constant(exp_ec.clone(), -59i8);
+            let x2 = IntExprNode::<isize, U8, true>::variable(exp_ec.clone());
+            let mut exp = vec![0; 8];
             let (expc1, expc2) = helper_addc_cout(
                 &mut exp,
                 &x1,
@@ -1265,6 +1321,27 @@ mod tests {
 
         {
             let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let (res, resc) = 71u8.cond_sub(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U8, false>::constant(exp_ec.clone(), 71u8);
+            let x2 = IntExprNode::<isize, U8, false>::variable(exp_ec.clone());
+            let mut exp = vec![0; 8];
+            let (expc, _) = helper_subc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), true),
+            );
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U10, true>::variable(ec.clone());
             let (res, resc) = x1.cond_sub(x2);
@@ -1273,6 +1350,28 @@ mod tests {
             let x1 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
             let x2 = IntExprNode::<isize, U10, true>::variable(exp_ec.clone());
             let mut exp = vec![0; 10];
+            let (expc1, expc2) = helper_subc_cout(
+                &mut exp,
+                &x1,
+                &x2,
+                BoolExprNode::single_value(exp_ec.clone(), true),
+            );
+            let expc = expc1.bequal(expc2);
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, true>::variable(ec.clone());
+            let (res, resc) = (-29i8).cond_sub(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U8, true>::constant(exp_ec.clone(), -29i8);
+            let x2 = IntExprNode::<isize, U8, true>::variable(exp_ec.clone());
+            let mut exp = vec![0; 8];
             let (expc1, expc2) = helper_subc_cout(
                 &mut exp,
                 &x1,
@@ -1374,6 +1473,24 @@ mod tests {
             assert_eq!(expc.index, resc.index);
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
         }
+
+        {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, false>::variable(ec.clone());
+            let (res, resc) = 87.cond_mul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U8, false>::constant(exp_ec.clone(), 87);
+            let x2 = IntExprNode::<isize, U8, false>::variable(exp_ec.clone());
+            let exptemp = x1.fullmul(x2);
+            let expc = exptemp.subvalue::<U8>(8).equal(0);
+            let exp = exptemp.subvalue::<U8>(0);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
         {
             let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U10, true>::variable(ec.clone());
@@ -1391,6 +1508,28 @@ mod tests {
                 temp.clone().as_signed(),
             );
             let expc = tempc & (expsign.bequal(exp.bit(9)) | exp.clone().equal(0));
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, U8, true>::variable(ec.clone());
+            let (res, resc) = (-47i8).cond_mul(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U8, true>::constant(exp_ec.clone(), -47i8);
+            let x2 = IntExprNode::<isize, U8, true>::variable(exp_ec.clone());
+            let expsign = x1.bit(7) ^ x2.bit(7);
+            let (temp, tempc) = x1.clone().abs().cond_mul(x2.abs());
+            let exp = int_ite(
+                expsign.clone(),
+                temp.clone().as_signed().mod_neg(),
+                temp.clone().as_signed(),
+            );
+            let expc = tempc & (expsign.bequal(exp.bit(7)) | exp.clone().equal(0));
 
             assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
             assert_eq!(expc.index, resc.index);

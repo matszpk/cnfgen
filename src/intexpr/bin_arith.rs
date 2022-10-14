@@ -1405,6 +1405,23 @@ mod tests {
         };
     }
 
+    macro_rules! test_expr_node_cond_shl_imm_self {
+        ($sign:expr, $ty:ty, $imm:expr, $signrhs:expr, $torhs:ty) => {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
+            let (res, resc) = ($imm).cond_shl(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(exp_ec.clone());
+            let (exp, expc) =
+                IntExprNode::<isize, $ty, $sign>::constant(exp_ec.clone(), $imm).cond_shl(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
     #[test]
     fn test_expr_node_cond_shl() {
         test_expr_node_cond_shl_5!(false, false, U26, U5, 26, 5);
@@ -1424,6 +1441,11 @@ mod tests {
         test_expr_node_cond_shl_5!(true, true, U26, U7, 26, 7);
         test_expr_node_cond_shl_5!(false, true, U32, U7, 32, 7);
         test_expr_node_cond_shl_5!(true, true, U32, U7, 32, 7);
+
+        test_expr_node_cond_shl_imm_self!(false, U8, 137u8, false, U3);
+        test_expr_node_cond_shl_imm_self!(true, U8, -61i8, false, U3);
+        test_expr_node_cond_shl_imm_self!(false, U8, 137u8, true, U4);
+        test_expr_node_cond_shl_imm_self!(true, U8, -61i8, true, U4);
     }
 
     macro_rules! test_expr_node_cond_shr_5 {
@@ -1468,6 +1490,23 @@ mod tests {
         };
     }
 
+    macro_rules! test_expr_node_cond_shr_imm_self {
+        ($sign:expr, $ty:ty, $imm:expr, $signrhs:expr, $torhs:ty) => {
+            let ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(ec.clone());
+            let (res, resc) = ($imm).cond_shr(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::variable(exp_ec.clone());
+            let (exp, expc) =
+                IntExprNode::<isize, $ty, $sign>::constant(exp_ec.clone(), $imm).cond_shr(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(expc.index, resc.index);
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
     #[test]
     fn test_expr_node_cond_shr() {
         test_expr_node_cond_shr_5!(false, false, U26, U5, 26, 5);
@@ -1487,5 +1526,10 @@ mod tests {
         test_expr_node_cond_shr_5!(true, true, U26, U7, 26, 7);
         test_expr_node_cond_shr_5!(false, true, U32, U7, 32, 7);
         test_expr_node_cond_shr_5!(true, true, U32, U7, 32, 7);
+
+        test_expr_node_cond_shr_imm_self!(false, U8, 137u8, false, U3);
+        test_expr_node_cond_shr_imm_self!(true, U8, -61i8, false, U3);
+        test_expr_node_cond_shr_imm_self!(false, U8, 137u8, true, U4);
+        test_expr_node_cond_shr_imm_self!(true, U8, -61i8, true, U4);
     }
 }
