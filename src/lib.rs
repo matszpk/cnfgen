@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! The library to generate CNF (Conjuctive Normal Form) formulaes.
+//! The library to generate CNF (Conjunctive Normal Form) formulaes.
 //!
 //! This library provides simple CNF writer, structures to create boolean formulae from
 //! boolean expressions and integer expressions. The module `writer` provides

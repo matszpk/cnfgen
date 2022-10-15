@@ -1,6 +1,6 @@
 # CNFGEN
 
-The library to generate CNF (Conjuctive Normal Form) formulaes.
+The library to generate CNF (Conjunctive Normal Form) formulaes.
 
 This library provides simple CNF writer, structures to create boolean formulae from
 boolean expressions and integer expressions. The module `writer` provides
