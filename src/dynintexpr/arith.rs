@@ -501,7 +501,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    /// Calculation of an absolute value. It returns unsigned integer.
+    /// Calculation of an absolute value. It returns unsigned expression node.
     pub fn abs(self) -> DynIntExprNode<T, false> {
         // if sign then -self else self
         dynint_ite(

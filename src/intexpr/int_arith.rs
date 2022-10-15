@@ -38,7 +38,7 @@ where
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
 {
-    /// Calculation of an absolute value. It returns unsigned integer.
+    /// Calculation of an absolute value. It returns unsigned expression node.
     pub fn abs(self) -> IntExprNode<T, N, false> {
         // if sign then -self else self
         int_ite(self.bit(N::USIZE - 1), self.clone().mod_neg(), self).as_unsigned()
