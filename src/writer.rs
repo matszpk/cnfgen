@@ -1,6 +1,6 @@
 // writer.rs - writer module
 //
-// cnfgen - Generate the DIMACS CNF formulae from operations
+// cnfgen - Generate the DIMACS CNF formula from operations
 // Copyright (C) 2022  Mateusz Szpakowski
 //
 // This library is free software; you can redistribute it and/or
@@ -238,7 +238,7 @@ impl<T: VarLit> From<T> for Literal<T> {
 /// Basic clause trait. It contains variable literals.
 ///
 /// This clause is a disjuction of literals. Type T must be VarLit.
-/// An empty clause is always false - formulae contains that clause going
+/// An empty clause is always false - formula contains that clause going
 /// to be unsatisfied.
 /// It can be a slice, an array, a vector or other collection like BTreeMap.
 pub trait Clause<T>
@@ -713,13 +713,13 @@ pub enum Quantifier {
 /// CNF file header. It contains a number of variables and a number of clauses.
 #[derive(Clone, Copy, Default, Debug)]
 pub struct CNFHeader {
-    /// Number of variables in formulae. It can be zero.
+    /// Number of variables in formula. It can be zero.
     pub var_num: usize,
-    /// Number of clauses in formulae. It can be zero.
+    /// Number of clauses in formula. It can be zero.
     pub clause_num: usize,
 }
 
-/// A CNF formulae writer. This object is used to write CNF header and formulae clauses.
+/// A CNF formula writer. This object is used to write CNF header and formula clauses.
 pub struct CNFWriter<W: Write> {
     writer: W,
     buf: Vec<u8>,
