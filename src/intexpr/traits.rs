@@ -1092,6 +1092,20 @@ macro_rules! impl_int_ord_ipty {
 impl_int_upty_ty1!(impl_int_ord_upty);
 impl_int_ipty_ty1!(impl_int_ord_ipty);
 
+pub trait ExtraOps {
+    type Output;
+    type BoolOutput;
+
+    fn count_zeros(self) -> Self::Output;
+    fn count_ones(self) -> Self::Output;
+    fn leading_zeros(self) -> Self::Output;
+    fn leading_ones(self) -> Self::Output;
+    fn trailing_zeros(self) -> Self::Output;
+    fn trailing_ones(self) -> Self::Output;
+    fn is_power_of_two(self) -> Self::BoolOutput;
+    fn reverse_bits(self) -> Self::Output;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

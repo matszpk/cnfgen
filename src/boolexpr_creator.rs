@@ -1717,4 +1717,26 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn test_expr_creator_count_zeros() {
+        let mut v = vec![];
+        #[allow(unused_assignments)]
+        let mut ec = ExprCreator::<isize>::new();
+        expr_creator_testcase!(
+            ec,
+            v,
+            2,
+            {
+                let x1 = !v[1].clone() ^ !v[2].clone();
+                let x2 = !v[1].clone() & !v[2].clone();
+                let x1 = !x1;
+                let x2 = !x2;
+                let x3 = x1 & x2;
+                let x4 = !v[1].clone() & !v[2].clone();
+                (x3 & x4).index
+            },
+            "p cnf 4 7\n-1 2 3 0\n1 -2 3 0\n1 2 4 0\n-3 0\n-4 0\n-1 0\n-2 0\n"
+        );
+    }
 }

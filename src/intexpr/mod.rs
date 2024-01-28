@@ -145,6 +145,8 @@ pub mod bin_arith;
 pub use bin_arith::*;
 pub mod int_arith;
 pub use int_arith::*;
+pub mod extra_arith;
+pub use extra_arith::*;
 
 /// The main structure that represents integer expression, subexpression or integer value.
 ///
