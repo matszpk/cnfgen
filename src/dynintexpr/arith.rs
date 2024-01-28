@@ -428,6 +428,155 @@ macro_rules! impl_dynint_shx_assign {
 impl_dynint_shx_assign!(ShlAssign, shl, shl_assign, impl_dynint_shl_assign_imm);
 impl_dynint_shx_assign!(ShrAssign, shr, shr_assign, impl_dynint_shr_assign_imm);
 
+// rotations
+
+// Implement rotate left
+// shift operations
+
+impl<T, const SIGN: bool, const SIGN2: bool> IntRol<DynIntExprNode<T, SIGN2>>
+    for DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn rotate_left(self, rhs: DynIntExprNode<T, SIGN2>) -> Self::Output {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != n && rhs.indexes[nbits - 1] != 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = DynIntExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self;
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_rotate_left(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        output
+    }
+}
+
+macro_rules! impl_dynint_rol_imm {
+    ($ty:ty) => {
+        impl<T, const SIGN: bool> IntRol<$ty> for DynIntExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = Self;
+
+            fn rotate_left(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                let n = self.indexes.len();
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= n {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = vec![0; n];
+                output[usize_rhs..].copy_from_slice(&self.indexes[0..(n - usize_rhs)]);
+                output[..usize_rhs].copy_from_slice(&self.indexes[(n - usize_rhs)..]);
+                DynIntExprNode {
+                    creator: self.creator,
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_dynint_rol_imm);
+impl_int_ipty!(impl_dynint_rol_imm);
+
+impl<T, const SIGN: bool, const SIGN2: bool> IntRor<DynIntExprNode<T, SIGN2>>
+    for DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Output = Self;
+
+    fn rotate_right(self, rhs: DynIntExprNode<T, SIGN2>) -> Self::Output {
+        let n = self.indexes.len();
+        let n2 = rhs.indexes.len();
+        let nbits = calc_log_bits(n);
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != n && rhs.indexes[nbits - 1] != 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, n2 - usize::from(SIGN2));
+
+        let mut input = DynIntExprNode {
+            creator: self.creator.clone(),
+            indexes: vec![0; n],
+        };
+        let mut output = self;
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_rotate_right(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        output
+    }
+}
+
+macro_rules! impl_dynint_ror_imm {
+    ($ty:ty) => {
+        impl<T, const SIGN: bool> IntRor<$ty> for DynIntExprNode<T, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+        {
+            type Output = Self;
+
+            fn rotate_right(self, rhs: $ty) -> Self::Output {
+                let n = self.indexes.len();
+                // check whether zeroes
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= n {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = vec![0; n];
+                output[0..(n - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
+                output[(n - usize_rhs)..].copy_from_slice(&self.indexes[..usize_rhs]);
+                DynIntExprNode {
+                    creator: self.creator,
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_dynint_ror_imm);
+impl_int_ipty!(impl_dynint_ror_imm);
+
 /// Returns result of the If-Then-Else (ITE) - integer version.
 pub fn dynint_ite<T, const SIGN: bool>(
     c: BoolExprNode<T>,

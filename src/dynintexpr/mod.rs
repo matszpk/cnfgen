@@ -90,7 +90,7 @@ use crate::int_utils::*;
 pub use crate::intexpr::{
     BitVal, DivMod, FullMul, IntCondAdd, IntCondMul, IntCondNeg, IntCondShl, IntCondShr,
     IntCondSub, IntEqual, IntError, IntExprNode, IntModAdd, IntModAddAssign, IntModMul,
-    IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd,
+    IntModMulAssign, IntModNeg, IntModSub, IntModSubAssign, IntOrd, IntRol, IntRor,
 };
 use crate::writer::{Literal, VarLit};
 use crate::{impl_int_ipty, impl_int_upty};
