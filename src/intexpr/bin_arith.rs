@@ -1732,12 +1732,40 @@ mod tests {
 
             let exp_ec = ExprCreator::new();
             let bvs = alloc_boolvars(exp_ec.clone(), $bits);
-            let exp = (0..$bits).into_iter().map(|x|
-                                                    if x >= $shift {
-                                                        bvs[x - $shift].clone()
-                                                    } else {
-                                                        bvs[$bits + x - $shift].clone()
-                                                    }.index).collect::<Vec<_>>();
+            let f = |x: usize| {
+                if x >= $shift {
+                    bvs[x - $shift].clone()
+                } else {
+                    bvs[$bits + x - $shift].clone()
+                }
+                .index
+            };
+            let exp = (0..$bits).into_iter().map(|x| f(x)).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_rotate_left_5 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
+            );
+            let res = x1.rotate_left(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 5);
+            let stage1 = rotate_left_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = rotate_left_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let stage3 = rotate_left_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4);
+            let stage4 = rotate_left_bits($bits, &stage3[0..$bits], bvs[$bits + 3].clone(), 8);
+            let exp = rotate_left_bits($bits, &stage4[0..$bits], bvs[$bits + 4].clone(), 16)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
 
             assert_eq!(exp.as_slice(), res.indexes.as_slice());
             assert_eq!(*exp_ec.borrow(), *ec.borrow());
@@ -1754,6 +1782,15 @@ mod tests {
         test_expr_node_rotate_left_3!(false, true, U8, U4, 8);
         test_expr_node_rotate_left_3!(true, true, U8, U4, 8);
 
+        test_expr_node_rotate_left_5!(false, false, U32, U5, 32);
+        test_expr_node_rotate_left_5!(false, false, U32, U8, 32);
+
+        test_expr_node_rotate_left_5!(true, false, U32, U5, 32);
+        test_expr_node_rotate_left_5!(true, false, U32, U8, 32);
+
+        test_expr_node_rotate_left_5!(false, true, U32, U6, 32);
+        test_expr_node_rotate_left_5!(true, true, U32, U6, 32);
+
         // rhs is constant - immediate
         test_expr_node_rotate_left_rhs_imm!(false, U8, 8, 5, u8);
         test_expr_node_rotate_left_rhs_imm!(true, U8, 8, 5, u8);
@@ -1761,5 +1798,126 @@ mod tests {
         test_expr_node_rotate_left_rhs_imm!(false, U8, 8, 5, u16);
         test_expr_node_rotate_left_rhs_imm!(false, U32, 32, 19, u8);
         test_expr_node_rotate_left_rhs_imm!(true, U32, 32, 19, u8);
+    }
+
+    fn rotate_right_bits(
+        bits: usize,
+        bvs: &[BoolExprNode<isize>],
+        cond: BoolExprNode<isize>,
+        shift: usize,
+    ) -> Vec<BoolExprNode<isize>> {
+        (0..bits)
+            .into_iter()
+            .map(|i| {
+                bool_ite(
+                    cond.clone(),
+                    if i + shift < bits {
+                        bvs[i + shift].clone()
+                    } else {
+                        bvs[i + shift - bits].clone()
+                    },
+                    bvs[i].clone(),
+                )
+            })
+            .collect::<Vec<_>>()
+    }
+
+    macro_rules! test_expr_node_rotate_right_3 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
+            );
+            let res = x1.rotate_right(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 3);
+            let stage1 = rotate_right_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = rotate_right_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let exp = rotate_right_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_rotate_right_rhs_imm {
+        ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let res = x1.rotate_right(($shift) as $rhs_pty);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits);
+            let f = |x: usize| {
+                if x + $shift < $bits {
+                    bvs[x + $shift].clone()
+                } else {
+                    bvs[x + $shift - $bits].clone()
+                }
+                .index
+            };
+            let exp = (0..$bits).into_iter().map(|x| f(x)).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    macro_rules! test_expr_node_rotate_right_5 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U5, false>::variable(ec.clone()),
+            );
+            let res = x1.rotate_right(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 5);
+            let stage1 = rotate_right_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = rotate_right_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let stage3 = rotate_right_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4);
+            let stage4 = rotate_right_bits($bits, &stage3[0..$bits], bvs[$bits + 3].clone(), 8);
+            let exp = rotate_right_bits($bits, &stage4[0..$bits], bvs[$bits + 4].clone(), 16)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_rotate_right() {
+        test_expr_node_rotate_right_3!(false, false, U8, U3, 8);
+        test_expr_node_rotate_right_3!(false, false, U8, U5, 8);
+        test_expr_node_rotate_right_3!(true, false, U8, U3, 8);
+        test_expr_node_rotate_right_3!(true, false, U8, U5, 8);
+
+        test_expr_node_rotate_right_3!(false, true, U8, U4, 8);
+        test_expr_node_rotate_right_3!(true, true, U8, U4, 8);
+
+        test_expr_node_rotate_right_5!(false, false, U32, U5, 32);
+        test_expr_node_rotate_right_5!(false, false, U32, U8, 32);
+
+        test_expr_node_rotate_right_5!(true, false, U32, U5, 32);
+        test_expr_node_rotate_right_5!(true, false, U32, U8, 32);
+
+        test_expr_node_rotate_right_5!(false, true, U32, U6, 32);
+        test_expr_node_rotate_right_5!(true, true, U32, U6, 32);
+
+        // rhs is constant - immediate
+        test_expr_node_rotate_right_rhs_imm!(false, U8, 8, 5, u8);
+        test_expr_node_rotate_right_rhs_imm!(true, U8, 8, 5, u8);
+        test_expr_node_rotate_right_rhs_imm!(false, U8, 8, 5, i8);
+        test_expr_node_rotate_right_rhs_imm!(false, U8, 8, 5, u16);
+        test_expr_node_rotate_right_rhs_imm!(false, U32, 32, 19, u8);
+        test_expr_node_rotate_right_rhs_imm!(true, U32, 32, 19, u8);
     }
 }
