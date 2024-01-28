@@ -1092,17 +1092,26 @@ macro_rules! impl_int_ord_ipty {
 impl_int_upty_ty1!(impl_int_ord_upty);
 impl_int_ipty_ty1!(impl_int_ord_ipty);
 
+/// Trait with extra operations.
 pub trait ExtraOps {
     type Output;
     type BoolOutput;
 
+    /// Returns the number of ones in the binary representation of `self`.
     fn count_zeros(self) -> Self::Output;
+    /// Returns the number of zeros in the binary representation of `self`.
     fn count_ones(self) -> Self::Output;
+    /// Returns the number of leading zeros in the binary representation of `self`.
     fn leading_zeros(self) -> Self::Output;
+    /// Returns the number of leading ones in the binary representation of `self`.
     fn leading_ones(self) -> Self::Output;
+    /// Returns the number of trailing zeros in the binary representation of `self`.
     fn trailing_zeros(self) -> Self::Output;
+    /// Returns the number of trailing ones in the binary representation of `self`.
     fn trailing_ones(self) -> Self::Output;
+    /// Returns true if and only if `self == 2^k` for some `k`.
     fn is_power_of_two(self) -> Self::BoolOutput;
+    /// Reverses the order of bits in the integer.
     fn reverse_bits(self) -> Self::Output;
 }
 
