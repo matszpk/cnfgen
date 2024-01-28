@@ -1724,6 +1724,26 @@ mod tests {
         };
     }
 
+    macro_rules! test_expr_node_rotate_left_rhs_imm {
+        ($sign:expr, $ty:ty, $bits:expr, $shift:expr, $rhs_pty:ty) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let res = x1.rotate_left(($shift) as $rhs_pty);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits);
+            let exp = (0..$bits).into_iter().map(|x|
+                                                    if x >= $shift {
+                                                        bvs[x - $shift].clone()
+                                                    } else {
+                                                        bvs[$bits + x - $shift].clone()
+                                                    }.index).collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
     #[test]
     fn test_expr_node_rotate_left() {
         test_expr_node_rotate_left_3!(false, false, U8, U3, 8);
@@ -1733,5 +1753,13 @@ mod tests {
 
         test_expr_node_rotate_left_3!(false, true, U8, U4, 8);
         test_expr_node_rotate_left_3!(true, true, U8, U4, 8);
+
+        // rhs is constant - immediate
+        test_expr_node_rotate_left_rhs_imm!(false, U8, 8, 5, u8);
+        test_expr_node_rotate_left_rhs_imm!(true, U8, 8, 5, u8);
+        test_expr_node_rotate_left_rhs_imm!(false, U8, 8, 5, i8);
+        test_expr_node_rotate_left_rhs_imm!(false, U8, 8, 5, u16);
+        test_expr_node_rotate_left_rhs_imm!(false, U32, 32, 19, u8);
+        test_expr_node_rotate_left_rhs_imm!(true, U32, 32, 19, u8);
     }
 }
