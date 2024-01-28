@@ -756,47 +756,6 @@ macro_rules! impl_int_rol_imm {
 impl_int_upty!(impl_int_rol_imm);
 impl_int_ipty!(impl_int_rol_imm);
 
-macro_rules! impl_int_rol_self_imm {
-    ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> IntRol<IntExprNode<T, N, SIGN>> for $ty
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            N: ArrayLength<usize>,
-            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
-        {
-            type Output = IntExprNode<T, $bits, $sign>;
-
-            fn rotate_left(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
-                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).rotate_left(rhs)
-            }
-        }
-    };
-}
-
-impl_int_rol_self_imm!(false, u8, U8);
-impl_int_rol_self_imm!(false, u16, U16);
-impl_int_rol_self_imm!(false, u32, U32);
-#[cfg(target_pointer_width = "32")]
-impl_int_rol_self_imm!(false, usize, U32);
-#[cfg(target_pointer_width = "64")]
-impl_int_rol_self_imm!(false, usize, U64);
-impl_int_rol_self_imm!(false, u64, U64);
-impl_int_rol_self_imm!(false, u128, U128);
-
-impl_int_rol_self_imm!(true, i8, U8);
-impl_int_rol_self_imm!(true, i16, U16);
-impl_int_rol_self_imm!(true, i32, U32);
-#[cfg(target_pointer_width = "32")]
-impl_int_rol_self_imm!(true, isize, U32);
-#[cfg(target_pointer_width = "64")]
-impl_int_rol_self_imm!(true, isize, U64);
-impl_int_rol_self_imm!(true, i64, U64);
-impl_int_rol_self_imm!(true, i128, U128);
-
 /// Rotate right implementation.
 impl<T, N, const SIGN: bool, N2, const SIGN2: bool> IntRor<IntExprNode<T, N2, SIGN2>>
     for IntExprNode<T, N, SIGN>
@@ -869,48 +828,6 @@ macro_rules! impl_int_ror_imm {
 
 impl_int_upty!(impl_int_ror_imm);
 impl_int_ipty!(impl_int_ror_imm);
-
-macro_rules! impl_int_ror_self_imm {
-    ($sign:expr, $ty:ty, $bits:ty) => {
-        impl<T, N, const SIGN: bool> IntRor<IntExprNode<T, N, SIGN>> for $ty
-        where
-            T: VarLit + Neg<Output = T> + Debug,
-            isize: TryFrom<T>,
-            <T as TryInto<usize>>::Error: Debug,
-            <T as TryFrom<usize>>::Error: Debug,
-            <isize as TryFrom<T>>::Error: Debug,
-            N: ArrayLength<usize>,
-            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
-        {
-            type Output = IntExprNode<T, $bits, $sign>;
-
-            fn rotate_right(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
-                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self)
-                    .rotate_right(rhs)
-            }
-        }
-    };
-}
-
-impl_int_ror_self_imm!(false, u8, U8);
-impl_int_ror_self_imm!(false, u16, U16);
-impl_int_ror_self_imm!(false, u32, U32);
-#[cfg(target_pointer_width = "32")]
-impl_int_ror_self_imm!(false, usize, U32);
-#[cfg(target_pointer_width = "64")]
-impl_int_ror_self_imm!(false, usize, U64);
-impl_int_ror_self_imm!(false, u64, U64);
-impl_int_ror_self_imm!(false, u128, U128);
-
-impl_int_ror_self_imm!(true, i8, U8);
-impl_int_ror_self_imm!(true, i16, U16);
-impl_int_ror_self_imm!(true, i32, U32);
-#[cfg(target_pointer_width = "32")]
-impl_int_ror_self_imm!(true, isize, U32);
-#[cfg(target_pointer_width = "64")]
-impl_int_ror_self_imm!(true, isize, U64);
-impl_int_ror_self_imm!(true, i64, U64);
-impl_int_ror_self_imm!(true, i128, U128);
 
 #[cfg(test)]
 mod tests {
@@ -1760,5 +1677,61 @@ mod tests {
         test_expr_node_cond_shr_imm_self!(true, U8, -61i8, false, U3);
         test_expr_node_cond_shr_imm_self!(false, U8, 137u8, true, U4);
         test_expr_node_cond_shr_imm_self!(true, U8, -61i8, true, U4);
+    }
+
+    fn rotate_left_bits(
+        bits: usize,
+        bvs: &[BoolExprNode<isize>],
+        cond: BoolExprNode<isize>,
+        shift: usize,
+    ) -> Vec<BoolExprNode<isize>> {
+        (0..bits)
+            .into_iter()
+            .map(|i| {
+                bool_ite(
+                    cond.clone(),
+                    if i >= shift {
+                        bvs[i - shift].clone()
+                    } else {
+                        bvs[bits + i - shift].clone()
+                    },
+                    bvs[i].clone(),
+                )
+            })
+            .collect::<Vec<_>>()
+    }
+
+    macro_rules! test_expr_node_rotate_left_3 {
+        ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr) => {
+            let ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, $ty, $sign>::variable(ec.clone());
+            let x2 = IntExprNode::<isize, $torhs, $signrhs>::from(
+                IntExprNode::<isize, U3, false>::variable(ec.clone()),
+            );
+            let res = x1.rotate_left(x2);
+
+            let exp_ec = ExprCreator::new();
+            let bvs = alloc_boolvars(exp_ec.clone(), $bits + 3);
+            let stage1 = rotate_left_bits($bits, &bvs[0..$bits], bvs[$bits].clone(), 1);
+            let stage2 = rotate_left_bits($bits, &stage1[0..$bits], bvs[$bits + 1].clone(), 2);
+            let exp = rotate_left_bits($bits, &stage2[0..$bits], bvs[$bits + 2].clone(), 4)
+                .into_iter()
+                .map(|x| x.index)
+                .collect::<Vec<_>>();
+
+            assert_eq!(exp.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        };
+    }
+
+    #[test]
+    fn test_expr_node_rotate_left() {
+        test_expr_node_rotate_left_3!(false, false, U8, U3, 8);
+        test_expr_node_rotate_left_3!(false, false, U8, U5, 8);
+        test_expr_node_rotate_left_3!(true, false, U8, U3, 8);
+        test_expr_node_rotate_left_3!(true, false, U8, U5, 8);
+
+        test_expr_node_rotate_left_3!(false, true, U8, U4, 8);
+        test_expr_node_rotate_left_3!(true, true, U8, U4, 8);
     }
 }
