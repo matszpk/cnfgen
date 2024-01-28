@@ -1,4 +1,4 @@
-// bin_arith.rs - integer expression structures.
+// extra_arith.rs - extra arithmetic for intexpr.
 //
 // cnfgen - Generate the DIMACS CNF formulae from operations
 // Copyright (C) 2022  Mateusz Szpakowski
