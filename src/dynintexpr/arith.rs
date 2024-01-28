@@ -1411,6 +1411,118 @@ mod tests {
         test_expr_node_shiftop!(true, shr, shr_assign);
     }
 
+    macro_rules! test_expr_node_rotateop {
+        ($sign:expr, $op:ident) => {{
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 4);
+            let res = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U4, false>::variable(exp_ec.clone());
+            let exp = x1.$op(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, false>::variable(ec.clone(), 3);
+            let res = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U3, false>::variable(exp_ec.clone());
+            let exp = x1.$op(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 4),
+                5,
+            )
+            .unwrap();
+            let res = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U5, true>::from(
+                IntExprNode::<isize, U4, false>::variable(exp_ec.clone()),
+            );
+            let exp = x1.$op(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let x2 = DynIntExprNode::<isize, true>::try_from_n(
+                DynIntExprNode::<isize, false>::variable(ec.clone(), 3),
+                4,
+            )
+            .unwrap();
+            let res = x1.$op(x2);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let x2 = IntExprNode::<isize, U4, true>::from(
+                IntExprNode::<isize, U3, false>::variable(exp_ec.clone()),
+            );
+            let exp = x1.$op(x2);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let res = x1.$op(11u8);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let exp = x1.$op(11u8);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }
+
+        {
+            let ec = ExprCreator::new();
+            let x1 = DynIntExprNode::<isize, $sign>::variable(ec.clone(), 16);
+            let res = x1.$op(11i8);
+
+            let exp_ec = ExprCreator::new();
+            let x1 = IntExprNode::<isize, U16, $sign>::variable(exp_ec.clone());
+            let exp = x1.$op(11i8);
+
+            assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+            assert_eq!(*exp_ec.borrow(), *ec.borrow());
+        }};
+    }
+
+    #[test]
+    fn test_expr_node_rotate_left() {
+        test_expr_node_rotateop!(false, rotate_left);
+        test_expr_node_rotateop!(true, rotate_left);
+    }
+
+    #[test]
+    fn test_expr_node_rotate_right() {
+        test_expr_node_rotateop!(false, rotate_right);
+        test_expr_node_rotateop!(true, rotate_right);
+    }
+
     macro_rules! test_expr_node_cond_shl_5 {
         ($sign:expr, $signrhs:expr, $ty:ty, $torhs:ty, $bits:expr, $bits2:expr) => {
             let ec = ExprCreator::new();
