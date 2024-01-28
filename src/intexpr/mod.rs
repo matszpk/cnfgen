@@ -581,7 +581,7 @@ where
             ites[i] = int_ite(
                 index.bit(step),
                 ites[(i << 1) + 1].clone(),
-                ites[(i << 1)].clone(),
+                ites[i << 1].clone(),
             );
         }
         ites.resize(
@@ -900,7 +900,7 @@ mod tests {
             selects0.push(int_ite(
                 idx.bit(0),
                 values[(i << 1) + 1].clone(),
-                values[(i << 1)].clone(),
+                values[i << 1].clone(),
             ));
         }
         let mut selects1 = vec![];
@@ -908,7 +908,7 @@ mod tests {
             selects1.push(int_ite(
                 idx.bit(1),
                 selects0[(i << 1) + 1].clone(),
-                selects0[(i << 1)].clone(),
+                selects0[i << 1].clone(),
             ));
         }
         let mut selects2 = vec![];
@@ -916,7 +916,7 @@ mod tests {
             selects2.push(int_ite(
                 idx.bit(2),
                 selects1[(i << 1) + 1].clone(),
-                selects1[(i << 1)].clone(),
+                selects1[i << 1].clone(),
             ));
         }
         let mut selects3 = vec![];
@@ -924,7 +924,7 @@ mod tests {
             selects3.push(int_ite(
                 idx.bit(3),
                 selects2[(i << 1) + 1].clone(),
-                selects2[(i << 1)].clone(),
+                selects2[i << 1].clone(),
             ));
         }
         let exp = int_ite(idx.bit(4), selects3[1].clone(), selects3[0].clone());

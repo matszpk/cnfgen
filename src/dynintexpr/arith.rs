@@ -479,7 +479,7 @@ where
             ites[i] = dynint_ite(
                 index.bit(step),
                 ites[(i << 1) + 1].clone(),
-                ites[(i << 1)].clone(),
+                ites[i << 1].clone(),
             );
         }
         ites.resize(

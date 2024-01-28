@@ -376,7 +376,7 @@ where
 
             // current stack position at last entry
             let stackpos = stack.len() - 1;
-            let mut top = stack.last_mut().unwrap();
+            let top = stack.last_mut().unwrap();
             let dep_node = dep_nodes.get(top.node_index).unwrap();
 
             let node_index = top.node_index;
@@ -617,7 +617,7 @@ where
             let mut stack = vec![SimpleEntry::new_root(start)];
 
             while !stack.is_empty() {
-                let mut top = stack.last_mut().unwrap();
+                let top = stack.last_mut().unwrap();
                 let node_index = top.node_index;
                 let node = self.nodes[top.node_index];
 
@@ -696,8 +696,8 @@ where
             let mut stack = vec![DepEntry::new_root(start)];
 
             while !stack.is_empty() {
-                let mut top = stack.last_mut().unwrap();
-                let mut dep_node = dep_nodes.get_mut(top.node_index).unwrap();
+                let top = stack.last_mut().unwrap();
+                let dep_node = dep_nodes.get_mut(top.node_index).unwrap();
 
                 let node = self.nodes[top.node_index];
                 let first_path = top.path == 0 && !node.is_single();
