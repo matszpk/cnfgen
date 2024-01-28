@@ -546,9 +546,25 @@ macro_rules! impl_int_cond_neg_pty {
 
 impl_int_ipty!(impl_int_cond_neg_pty);
 
+/// Trait to rotate left.
+pub trait IntRol<Rhs = Self> {
+    type Output;
+
+    // Required method
+    fn rotate_left(self, rhs: Rhs) -> Self::Output;
+}
+
+/// Trait to rotate right.
+pub trait IntRor<Rhs = Self> {
+    type Output;
+
+    // Required method
+    fn rotate_right(self, rhs: Rhs) -> Self::Output;
+}
+
 /// Trait to left shift with condition.
 ///
-/// A `cond_shl` just returns result of modular multiplication and condition when
+/// A `cond_shl` just returns result of left shift and condition when
 /// no right argument is lower than number of bits of left argument.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).
@@ -563,7 +579,7 @@ pub trait IntCondShl<Rhs = Self> {
 
 /// Trait to right shift with condition.
 ///
-/// A `cond_shr` just returns result of modular multiplication and condition when
+/// A `cond_shr` just returns result of right shift and condition when
 /// no right argument is lower than number of bits of left argument.
 /// This condition should be used to force condition in boolean formulae:
 /// it can be done by adding condition to root of conjunction (ANDs).

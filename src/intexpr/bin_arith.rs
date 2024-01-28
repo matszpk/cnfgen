@@ -683,6 +683,235 @@ macro_rules! impl_int_shx_assign {
 impl_int_shx_assign!(ShlAssign, shl, shl_assign, impl_int_shl_assign_imm);
 impl_int_shx_assign!(ShrAssign, shr, shr_assign, impl_int_shr_assign_imm);
 
+// Rotate left implementation
+impl<T, N, N2, const SIGN: bool, const SIGN2: bool> IntRol<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn rotate_left(self, rhs: IntExprNode<T, N2, SIGN2>) -> Self::Output {
+        let nbits = Self::LOG_BITS;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != N::USIZE && rhs.indexes[nbits - 1] != 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
+
+        let mut input = IntExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
+        let mut output = self;
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_rotate_left(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        output
+    }
+}
+
+macro_rules! impl_int_rol_imm {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> IntRol<$ty> for IntExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn rotate_left(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= N::USIZE {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = GenericArray::default();
+                output[usize_rhs..].copy_from_slice(&self.indexes[0..(N::USIZE - usize_rhs)]);
+                output[..usize_rhs].copy_from_slice(&self.indexes[(N::USIZE - usize_rhs)..]);
+                IntExprNode {
+                    creator: self.creator,
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_rol_imm);
+impl_int_ipty!(impl_int_rol_imm);
+
+macro_rules! impl_int_rol_self_imm {
+    ($sign:expr, $ty:ty, $bits:ty) => {
+        impl<T, N, const SIGN: bool> IntRol<IntExprNode<T, N, SIGN>> for $ty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+        {
+            type Output = IntExprNode<T, $bits, $sign>;
+
+            fn rotate_left(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self).rotate_left(rhs)
+            }
+        }
+    };
+}
+
+impl_int_rol_self_imm!(false, u8, U8);
+impl_int_rol_self_imm!(false, u16, U16);
+impl_int_rol_self_imm!(false, u32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_rol_self_imm!(false, usize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_rol_self_imm!(false, usize, U64);
+impl_int_rol_self_imm!(false, u64, U64);
+impl_int_rol_self_imm!(false, u128, U128);
+
+impl_int_rol_self_imm!(true, i8, U8);
+impl_int_rol_self_imm!(true, i16, U16);
+impl_int_rol_self_imm!(true, i32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_rol_self_imm!(true, isize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_rol_self_imm!(true, isize, U64);
+impl_int_rol_self_imm!(true, i64, U64);
+impl_int_rol_self_imm!(true, i128, U128);
+
+/// Rotate right implementation.
+impl<T, N, const SIGN: bool, N2, const SIGN2: bool> IntRor<IntExprNode<T, N2, SIGN2>>
+    for IntExprNode<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    N2: ArrayLength<usize>,
+{
+    type Output = Self;
+
+    fn rotate_right(self, rhs: IntExprNode<T, N2, SIGN2>) -> Self::Output {
+        let nbits = Self::LOG_BITS;
+        // check whether zeroes in sign and in unused bits in Rhs
+        if (SIGN2 && *rhs.indexes.last().unwrap() != 0)
+            || !rhs.indexes.iter().skip(nbits).all(|x| *x == 0)
+            || ((1 << nbits) != N::USIZE && rhs.indexes[nbits - 1] != 0)
+        {
+            panic!("this arithmetic operation will overflow");
+        }
+        let nbits = cmp::min(nbits, N2::USIZE - usize::from(SIGN2));
+
+        let mut input = IntExprNode {
+            creator: self.creator.clone(),
+            indexes: GenericArray::default(),
+        };
+        let mut output = self;
+        for i in 0..nbits {
+            std::mem::swap(&mut input, &mut output);
+            iter_rotate_right(&mut output.indexes, &input, rhs.bit(i), i);
+        }
+        output
+    }
+}
+
+macro_rules! impl_int_ror_imm {
+    ($ty:ty) => {
+        impl<T, N, const SIGN: bool> IntRor<$ty> for IntExprNode<T, N, SIGN>
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+        {
+            type Output = Self;
+
+            fn rotate_right(self, rhs: $ty) -> Self::Output {
+                // check whether zeroes
+                #[allow(unused_comparisons)]
+                if rhs < 0 || (rhs as usize) >= N::USIZE {
+                    panic!("this arithmetic operation will overflow");
+                }
+                let usize_rhs = rhs as usize;
+                let mut output = GenericArray::default();
+                output[0..(N::USIZE - usize_rhs)].copy_from_slice(&self.indexes[usize_rhs..]);
+                output[(N::USIZE - usize_rhs)..].copy_from_slice(&self.indexes[..usize_rhs]);
+                IntExprNode {
+                    creator: self.creator,
+                    indexes: output,
+                }
+            }
+        }
+    };
+}
+
+impl_int_upty!(impl_int_ror_imm);
+impl_int_ipty!(impl_int_ror_imm);
+
+macro_rules! impl_int_ror_self_imm {
+    ($sign:expr, $ty:ty, $bits:ty) => {
+        impl<T, N, const SIGN: bool> IntRor<IntExprNode<T, N, SIGN>> for $ty
+        where
+            T: VarLit + Neg<Output = T> + Debug,
+            isize: TryFrom<T>,
+            <T as TryInto<usize>>::Error: Debug,
+            <T as TryFrom<usize>>::Error: Debug,
+            <isize as TryFrom<T>>::Error: Debug,
+            N: ArrayLength<usize>,
+            IntExprNode<T, $bits, $sign>: IntConstant<T, $ty>,
+        {
+            type Output = IntExprNode<T, $bits, $sign>;
+
+            fn rotate_right(self, rhs: IntExprNode<T, N, SIGN>) -> Self::Output {
+                IntExprNode::<T, $bits, $sign>::constant(rhs.creator.clone(), self)
+                    .rotate_right(rhs)
+            }
+        }
+    };
+}
+
+impl_int_ror_self_imm!(false, u8, U8);
+impl_int_ror_self_imm!(false, u16, U16);
+impl_int_ror_self_imm!(false, u32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_ror_self_imm!(false, usize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_ror_self_imm!(false, usize, U64);
+impl_int_ror_self_imm!(false, u64, U64);
+impl_int_ror_self_imm!(false, u128, U128);
+
+impl_int_ror_self_imm!(true, i8, U8);
+impl_int_ror_self_imm!(true, i16, U16);
+impl_int_ror_self_imm!(true, i32, U32);
+#[cfg(target_pointer_width = "32")]
+impl_int_ror_self_imm!(true, isize, U32);
+#[cfg(target_pointer_width = "64")]
+impl_int_ror_self_imm!(true, isize, U64);
+impl_int_ror_self_imm!(true, i64, U64);
+impl_int_ror_self_imm!(true, i128, U128);
+
 #[cfg(test)]
 mod tests {
     use super::*;

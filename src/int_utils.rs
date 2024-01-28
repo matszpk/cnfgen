@@ -232,6 +232,62 @@ pub(super) fn iter_shift_right<T, BV>(
     });
 }
 
+pub(super) fn iter_rotate_left<T, BV>(
+    output: &mut [usize],
+    input: BV,
+    rhs_bit: BoolExprNode<T>,
+    i: usize,
+) where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    BV: BitVal<Output = BoolExprNode<T>> + Copy,
+{
+    output.iter_mut().enumerate().for_each(|(x, out)| {
+        *out = bool_ite(
+            rhs_bit.clone(),
+            // if no overflow then get bit(v)
+            if x >= (1usize << i) {
+                input.bit(x - (1 << i))
+            } else {
+                input.bit(input.bitnum() + x - (1 << i))
+            },
+            input.bit(x),
+        )
+        .index
+    });
+}
+
+pub(super) fn iter_rotate_right<T, BV>(
+    output: &mut [usize],
+    input: BV,
+    rhs_bit: BoolExprNode<T>,
+    i: usize,
+) where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    BV: BitVal<Output = BoolExprNode<T>> + Copy,
+{
+    output.iter_mut().enumerate().for_each(|(x, out)| {
+        *out = bool_ite(
+            rhs_bit.clone(),
+            // if no overflow then get bit(v)
+            if x + (1usize << i) < input.bitnum() {
+                input.bit(x + (1 << i))
+            } else {
+                input.bit(x + (1 << i) - input.bitnum())
+            },
+            input.bit(x),
+        )
+        .index
+    });
+}
+
 // return (carry_out and carry_out at last bit)
 pub(super) fn helper_addc_cout<T, BV>(
     output: &mut [usize],
