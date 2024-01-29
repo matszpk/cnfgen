@@ -84,7 +84,7 @@ use std::rc::Rc;
 
 use generic_array::*;
 
-use crate::boolexpr::{half_adder, BoolEqual, BoolExprNode, BoolImpl};
+use crate::boolexpr::{bool_ite, half_adder, BoolEqual, BoolExprNode, BoolImpl};
 pub use crate::boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 use crate::int_utils::*;
 pub use crate::intexpr::{

@@ -118,7 +118,7 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{half_adder, BoolExprNode};
+use crate::boolexpr::{bool_ite, half_adder, BoolExprNode};
 pub use crate::boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 use crate::dynintexpr::DynIntExprNode;
 use crate::int_utils::*;
@@ -589,6 +589,54 @@ where
         ites.resize(
             ites.len() >> 1,
             IntExprNode::filled(index.creator.clone(), false),
+        );
+    }
+
+    ites.pop().unwrap()
+}
+
+/// Returns result of indexing of table with values.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+pub fn int_booltable<T, N, K, I, const SIGN: bool>(
+    index: IntExprNode<T, K, SIGN>,
+    table_iter: I,
+) -> BoolExprNode<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = BoolExprNode<T>>,
+{
+    let mut ites = vec![];
+    let mut iter = table_iter.into_iter();
+    while let Some(v) = iter.next() {
+        if let Some(v2) = iter.next() {
+            ites.push(bool_ite(index.bit(0), v2, v));
+        } else {
+            panic!("Odd number of elements");
+        }
+    }
+
+    for step in 1..K::USIZE {
+        if (ites.len() & 1) != 0 {
+            panic!("Odd number of elements");
+        }
+        for i in 0..(ites.len() >> 1) {
+            ites[i] = bool_ite(
+                index.bit(step),
+                ites[(i << 1) + 1].clone(),
+                ites[i << 1].clone(),
+            );
+        }
+        ites.resize(
+            ites.len() >> 1,
+            BoolExprNode::single_value(index.creator.clone(), false),
         );
     }
 

@@ -640,6 +640,52 @@ where
     ites.pop().unwrap()
 }
 
+/// Returns result of indexing of table with values.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+pub fn dynint_booltable<T, I, const SIGN: bool>(
+    index: DynIntExprNode<T, SIGN>,
+    table_iter: I,
+) -> BoolExprNode<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolExprNode<T>>,
+{
+    let mut ites = vec![];
+    let mut iter = table_iter.into_iter();
+    while let Some(v) = iter.next() {
+        if let Some(v2) = iter.next() {
+            ites.push(bool_ite(index.bit(0), v2, v));
+        } else {
+            panic!("Odd number of elements");
+        }
+    }
+
+    for step in 1..(index.len()) {
+        if (ites.len() & 1) != 0 {
+            panic!("Odd number of elements");
+        }
+        for i in 0..(ites.len() >> 1) {
+            ites[i] = bool_ite(
+                index.bit(step),
+                ites[(i << 1) + 1].clone(),
+                ites[i << 1].clone(),
+            );
+        }
+        ites.resize(
+            ites.len() >> 1,
+            BoolExprNode::single_value(index.creator.clone(), false),
+        );
+    }
+
+    ites.pop().unwrap()
+}
+
 // absolute value
 
 impl<T> DynIntExprNode<T, true>
