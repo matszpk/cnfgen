@@ -1,6 +1,6 @@
 // mod.rs - integer expression structures.
 //
-// cnfgen - Generate the DIMACS CNF formulae from operations
+// cnfgen - Generate the DIMACS CNF formula from operations
 // Copyright (C) 2022  Mateusz Szpakowski
 //
 // This library is free software; you can redistribute it and/or
@@ -46,6 +46,8 @@
 //! * conditional shifts - left and right.
 //! * full multiplication - full multiplication that returns full product.
 //! * division and remainder (modulo) - returns quotient, remainder and required condition.
+//! * counting bits.
+//! * counting leading and trailing ones and zeroes.
 //!
 //! Many operations are defined through additional traits in this module.
 //! These traits and basic operations are implemented for expression nodes and integers -
@@ -75,10 +77,10 @@
 //!     // Similary, we use conditional addition and conditional subtraction.
 //!     let (sum1, cond1) = powx.cond_add(powy);
 //!     let (diff2, cond2) = sum1.cond_sub(prod);
-//!     // define final formulae with required conditions.
-//!     let formulae: BoolExprNode<_> = diff2.equal(0) & cond0 & cond1 & cond2;
+//!     // define final formula with required conditions.
+//!     let formula: BoolExprNode<_> = diff2.equal(0) & cond0 & cond1 & cond2;
 //!     // write CNF to stdout.
-//!     formulae.write(&mut CNFWriter::new(io::stdout()))
+//!     formula.write(&mut CNFWriter::new(io::stdout()))
 //! }
 //! ```
 //!

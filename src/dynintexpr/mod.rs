@@ -1,6 +1,6 @@
 // dynintexpr.rs - dynamic integer expression structures.
 //
-// cnfgen - Generate the DIMACS CNF formulae from operations
+// cnfgen - Generate the DIMACS CNF formula from operations
 // Copyright (C) 2022  Mateusz Szpakowski
 //
 // This library is free software; you can redistribute it and/or
@@ -23,7 +23,7 @@
 //! This module contains traits and main structure to operate on integer expressions:
 //! `DynIntExprNode`. It is similar to IntExprNode, but have some specific features.
 //! Size of integer can be defined dynamically at runtime. This type can be used while
-//! writing generators which generates formulae from source in higher-level language likes
+//! writing generators which generates formula from source in higher-level language likes
 //! CVC4.
 //!
 //! Two generic parameters determines type of IntExprNode.
@@ -61,11 +61,11 @@
 //!     // Similary, we use conditional addition and conditional subtraction.
 //!     let (sum1, cond1) = powx.cond_add(powy);
 //!     let (diff2, cond2) = sum1.cond_sub(prod);
-//!     // define final formulae with required conditions.
+//!     // define final formula with required conditions.
 //!     let zero = IDynExprNode::try_constant_n(creator.clone(), 400, 0).unwrap();
-//!     let formulae: BoolExprNode<_> = diff2.equal(zero) & cond0 & cond1 & cond2;
+//!     let formula: BoolExprNode<_> = diff2.equal(zero) & cond0 & cond1 & cond2;
 //!     // write CNF to stdout.
-//!     formulae.write(&mut CNFWriter::new(io::stdout()))
+//!     formula.write(&mut CNFWriter::new(io::stdout()))
 //! }
 //! ```
 //!
