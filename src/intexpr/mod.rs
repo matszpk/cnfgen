@@ -645,7 +645,7 @@ where
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
 /// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
-pub fn int_demux<T, N, K, I, const SIGN: bool>(
+pub fn int_demux<T, N, K, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     value: IntExprNode<T, N, SIGN>,
 ) -> Vec<IntExprNode<T, N, SIGN>>
@@ -660,13 +660,17 @@ where
 {
     let mut chooser_table = vec![];
     assert_ne!(K::USIZE, 0);
-    chooser_table.push(!index.bit(0));
-    chooser_table.push(index.bit(0));
+    chooser_table.push(!index.bit(K::USIZE - 1));
+    chooser_table.push(index.bit(K::USIZE - 1));
     for l in 1..K::USIZE {
         chooser_table = chooser_table
             .iter()
-            .map(|t| t.clone() & !index.bit(l))
-            .chain(chooser_table.iter().map(|t| t.clone() & index.bit(l)))
+            .map(|t| t.clone() & !index.bit(K::USIZE - l - 1))
+            .chain(
+                chooser_table
+                    .iter()
+                    .map(|t| t.clone() & index.bit(K::USIZE - l - 1)),
+            )
             .collect::<Vec<_>>();
     }
     (0..1 << K::USIZE)
@@ -677,7 +681,7 @@ where
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
 /// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
-pub fn int_booldemux<T, N, K, I, const SIGN: bool>(
+pub fn int_booldemux<T, K, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     value: BoolExprNode<T>,
 ) -> Vec<BoolExprNode<T>>
@@ -687,18 +691,21 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
     K: ArrayLength<usize>,
 {
     let mut chooser_table = vec![];
     assert_ne!(K::USIZE, 0);
-    chooser_table.push(!index.bit(0));
-    chooser_table.push(index.bit(0));
+    chooser_table.push(!index.bit(K::USIZE - 1));
+    chooser_table.push(index.bit(K::USIZE - 1));
     for l in 1..K::USIZE {
         chooser_table = chooser_table
             .iter()
-            .map(|t| t.clone() & !index.bit(l))
-            .chain(chooser_table.iter().map(|t| t.clone() & index.bit(l)))
+            .map(|t| t.clone() & !index.bit(K::USIZE - l - 1))
+            .chain(
+                chooser_table
+                    .iter()
+                    .map(|t| t.clone() & index.bit(K::USIZE - l - 1)),
+            )
             .collect::<Vec<_>>();
     }
     (0..1 << K::USIZE)
@@ -1098,6 +1105,113 @@ mod tests {
         let exp = bool_ite(idx.bit(4), selects3[1].clone(), selects3[0].clone());
 
         assert_eq!(exp.index, res.index);
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_int_demux() {
+        let ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U1, false>::variable(ec.clone());
+        let value = IntExprNode::<isize, U10, false>::variable(ec.clone());
+        let res = int_demux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U1, false>::variable(exp_ec.clone());
+        let value = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let exp = vec![
+            value.clone() & IntExprNode::filled_expr(!idx.bit(0)),
+            value.clone() & IntExprNode::filled_expr(idx.bit(0)),
+        ];
+
+        assert_eq!(
+            exp.into_iter().map(|x| x.indexes).collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.indexes).collect::<Vec<_>>()
+        );
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+        let ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U4, false>::variable(ec.clone());
+        let value = IntExprNode::<isize, U10, false>::variable(ec.clone());
+        let res = int_demux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U4, false>::variable(exp_ec.clone());
+        let value = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let stage0 = vec![!idx.bit(3), idx.bit(3)];
+        let stage1 = stage0
+            .iter()
+            .map(|x| x.clone() & !idx.bit(2))
+            .chain(stage0.iter().map(|x| x.clone() & idx.bit(2)))
+            .collect::<Vec<_>>();
+        let stage2 = stage1
+            .iter()
+            .map(|x| x.clone() & !idx.bit(1))
+            .chain(stage1.iter().map(|x| x.clone() & idx.bit(1)))
+            .collect::<Vec<_>>();
+        let stage3 = stage2
+            .iter()
+            .map(|x| x.clone() & !idx.bit(0))
+            .chain(stage2.iter().map(|x| x.clone() & idx.bit(0)))
+            .collect::<Vec<_>>();
+        let exp = stage3
+            .into_iter()
+            .map(|x| value.clone() & IntExprNode::filled_expr(x.clone()));
+
+        assert_eq!(
+            exp.into_iter().map(|x| x.indexes).collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.indexes).collect::<Vec<_>>()
+        );
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_int_booldemux() {
+        let ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U1, false>::variable(ec.clone());
+        let value = BoolExprNode::<isize>::variable(ec.clone());
+        let res = int_booldemux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U1, false>::variable(exp_ec.clone());
+        let value = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let exp = vec![value.clone() & !idx.bit(0), value.clone() & idx.bit(0)];
+
+        assert_eq!(
+            exp.into_iter().map(|x| x.index).collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.index).collect::<Vec<_>>()
+        );
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+
+        let ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U4, false>::variable(ec.clone());
+        let value = BoolExprNode::<isize>::variable(ec.clone());
+        let res = int_booldemux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U4, false>::variable(exp_ec.clone());
+        let value = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let stage0 = vec![!idx.bit(3), idx.bit(3)];
+        let stage1 = stage0
+            .iter()
+            .map(|x| x.clone() & !idx.bit(2))
+            .chain(stage0.iter().map(|x| x.clone() & idx.bit(2)))
+            .collect::<Vec<_>>();
+        let stage2 = stage1
+            .iter()
+            .map(|x| x.clone() & !idx.bit(1))
+            .chain(stage1.iter().map(|x| x.clone() & idx.bit(1)))
+            .collect::<Vec<_>>();
+        let stage3 = stage2
+            .iter()
+            .map(|x| x.clone() & !idx.bit(0))
+            .chain(stage2.iter().map(|x| x.clone() & idx.bit(0)))
+            .collect::<Vec<_>>();
+        let exp = stage3.into_iter().map(|x| value.clone() & x.clone());
+
+        assert_eq!(
+            exp.into_iter().map(|x| x.index).collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.index).collect::<Vec<_>>()
+        );
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 }
