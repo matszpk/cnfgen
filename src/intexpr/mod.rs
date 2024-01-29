@@ -642,6 +642,70 @@ where
     ites.pop().unwrap()
 }
 
+/// Demulitplexer - returns list of outputs of demulitplexer.
+///
+/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+pub fn int_demux<T, N, K, I, const SIGN: bool>(
+    index: IntExprNode<T, K, SIGN>,
+    value: IntExprNode<T, N, SIGN>,
+) -> Vec<IntExprNode<T, N, SIGN>>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+{
+    let mut chooser_table = vec![];
+    assert_ne!(K::USIZE, 0);
+    chooser_table.push(!index.bit(0));
+    chooser_table.push(index.bit(0));
+    for l in 1..K::USIZE {
+        chooser_table = chooser_table
+            .iter()
+            .map(|t| t.clone() & !index.bit(l))
+            .chain(chooser_table.iter().map(|t| t.clone() & index.bit(l)))
+            .collect::<Vec<_>>();
+    }
+    (0..1 << K::USIZE)
+        .map(|i| value.clone() & BitMask::bitmask(chooser_table[i].clone()))
+        .collect::<Vec<_>>()
+}
+
+/// Demulitplexer - returns list of outputs of demulitplexer.
+///
+/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+pub fn int_booldemux<T, N, K, I, const SIGN: bool>(
+    index: IntExprNode<T, K, SIGN>,
+    value: BoolExprNode<T>,
+) -> Vec<BoolExprNode<T>>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+{
+    let mut chooser_table = vec![];
+    assert_ne!(K::USIZE, 0);
+    chooser_table.push(!index.bit(0));
+    chooser_table.push(index.bit(0));
+    for l in 1..K::USIZE {
+        chooser_table = chooser_table
+            .iter()
+            .map(|t| t.clone() & !index.bit(l))
+            .chain(chooser_table.iter().map(|t| t.clone() & index.bit(l)))
+            .collect::<Vec<_>>();
+    }
+    (0..1 << K::USIZE)
+        .map(|i| value.clone() & chooser_table[i].clone())
+        .collect::<Vec<_>>()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
