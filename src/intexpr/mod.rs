@@ -599,7 +599,7 @@ where
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
 /// iterator of expressions.
-pub fn int_booltable<T, N, K, I, const SIGN: bool>(
+pub fn int_booltable<T, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,
 ) -> BoolExprNode<T>
@@ -609,7 +609,6 @@ where
     <T as TryInto<usize>>::Error: Debug,
     <T as TryFrom<usize>>::Error: Debug,
     <isize as TryFrom<T>>::Error: Debug,
-    N: ArrayLength<usize>,
     K: ArrayLength<usize>,
     I: IntoIterator<Item = BoolExprNode<T>>,
 {
@@ -980,6 +979,61 @@ mod tests {
         let exp = int_ite(idx.bit(4), selects3[1].clone(), selects3[0].clone());
 
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_int_booltable() {
+        let ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| BoolExprNode::<isize>::variable(ec.clone()))
+            .collect::<Vec<_>>();
+        let res = int_booltable(idx, values);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| BoolExprNode::<isize>::variable(exp_ec.clone()))
+            .collect::<Vec<_>>();
+
+        let mut selects0 = vec![];
+        for i in 0..16 {
+            selects0.push(bool_ite(
+                idx.bit(0),
+                values[(i << 1) + 1].clone(),
+                values[i << 1].clone(),
+            ));
+        }
+        let mut selects1 = vec![];
+        for i in 0..8 {
+            selects1.push(bool_ite(
+                idx.bit(1),
+                selects0[(i << 1) + 1].clone(),
+                selects0[i << 1].clone(),
+            ));
+        }
+        let mut selects2 = vec![];
+        for i in 0..4 {
+            selects2.push(bool_ite(
+                idx.bit(2),
+                selects1[(i << 1) + 1].clone(),
+                selects1[i << 1].clone(),
+            ));
+        }
+        let mut selects3 = vec![];
+        for i in 0..2 {
+            selects3.push(bool_ite(
+                idx.bit(3),
+                selects2[(i << 1) + 1].clone(),
+                selects2[i << 1].clone(),
+            ));
+        }
+        let exp = bool_ite(idx.bit(4), selects3[1].clone(), selects3[0].clone());
+
+        assert_eq!(exp.index, res.index);
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 }

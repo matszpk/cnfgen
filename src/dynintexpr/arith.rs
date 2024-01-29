@@ -1199,7 +1199,7 @@ impl_dynint_div_mod!(true);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::intexpr::{int_ite, int_table, IntExprNode};
+    use crate::intexpr::{int_booltable, int_ite, int_table, IntExprNode};
     use generic_array::typenum::*;
 
     macro_rules! test_expr_node_binaryop {
@@ -1292,6 +1292,28 @@ mod tests {
         let exp = int_table(idx, values);
 
         assert_eq!(exp.indexes.as_slice(), res.indexes.as_slice());
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_dynint_booltable() {
+        let ec = ExprCreator::new();
+        let idx = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| BoolExprNode::<isize>::variable(ec.clone()))
+            .collect::<Vec<_>>();
+        let res = dynint_booltable(idx, values);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let values = (0..(1 << 5))
+            .into_iter()
+            .map(|_| BoolExprNode::<isize>::variable(exp_ec.clone()))
+            .collect::<Vec<_>>();
+        let exp = int_booltable(idx, values);
+
+        assert_eq!(exp.index, res.index);
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 
