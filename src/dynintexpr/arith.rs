@@ -686,6 +686,77 @@ where
     ites.pop().unwrap()
 }
 
+/// Demulitplexer - returns list of outputs of demulitplexer.
+///
+/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+pub fn dynint_demux<T, const SIGN: bool>(
+    index: DynIntExprNode<T, SIGN>,
+    value: DynIntExprNode<T, SIGN>,
+) -> Vec<DynIntExprNode<T, SIGN>>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    let k = index.len();
+    let n = value.len();
+    let mut chooser_table = vec![];
+    assert_ne!(k, 0);
+    chooser_table.push(!index.bit(k - 1));
+    chooser_table.push(index.bit(k - 1));
+    for l in 1..k {
+        chooser_table = chooser_table
+            .iter()
+            .map(|t| t.clone() & !index.bit(k - l - 1))
+            .chain(
+                chooser_table
+                    .iter()
+                    .map(|t| t.clone() & index.bit(k - l - 1)),
+            )
+            .collect::<Vec<_>>();
+    }
+    (0..1 << k)
+        .map(|i| value.clone() & DynIntExprNode::filled_expr(n, chooser_table[i].clone()))
+        .collect::<Vec<_>>()
+}
+
+/// Demulitplexer - returns list of outputs of demulitplexer.
+///
+/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+pub fn dynint_booldemux<T, const SIGN: bool>(
+    index: DynIntExprNode<T, SIGN>,
+    value: BoolExprNode<T>,
+) -> Vec<BoolExprNode<T>>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    let k = index.len();
+    let mut chooser_table = vec![];
+    assert_ne!(k, 0);
+    chooser_table.push(!index.bit(k - 1));
+    chooser_table.push(index.bit(k - 1));
+    for l in 1..k {
+        chooser_table = chooser_table
+            .iter()
+            .map(|t| t.clone() & !index.bit(k - l - 1))
+            .chain(
+                chooser_table
+                    .iter()
+                    .map(|t| t.clone() & index.bit(k - l - 1)),
+            )
+            .collect::<Vec<_>>();
+    }
+    (0..1 << k)
+        .map(|i| value.clone() & chooser_table[i].clone())
+        .collect::<Vec<_>>()
+}
+
 // absolute value
 
 impl<T> DynIntExprNode<T, true>
@@ -1199,7 +1270,9 @@ impl_dynint_div_mod!(true);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::intexpr::{int_booltable, int_ite, int_table, IntExprNode};
+    use crate::intexpr::{
+        int_booldemux, int_booltable, int_demux, int_ite, int_table, IntExprNode,
+    };
     use generic_array::typenum::*;
 
     macro_rules! test_expr_node_binaryop {
@@ -1314,6 +1387,46 @@ mod tests {
         let exp = int_booltable(idx, values);
 
         assert_eq!(exp.index, res.index);
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_dynint_demux() {
+        let ec = ExprCreator::new();
+        let idx = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let value = DynIntExprNode::<isize, false>::variable(ec.clone(), 10);
+        let res = dynint_demux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let value = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        let exp = int_demux(idx, value);
+
+        assert_eq!(
+            exp.into_iter()
+                .map(|x| x.indexes.into_iter().collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.indexes).collect::<Vec<_>>()
+        );
+        assert_eq!(*exp_ec.borrow(), *ec.borrow());
+    }
+
+    #[test]
+    fn test_expr_node_dynint_booldemux() {
+        let ec = ExprCreator::new();
+        let idx = DynIntExprNode::<isize, false>::variable(ec.clone(), 5);
+        let value = BoolExprNode::<isize>::variable(ec.clone());
+        let res = dynint_booldemux(idx, value);
+
+        let exp_ec = ExprCreator::new();
+        let idx = IntExprNode::<isize, U5, false>::variable(exp_ec.clone());
+        let value = BoolExprNode::<isize>::variable(exp_ec.clone());
+        let exp = int_booldemux(idx, value);
+
+        assert_eq!(
+            exp.into_iter().map(|x| x.index).collect::<Vec<_>>(),
+            res.into_iter().map(|x| x.index).collect::<Vec<_>>()
+        );
         assert_eq!(*exp_ec.borrow(), *ec.borrow());
     }
 
