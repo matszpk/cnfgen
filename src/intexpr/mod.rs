@@ -549,7 +549,7 @@ where
 
 /// Returns result of indexing of table with values.
 ///
-/// It perform operation: `table[index]`, where table given as object convertible to
+/// It performs operation: `table[index]`, where table given as object convertible to
 /// iterator of expressions.
 pub fn int_table<T, N, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
@@ -597,7 +597,7 @@ where
 
 /// Returns result of indexing of table with values.
 ///
-/// It perform operation: `table[index]`, where table given as object convertible to
+/// It performs operation: `table[index]`, where table given as object convertible to
 /// iterator of expressions.
 pub fn int_booltable<T, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
@@ -644,7 +644,7 @@ where
 
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
-/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+/// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn int_demux<T, N, K, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     value: IntExprNode<T, N, SIGN>,
@@ -658,20 +658,17 @@ where
     N: ArrayLength<usize>,
     K: ArrayLength<usize>,
 {
-    let mut chooser_table = vec![];
     assert_ne!(K::USIZE, 0);
+    let mut chooser_table = vec![];
     chooser_table.push(!index.bit(K::USIZE - 1));
     chooser_table.push(index.bit(K::USIZE - 1));
     for l in 1..K::USIZE {
-        chooser_table = chooser_table
-            .iter()
-            .map(|t| t.clone() & !index.bit(K::USIZE - l - 1))
-            .chain(
-                chooser_table
-                    .iter()
-                    .map(|t| t.clone() & index.bit(K::USIZE - l - 1)),
-            )
-            .collect::<Vec<_>>();
+        let mut new_chooser_table = Vec::with_capacity(1 << l);
+        for i in 0..1 << l {
+            new_chooser_table.push(chooser_table[i].clone() & !index.bit(K::USIZE - l - 1));
+            new_chooser_table.push(chooser_table[i].clone() & index.bit(K::USIZE - l - 1));
+        }
+        chooser_table = new_chooser_table;
     }
     (0..1 << K::USIZE)
         .map(|i| value.clone() & BitMask::bitmask(chooser_table[i].clone()))
@@ -680,7 +677,7 @@ where
 
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
-/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+/// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn int_booldemux<T, K, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     value: BoolExprNode<T>,
@@ -693,20 +690,17 @@ where
     <isize as TryFrom<T>>::Error: Debug,
     K: ArrayLength<usize>,
 {
-    let mut chooser_table = vec![];
     assert_ne!(K::USIZE, 0);
+    let mut chooser_table = vec![];
     chooser_table.push(!index.bit(K::USIZE - 1));
     chooser_table.push(index.bit(K::USIZE - 1));
     for l in 1..K::USIZE {
-        chooser_table = chooser_table
-            .iter()
-            .map(|t| t.clone() & !index.bit(K::USIZE - l - 1))
-            .chain(
-                chooser_table
-                    .iter()
-                    .map(|t| t.clone() & index.bit(K::USIZE - l - 1)),
-            )
-            .collect::<Vec<_>>();
+        let mut new_chooser_table = Vec::with_capacity(1 << l);
+        for i in 0..1 << l {
+            new_chooser_table.push(chooser_table[i].clone() & !index.bit(K::USIZE - l - 1));
+            new_chooser_table.push(chooser_table[i].clone() & index.bit(K::USIZE - l - 1));
+        }
+        chooser_table = new_chooser_table;
     }
     (0..1 << K::USIZE)
         .map(|i| value.clone() & chooser_table[i].clone())
@@ -1140,22 +1134,23 @@ mod tests {
         let stage0 = vec![!idx.bit(3), idx.bit(3)];
         let stage1 = stage0
             .iter()
-            .map(|x| x.clone() & !idx.bit(2))
-            .chain(stage0.iter().map(|x| x.clone() & idx.bit(2)))
+            .map(|x| [x.clone() & !idx.bit(2), x.clone() & idx.bit(2)])
+            .flatten()
             .collect::<Vec<_>>();
         let stage2 = stage1
             .iter()
-            .map(|x| x.clone() & !idx.bit(1))
-            .chain(stage1.iter().map(|x| x.clone() & idx.bit(1)))
+            .map(|x| [x.clone() & !idx.bit(1), x.clone() & idx.bit(1)])
+            .flatten()
             .collect::<Vec<_>>();
         let stage3 = stage2
             .iter()
-            .map(|x| x.clone() & !idx.bit(0))
-            .chain(stage2.iter().map(|x| x.clone() & idx.bit(0)))
+            .map(|x| [x.clone() & !idx.bit(0), x.clone() & idx.bit(0)])
+            .flatten()
             .collect::<Vec<_>>();
         let exp = stage3
             .into_iter()
-            .map(|x| value.clone() & IntExprNode::filled_expr(x.clone()));
+            .map(|x| value.clone() & IntExprNode::filled_expr(x.clone()))
+            .collect::<Vec<_>>();
 
         assert_eq!(
             exp.into_iter().map(|x| x.indexes).collect::<Vec<_>>(),
@@ -1193,20 +1188,23 @@ mod tests {
         let stage0 = vec![!idx.bit(3), idx.bit(3)];
         let stage1 = stage0
             .iter()
-            .map(|x| x.clone() & !idx.bit(2))
-            .chain(stage0.iter().map(|x| x.clone() & idx.bit(2)))
+            .map(|x| [x.clone() & !idx.bit(2), x.clone() & idx.bit(2)])
+            .flatten()
             .collect::<Vec<_>>();
         let stage2 = stage1
             .iter()
-            .map(|x| x.clone() & !idx.bit(1))
-            .chain(stage1.iter().map(|x| x.clone() & idx.bit(1)))
+            .map(|x| [x.clone() & !idx.bit(1), x.clone() & idx.bit(1)])
+            .flatten()
             .collect::<Vec<_>>();
         let stage3 = stage2
             .iter()
-            .map(|x| x.clone() & !idx.bit(0))
-            .chain(stage2.iter().map(|x| x.clone() & idx.bit(0)))
+            .map(|x| [x.clone() & !idx.bit(0), x.clone() & idx.bit(0)])
+            .flatten()
             .collect::<Vec<_>>();
-        let exp = stage3.into_iter().map(|x| value.clone() & x.clone());
+        let exp = stage3
+            .into_iter()
+            .map(|x| value.clone() & x.clone())
+            .collect::<Vec<_>>();
 
         assert_eq!(
             exp.into_iter().map(|x| x.index).collect::<Vec<_>>(),

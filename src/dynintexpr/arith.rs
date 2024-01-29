@@ -596,7 +596,7 @@ where
 
 /// Returns result of indexing of table with values.
 ///
-/// It perform operation: `table[index]`, where table given as object convertible to
+/// It performs operation: `table[index]`, where table given as object convertible to
 /// iterator of expressions.
 pub fn dynint_table<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
@@ -642,7 +642,7 @@ where
 
 /// Returns result of indexing of table with values.
 ///
-/// It perform operation: `table[index]`, where table given as object convertible to
+/// It performs operation: `table[index]`, where table given as object convertible to
 /// iterator of expressions.
 pub fn dynint_booltable<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
@@ -688,7 +688,7 @@ where
 
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
-/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+/// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn dynint_demux<T, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     value: DynIntExprNode<T, SIGN>,
@@ -702,20 +702,17 @@ where
 {
     let k = index.len();
     let n = value.len();
-    let mut chooser_table = vec![];
     assert_ne!(k, 0);
+    let mut chooser_table = vec![];
     chooser_table.push(!index.bit(k - 1));
     chooser_table.push(index.bit(k - 1));
     for l in 1..k {
-        chooser_table = chooser_table
-            .iter()
-            .map(|t| t.clone() & !index.bit(k - l - 1))
-            .chain(
-                chooser_table
-                    .iter()
-                    .map(|t| t.clone() & index.bit(k - l - 1)),
-            )
-            .collect::<Vec<_>>();
+        let mut new_chooser_table = Vec::with_capacity(1 << l);
+        for i in 0..1 << l {
+            new_chooser_table.push(chooser_table[i].clone() & !index.bit(k - l - 1));
+            new_chooser_table.push(chooser_table[i].clone() & index.bit(k - l - 1));
+        }
+        chooser_table = new_chooser_table;
     }
     (0..1 << k)
         .map(|i| value.clone() & DynIntExprNode::filled_expr(n, chooser_table[i].clone()))
@@ -724,7 +721,7 @@ where
 
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
-/// It perform operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
+/// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn dynint_booldemux<T, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     value: BoolExprNode<T>,
@@ -737,20 +734,17 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     let k = index.len();
-    let mut chooser_table = vec![];
     assert_ne!(k, 0);
+    let mut chooser_table = vec![];
     chooser_table.push(!index.bit(k - 1));
     chooser_table.push(index.bit(k - 1));
     for l in 1..k {
-        chooser_table = chooser_table
-            .iter()
-            .map(|t| t.clone() & !index.bit(k - l - 1))
-            .chain(
-                chooser_table
-                    .iter()
-                    .map(|t| t.clone() & index.bit(k - l - 1)),
-            )
-            .collect::<Vec<_>>();
+        let mut new_chooser_table = Vec::with_capacity(1 << l);
+        for i in 0..1 << l {
+            new_chooser_table.push(chooser_table[i].clone() & !index.bit(k - l - 1));
+            new_chooser_table.push(chooser_table[i].clone() & index.bit(k - l - 1));
+        }
+        chooser_table = new_chooser_table;
     }
     (0..1 << k)
         .map(|i| value.clone() & chooser_table[i].clone())
