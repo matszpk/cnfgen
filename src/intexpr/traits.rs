@@ -131,6 +131,13 @@ pub trait BitVal {
     fn bitnum(self) -> usize;
     /// Get bit value.
     fn bit(self, n: usize) -> Self::Output;
+    /// Get iterator.
+    fn iter(self) -> impl Iterator<Item = Self::Output>
+    where
+        Self: Sized + Copy,
+    {
+        (0..self.bitnum()).map(move |i| self.bit(i))
+    }
 }
 
 macro_rules! impl_int_bitval_upty {
