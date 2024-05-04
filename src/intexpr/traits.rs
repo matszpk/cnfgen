@@ -120,6 +120,32 @@ pub trait TryIntConstant<T: VarLit, U>: Sized {
     fn try_constant(creator: Rc<RefCell<ExprCreator<T>>>, v: U) -> Result<Self, IntError>;
 }
 
+pub struct BitIter<I, B> {
+    iter: I,
+    b: B,
+}
+
+impl<I, B> Iterator for BitIter<I, B>
+where
+    B: BitVal + Copy + Sized,
+    I: Iterator<Item = usize>,
+{
+    type Item = B::Output;
+    fn next(&mut self) -> Option<B::Output> {
+        self.iter.next().map(|i| self.b.bit(i))
+    }
+}
+
+impl<I, B> DoubleEndedIterator for BitIter<I, B>
+where
+    B: BitVal + Copy + Sized,
+    I: DoubleEndedIterator<Item = usize>,
+{
+    fn next_back(&mut self) -> Option<B::Output> {
+        self.iter.next_back().map(|i| self.b.bit(i))
+    }
+}
+
 /// Trait to get a bit value from object and get number of bits for object.
 ///
 /// It defined for IntIntExprNode and DynIntIntExprNode. The defines `Output` that can be
@@ -132,11 +158,14 @@ pub trait BitVal {
     /// Get bit value.
     fn bit(self, n: usize) -> Self::Output;
     /// Get iterator.
-    fn iter(self) -> impl Iterator<Item = Self::Output>
+    fn iter(self) -> BitIter<std::ops::Range<usize>, Self>
     where
         Self: Sized + Copy,
     {
-        (0..self.bitnum()).map(move |i| self.bit(i))
+        BitIter {
+            iter: (0..self.bitnum()),
+            b: self,
+        }
     }
 }
 
