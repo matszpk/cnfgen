@@ -34,6 +34,10 @@
 //! `IntExprNode` and `DynIntExprNode` allow to construct integer expressions or multiple
 //! bit expressions.
 //!
+//! Version 0.4.0 (current) offers new interface to operate on expressions.
+//! This interface in `boolvar`, `intvar` and `dynintvar` modules. New interface offers
+//! few simplifications that facility writing complex expressions.
+//!
 //! Samples of usage of these modules can be found in documentation of these modules.
 //!
 //! Typical usage of this library is: construction boolean expression and write it by using
