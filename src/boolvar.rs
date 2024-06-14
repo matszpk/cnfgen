@@ -17,16 +17,44 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+//! This is new module to handle expressions better than boolexpr. It allow to use
+//! references and other types.
+//!
+//! Simple example:
+//!
+//! ```
+//! use cnfgen::boolvar::*;
+//! use cnfgen::writer::{CNFError, CNFWriter};
+//! use std::io;
+//! fn simple_expr_generator() -> Result<(), CNFError> {
+//!     // define ExprCreator.
+//!     let creator = ExprCreator32::new();
+//!     // define variables.
+//!     let expr = call32(|| {
+//!         let x1 = BoolVar32::var();
+//!         let x2 = BoolVar32::var();
+//!         let x3 = BoolVar32::var();
+//!         let x4 = BoolVar32::var();
+//!         // define final expression: x1 => ((x2 xor x3) == (x3 and x4)).
+//!         x1.imp((x2 ^ &x3).bequal(&x3 & x4))
+//!     });
+//!     // write CNF to stdout.
+//!     expr.write(&mut CNFWriter::new(io::stdout()))
+//! }
+//! ```
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::io::Write;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not};
 use std::rc::Rc;
 
 use crate::boolexpr::BoolExprNode;
 pub use crate::boolexpr::{BoolEqual, BoolImpl};
 pub use crate::boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
-use crate::writer::{Literal, VarLit};
+use crate::writer::{CNFError, CNFWriter, Literal, QuantSet, Quantifier, VarLit};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BoolVarError {
@@ -211,6 +239,21 @@ where
     }
     pub fn varlit(&self) -> Option<T> {
         self.0.varlit()
+    }
+
+    /// Writes expression to CNF.
+    pub fn write<W: Write>(&self, cnf: &mut CNFWriter<W>) -> Result<(), CNFError> {
+        self.0.write(cnf)
+    }
+
+    /// Writes quantified expression to QCNF.
+    pub fn write_quant<W, QL, Q>(&self, quants: QL, cnf: &mut CNFWriter<W>) -> Result<(), CNFError>
+    where
+        W: Write,
+        QL: IntoIterator<Item = (Quantifier, Q)>,
+        Q: QuantSet<T>,
+    {
+        self.0.write_quant(quants, cnf)
     }
 }
 
