@@ -19,7 +19,8 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! This is new module to handle expressions better than boolexpr. It allow to use
-//! references and other types.
+//! references and other types. To write some formula `call16`, `call32` or `callsys` should be
+//! used to call routine that generates formula by using this module.
 //!
 //! Simple example:
 //!
@@ -28,10 +29,9 @@
 //! use cnfgen::writer::{CNFError, CNFWriter};
 //! use std::io;
 //! fn simple_expr_generator() -> Result<(), CNFError> {
-//!     // define ExprCreator.
-//!     let creator = ExprCreator32::new();
-//!     // define variables.
+//!     // call routine to generate formula.
 //!     let expr = call32(|| {
+//!         // define variables.
 //!         let x1 = BoolVar32::var();
 //!         let x2 = BoolVar32::var();
 //!         let x3 = BoolVar32::var();

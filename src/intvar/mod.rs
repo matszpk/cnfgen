@@ -17,6 +17,46 @@
 // License along with this library; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+#![cfg_attr(docsrs, feature(doc_cfg))]
+//! The module to generate CNF clauses from integer expressions better than `intexpr` module.
+//! It offers same functionality as `intexpr`, reference support, simpler conversion
+//! from integers, improved concatenation, standard binary arithmetic operators overloading.
+//! To write some formula `boolvar::call16`, `boolvar::call32` or `boolvar::callsys` should be
+//! used to call routine that generates formula by using this module.
+//!
+//! IMPORTANT: About overloading standard arithmetic operators. Any operations done in modular
+//! arithmetic without checking carry, overflow and underflow. Therefore IntVar type should be
+//! treat as modular arithmetic type.
+//!
+//! The simple example of usage:
+//! ```
+//! use cnfgen::boolvar::*;
+//! use cnfgen::intvar::*;
+//! use cnfgen::writer::{CNFError, CNFWriter};
+//! use std::io;
+//! fn write_diophantine_equation() -> Result<(), CNFError> {
+//!     let formula: BoolVar32 = call32(|| {
+//!         // define variables - signed 32-bit wide.
+//!         let x = I32Var32::var();
+//!         let y = I32Var32::var();
+//!         let z = I32Var32::var();
+//!         // define equation: x^2 + y^2 - 77*z^2 = 0
+//!         let powx = (&x).fullmul(&x);  // x^2
+//!         let powy = (&y).fullmul(&y);  // y^2
+//!         let powz = (&z).fullmul(&z);  // z^2
+//!         // We use cond_mul to get product and required condition to avoid overflow.
+//!         let (prod, cond0) = powz.cond_mul(77i64);
+//!         // Similary, we use conditional addition and conditional subtraction.
+//!         let (sum1, cond1) = powx.cond_add(powy);
+//!         let (diff2, cond2) = sum1.cond_sub(prod);
+//!         // define final formula with required conditions.
+//!         diff2.equal(0) & cond0 & cond1 & cond2
+//!     });
+//!     // write CNF to stdout.
+//!     formula.write(&mut CNFWriter::new(io::stdout()))
+//! }
+//! ```
+
 use std::cmp;
 use std::collections::HashMap;
 use std::fmt::Debug;
