@@ -29,6 +29,11 @@
 //! arithmetic without checking carry, overflow and underflow. Therefore DynIntVar type should be
 //! treat as modular arithmetic type.
 //!
+//! About usage of immediates with `DynIntVar`. it easier than in `DynIntExprNode`. Regardless
+//! what is length of integer, any conversion from integer with same signess will be done
+//! automatically. It just possible to write: `a + 12u8` and `a` can have any length.
+//! If conversion fails then program panicked.
+//!
 //! The simple example of usage:
 //! ```
 //! use cnfgen::boolvar::*;

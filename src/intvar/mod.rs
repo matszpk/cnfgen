@@ -28,6 +28,11 @@
 //! arithmetic without checking carry, overflow and underflow. Therefore IntVar type should be
 //! treat as modular arithmetic type.
 //!
+//! About usage of immediates with `IntVar`. it easier than in `IntExprNode`. Regardless
+//! what is length of integer, any conversion from integer with same signess be done
+//! automatically. It just possible to write: `a + 12u8` and `a` can have any length.
+//! If conversion fails then program panicked.
+//!
 //! The simple example of usage:
 //! ```
 //! use cnfgen::boolvar::*;
