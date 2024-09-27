@@ -181,6 +181,19 @@ from_literal_impl!(i16, EXPR_CREATOR_16);
 from_literal_impl!(i32, EXPR_CREATOR_32);
 from_literal_impl!(isize, EXPR_CREATOR_SYS);
 
+macro_rules! default_impl {
+    ($t:ident, $creator:ident) => {
+        impl Default for BoolVar<$t> {
+            fn default() -> Self {
+                Self::from(false)
+            }
+        }
+    };
+}
+default_impl!(i16, EXPR_CREATOR_16);
+default_impl!(i32, EXPR_CREATOR_32);
+default_impl!(isize, EXPR_CREATOR_SYS);
+
 impl<T> TryFrom<BoolVar<T>> for bool
 where
     T: VarLit + Neg<Output = T> + Debug,

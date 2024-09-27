@@ -224,6 +224,17 @@ where
         Self(self.0.subvalue(start, n))
     }
 
+    /// Creates integers that contains `n1`, `n2`, ... bits starting from `start`.
+    pub fn subvalues(&self, start: usize, ns: impl IntoIterator<Item = usize>) -> Vec<Self> {
+        let mut startx = start;
+        let mut out = vec![];
+        for n in ns.into_iter() {
+            out.push(self.subvalue(startx, n));
+            startx += n;
+        }
+        out
+    }
+
     /// Creates integer that contains selected bits. List of bits given in
     /// object that can be converted into iterator of indexes.
     pub fn select_bits(&self, iter: impl IntoIterator<Item = usize>) -> Self {

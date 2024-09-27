@@ -468,6 +468,34 @@ impl_xint_from!(i16, EXPR_CREATOR_16);
 impl_xint_from!(i32, EXPR_CREATOR_32);
 impl_xint_from!(isize, EXPR_CREATOR_SYS);
 
+macro_rules! impl_default {
+    ($t:ident, $creator:ident) => {
+        impl<N> Default for IntVar<$t, N, false>
+        where
+            N: ArrayLength<usize>,
+            IntExprNode<$t, N, false>: TryIntConstant<$t, u8>,
+        {
+            fn default() -> Self {
+                Self::from(0u8)
+            }
+        }
+
+        impl<N> Default for IntVar<$t, N, true>
+        where
+            N: ArrayLength<usize>,
+            IntExprNode<$t, N, true>: TryIntConstant<$t, i8>,
+        {
+            fn default() -> Self {
+                Self::from(0i8)
+            }
+        }
+    };
+}
+
+impl_default!(i16, EXPR_CREATOR_16);
+impl_default!(i32, EXPR_CREATOR_32);
+impl_default!(isize, EXPR_CREATOR_SYS);
+
 impl<'a, T, N, const SIGN: bool> BitVal for &'a IntVar<T, N, SIGN>
 where
     T: VarLit + Neg<Output = T> + Debug,
