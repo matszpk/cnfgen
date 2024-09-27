@@ -1160,7 +1160,7 @@ macro_rules! int_ord_uint_x_signed {
 
 impl_int_ipty!(int_ord_uint_x_signed);
 
-pub use crate::intexpr::int_ite;
+pub use crate::intexpr::{int_ite, int_max, int_min};
 
 pub fn int_ite_r<T, N: ArrayLength<usize>, const SIGN: bool>(
     c: &BoolVar<T>,
@@ -1175,6 +1175,42 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     int_ite(c.clone(), t.clone(), e.clone())
+}
+
+pub fn int_min_r<T, N: ArrayLength<usize>, const SIGN: bool>(
+    t: &IntVar<T, N, SIGN>,
+    e: &IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    IntVar<T, N, SIGN>: Clone + IntOrd<IntVar<T, N, SIGN>>,
+    IntVar<T, N, SIGN>: BitMask<<IntVar<T, N, SIGN> as IntOrd>::Output>,
+    IntVar<T, N, SIGN>: BitMask<<<IntVar<T, N, SIGN> as IntOrd>::Output as std::ops::Not>::Output>,
+    <IntVar<T, N, SIGN> as IntOrd>::Output: Clone + std::ops::Not,
+{
+    int_min(t.clone(), e.clone())
+}
+
+pub fn int_max_r<T, N: ArrayLength<usize>, const SIGN: bool>(
+    t: &IntVar<T, N, SIGN>,
+    e: &IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    IntVar<T, N, SIGN>: Clone + IntOrd<IntVar<T, N, SIGN>>,
+    IntVar<T, N, SIGN>: BitMask<<IntVar<T, N, SIGN> as IntOrd>::Output>,
+    IntVar<T, N, SIGN>: BitMask<<<IntVar<T, N, SIGN> as IntOrd>::Output as std::ops::Not>::Output>,
+    <IntVar<T, N, SIGN> as IntOrd>::Output: Clone + std::ops::Not,
+{
+    int_max(t.clone(), e.clone())
 }
 
 /// Returns result of indexing of table with values.

@@ -549,6 +549,28 @@ where
         | (<E as BitMask<<C as Not>::Output>>::bitmask(!c) & e)
 }
 
+/// Returns minimal value from two.
+pub fn int_min<T, E>(t: T, e: E) -> <<T as BitAnd>::Output as BitOr<<E as BitAnd>::Output>>::Output
+where
+    <T as traits::IntOrd<E>>::Output: Clone + Not,
+    T: Clone + BitAnd + BitMask<<T as IntOrd<E>>::Output> + IntOrd<E>,
+    E: Clone + BitAnd + BitMask<<<T as IntOrd<E>>::Output as Not>::Output>,
+    <T as BitAnd<T>>::Output: BitOr<<E as BitAnd<E>>::Output>,
+{
+    int_ite(t.clone().less_than(e.clone()), t, e)
+}
+
+/// Returns maximal value from two.
+pub fn int_max<T, E>(t: T, e: E) -> <<T as BitAnd>::Output as BitOr<<E as BitAnd>::Output>>::Output
+where
+    <T as traits::IntOrd<E>>::Output: Clone + Not,
+    T: Clone + BitAnd + BitMask<<T as IntOrd<E>>::Output> + IntOrd<E>,
+    E: Clone + BitAnd + BitMask<<<T as IntOrd<E>>::Output as Not>::Output>,
+    <T as BitAnd<T>>::Output: BitOr<<E as BitAnd<E>>::Output>,
+{
+    int_ite(t.clone().greater_than(e.clone()), t, e)
+}
+
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to

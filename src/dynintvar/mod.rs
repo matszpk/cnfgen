@@ -1081,6 +1081,68 @@ where
     dynint_ite(c.clone(), t.clone(), e.clone())
 }
 
+/// Returns minimal value from two.
+pub fn dynint_min<T, const SIGN: bool>(
+    t: DynIntVar<T, SIGN>,
+    e: DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    DynIntVar(dynintexpr::dynint_min(t.0, e.0))
+}
+
+/// Returns maximal value from two.
+pub fn dynint_max<T, const SIGN: bool>(
+    t: DynIntVar<T, SIGN>,
+    e: DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    DynIntVar(dynintexpr::dynint_max(t.0, e.0))
+}
+
+pub fn dynint_min_r<T, const SIGN: bool>(
+    t: &DynIntVar<T, SIGN>,
+    e: &DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    dynint_min(t.clone(), e.clone())
+}
+
+pub fn dynint_max_r<T, const SIGN: bool>(
+    t: &DynIntVar<T, SIGN>,
+    e: &DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    dynint_max(t.clone(), e.clone())
+}
+
 /// Returns result of indexing of table with values.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to

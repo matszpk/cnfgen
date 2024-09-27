@@ -594,6 +594,38 @@ where
         | (DynIntExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
 }
 
+/// Returns minimal value from two.
+pub fn dynint_min<T, const SIGN: bool>(
+    t: DynIntExprNode<T, SIGN>,
+    e: DynIntExprNode<T, SIGN>,
+) -> DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    dynint_ite(t.clone().less_than(e.clone()), t, e)
+}
+
+/// Returns maximal value from two.
+pub fn dynint_max<T, const SIGN: bool>(
+    t: DynIntExprNode<T, SIGN>,
+    e: DynIntExprNode<T, SIGN>,
+) -> DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    DynIntExprNode<T, SIGN>: IntOrd<Output = BoolExprNode<T>>,
+{
+    dynint_ite(t.clone().greater_than(e.clone()), t, e)
+}
+
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
