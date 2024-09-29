@@ -30,8 +30,8 @@
 //! Same construction of expressions can be done in natural way by using operators or
 //! methods. The object called `ExprCreator` holds all expressions. The main structures
 //! that allow construct expressions are expression nodes: `BoolExprNode`, `IntExprNode`
-//! and `DynIntExprNode`. BoolExprNode allow to construct boolean expressions.
-//! `IntExprNode` and `DynIntExprNode` allow to construct integer expressions or multiple
+//! and `DynIntExprNode`. BoolExprNode allows to construct boolean expressions.
+//! `IntExprNode` and `DynIntExprNode` allows to construct integer expressions or multiple
 //! bit expressions.
 //!
 //! The version 0.4.0 offers new interface to operate on expressions.
@@ -41,8 +41,8 @@
 //! New `intvar` module provides simpler interface to construct integer expressions.
 //! New `dynintvar` module provides simpler interface to construct dynamic integer expressions.
 //! The routine that creates new expression must be called inside `call16`, `call32` or `callsys`.
-//! That routine can returns formula to generate. The `BoolVar` allow to operate on boolean
-//! expressions, `IntVar` allow to operate on integer expressions and `DynIntVar` allow to
+//! That routine can returns formula to generate. The `BoolVar` allows to operate on boolean
+//! expressions, `IntVar` allows to operate on integer expressions and `DynIntVar` allows to
 //! operate on dynamic integer expressions. These types can be used as references and
 //! constants be converted into one of that type by using From trait.
 //!
