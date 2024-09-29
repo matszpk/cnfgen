@@ -1162,6 +1162,23 @@ impl_int_ipty!(int_ord_uint_x_signed);
 
 pub use crate::intexpr::{int_ite, int_max, int_min};
 
+/// Returns result of the If-Then-Else (ITE) - integer version - optimized version.
+pub fn int_opt_ite<T, N, const SIGN: bool>(
+    c: BoolVar<T>,
+    t: IntVar<T, N, SIGN>,
+    e: IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    N: ArrayLength<usize>,
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    IntVar(crate::intexpr::int_opt_ite(c.into(), t.0, e.0))
+}
+
 pub fn int_ite_r<T, N: ArrayLength<usize>, const SIGN: bool>(
     c: &BoolVar<T>,
     t: &IntVar<T, N, SIGN>,
@@ -1175,6 +1192,21 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     int_ite(c.clone(), t.clone(), e.clone())
+}
+
+pub fn int_opt_ite_r<T, N: ArrayLength<usize>, const SIGN: bool>(
+    c: &BoolVar<T>,
+    t: &IntVar<T, N, SIGN>,
+    e: &IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    int_opt_ite(c.clone(), t.clone(), e.clone())
 }
 
 pub fn int_min_r<T, N: ArrayLength<usize>, const SIGN: bool>(

@@ -805,6 +805,42 @@ where
     (c.clone() & t) | ((!c) & e)
 }
 
+/// Returns result of the If-Then-Else (ITE) - bitwise version. Optimized version.
+pub fn bool_opt_ite<T>(
+    c: BoolExprNode<T>,
+    t: BoolExprNode<T>,
+    e: BoolExprNode<T>,
+) -> BoolExprNode<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    assert_eq!(Rc::as_ptr(&t.creator), Rc::as_ptr(&e.creator));
+    // optimization for v1 op v1.
+    if t.index == e.index {
+        return t;
+    }
+    let (node1, node2) = {
+        let creator = t.creator.borrow();
+        (creator.nodes[t.index], creator.nodes[e.index])
+    };
+    // optimization for v1 op -v1, or -v1 op v1.
+    if node2 == Node::Negated(t.index) || node1 == Node::Negated(e.index) {
+        return e ^ c;
+    }
+    if let Node::Single(lit1) = node1 {
+        if let Node::Single(lit2) = node2 {
+            if lit1 == !lit2 {
+                return e ^ c;
+            }
+        }
+    }
+    bool_ite(c, t, e)
+}
+
 /// Returns result of half adder: sum and carry.
 pub fn half_adder<A, B>(a: A, b: B) -> (<A as BitXor<B>>::Output, <A as BitAnd<B>>::Output)
 where
@@ -1341,6 +1377,68 @@ mod tests {
                     Node::Or(5, 7)
                 ],
                 lit_to_index: vec![2, 6, 3, 0, 4, 0],
+            },
+            *ec.borrow()
+        );
+    }
+
+    #[test]
+    fn test_expr_bool_opt_ite() {
+        let ec = ExprCreator::<isize>::new();
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
+        let _ = bool_opt_ite(v1, v2, v3);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::And(2, 3),
+                    Node::Single(Literal::VarLit(-1)),
+                    Node::And(6, 4),
+                    Node::Or(5, 7)
+                ],
+                lit_to_index: vec![2, 6, 3, 0, 4, 0],
+            },
+            *ec.borrow()
+        );
+        let ec = ExprCreator::<isize>::new();
+        let v1 = BoolExprNode::variable(ec.clone());
+        let v2 = BoolExprNode::variable(ec.clone());
+        // this same T and E.
+        let _ = bool_opt_ite(v1.clone(), v2.clone(), v2.clone());
+        // T and negated T as E.
+        let _ = bool_opt_ite(v1.clone(), v2.clone(), !v2.clone());
+        // E and negated E as T.
+        let _ = bool_opt_ite(v1.clone(), !v2.clone(), v2.clone());
+        let v3 = BoolExprNode::variable(ec.clone());
+        let xp = v2.clone() & v3.clone();
+        // T and negated T as E.
+        let _ = bool_opt_ite(v1.clone(), xp.clone(), !xp.clone());
+        // E and negated E as T.
+        let _ = bool_opt_ite(v1, !xp.clone(), xp);
+        assert_eq!(
+            ExprCreator {
+                nodes: vec![
+                    Node::Single(Literal::Value(false)),
+                    Node::Single(Literal::Value(true)),
+                    Node::Single(Literal::VarLit(1)),
+                    Node::Single(Literal::VarLit(2)),
+                    Node::Single(Literal::VarLit(-2)),
+                    Node::Xor(4, 2),
+                    Node::Xor(3, 2),
+                    Node::Single(Literal::VarLit(3)),
+                    Node::And(3, 7),
+                    Node::Negated(8),
+                    Node::Xor(9, 2),
+                    Node::Negated(8),
+                    Node::Xor(8, 2),
+                ],
+                lit_to_index: vec![2, 0, 3, 4, 7, 0],
             },
             *ec.borrow()
         );

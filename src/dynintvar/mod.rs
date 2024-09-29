@@ -1066,6 +1066,22 @@ where
     DynIntVar(dynintexpr::dynint_ite(BoolExprNode::from(c), t.0, e.0))
 }
 
+/// Returns result of the If-Then-Else (ITE) - dyninteger version - optimized version.
+pub fn dynint_opt_ite<T, const SIGN: bool>(
+    c: BoolVar<T>,
+    t: DynIntVar<T, SIGN>,
+    e: DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    DynIntVar(dynintexpr::dynint_opt_ite(c.into(), t.0, e.0))
+}
+
 pub fn dynint_ite_r<T, const SIGN: bool>(
     c: &BoolVar<T>,
     t: &DynIntVar<T, SIGN>,
@@ -1079,6 +1095,21 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     dynint_ite(c.clone(), t.clone(), e.clone())
+}
+
+pub fn dynint_opt_ite_r<T, const SIGN: bool>(
+    c: &BoolVar<T>,
+    t: &DynIntVar<T, SIGN>,
+    e: &DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    dynint_opt_ite(c.clone(), t.clone(), e.clone())
 }
 
 /// Returns minimal value from two.

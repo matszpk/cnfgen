@@ -594,6 +594,26 @@ where
         | (DynIntExprNode::<T, SIGN>::filled_expr(t.len(), !c) & e)
 }
 
+/// Returns result of the If-Then-Else (ITE) - dyninteger version - optimized version.
+pub fn dynint_opt_ite<T, const SIGN: bool>(
+    c: BoolExprNode<T>,
+    t: DynIntExprNode<T, SIGN>,
+    e: DynIntExprNode<T, SIGN>,
+) -> DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    DynIntExprNode::from_boolexprs(
+        t.iter()
+            .zip(e.iter())
+            .map(|(tb, eb)| bool_opt_ite(c.clone(), tb, eb)),
+    )
+}
+
 /// Returns minimal value from two.
 pub fn dynint_min<T, const SIGN: bool>(
     t: DynIntExprNode<T, SIGN>,

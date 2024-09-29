@@ -120,7 +120,7 @@ use std::rc::Rc;
 use generic_array::typenum::*;
 use generic_array::*;
 
-use crate::boolexpr::{bool_ite, half_adder, BoolExprNode};
+use crate::boolexpr::{bool_ite, bool_opt_ite, half_adder, BoolExprNode};
 pub use crate::boolexpr_creator::{ExprCreator, ExprCreator32, ExprCreatorSys};
 use crate::dynintexpr::DynIntExprNode;
 use crate::int_utils::*;
@@ -547,6 +547,28 @@ where
 {
     (<T as BitMask<C>>::bitmask(c.clone()) & t)
         | (<E as BitMask<<C as Not>::Output>>::bitmask(!c) & e)
+}
+
+/// Returns result of the If-Then-Else (ITE) - integer version - optimized version.
+pub fn int_opt_ite<T, N, const SIGN: bool>(
+    c: BoolExprNode<T>,
+    t: IntExprNode<T, N, SIGN>,
+    e: IntExprNode<T, N, SIGN>,
+) -> IntExprNode<T, N, SIGN>
+where
+    N: ArrayLength<usize>,
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    IntExprNode::from_boolexprs(
+        t.iter()
+            .zip(e.iter())
+            .map(|(tb, eb)| bool_opt_ite(c.clone(), tb, eb)),
+    )
+    .unwrap()
 }
 
 /// Returns minimal value from two.

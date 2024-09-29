@@ -691,6 +691,18 @@ new_opassign_impl!(BitXorAssign, bitxor_assign);
 
 pub use crate::boolexpr::{bool_ite, full_adder, half_adder};
 
+/// Returns result of the If-Then-Else (ITE) - bitwise version. Optimized version.
+pub fn bool_opt_ite<T>(c: BoolVar<T>, t: BoolVar<T>, e: BoolVar<T>) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    BoolVar(crate::boolexpr::bool_opt_ite(c.0, t.0, e.0))
+}
+
 pub fn opt_full_adder_r<T, I0, I1, I2>(a: &I0, b: &I1, c: &I2) -> (BoolVar<T>, BoolVar<T>)
 where
     T: VarLit + Neg<Output = T> + Debug,
