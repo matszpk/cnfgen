@@ -191,6 +191,46 @@ where
     }
 }
 
+/// If two expr nodes are same
+pub fn boolexpr_are_same<T>(t1: &BoolExprNode<T>, t2: &BoolExprNode<T>) -> bool
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    t1.index == t2.index
+}
+
+/// If two expr nodes are negated (T2=!T1)
+pub fn boolexpr_are_negated<T>(t1: &BoolExprNode<T>, t2: &BoolExprNode<T>) -> bool
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    assert_eq!(Rc::as_ptr(&t1.creator), Rc::as_ptr(&t2.creator));
+    let (node1, node2) = {
+        let creator = t1.creator.borrow();
+        (creator.nodes[t1.index], creator.nodes[t2.index])
+    };
+    // optimization for v1 op -v1, or -v1 op v1.
+    if node2 == Node::Negated(t1.index) || node1 == Node::Negated(t2.index) {
+        return true;
+    }
+    if let Node::Single(lit1) = node1 {
+        if let Node::Single(lit2) = node2 {
+            if lit1 == !lit2 {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// An implementation Not for BoolExprNode.
 impl<T> Not for BoolExprNode<T>
 where
