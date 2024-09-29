@@ -8,7 +8,7 @@ description = "Generate DIMACS CNF formula from operations"
 repository = "https://github.com/matszpk/cnfgen"
 documentation = "https://docs.rs/cnfgen"
 keywords = ["cnf", "logic", "cnfgen", "SAT"]
-categories = ["science", "logic", "mathematics"]
+categories = ["science", "mathematics"]
 
 [dependencies]
 itoap = "1.0"
