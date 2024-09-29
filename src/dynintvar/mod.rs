@@ -1324,6 +1324,121 @@ where
         .collect::<Vec<_>>()
 }
 
+// optimized version
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_table<T, I, const SIGN: bool>(
+    index: DynIntVar<T, SIGN>,
+    table_iter: I,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = DynIntVar<T, SIGN>>,
+{
+    DynIntVar::<T, SIGN>(dynintexpr::dynint_opt_table(
+        index.into(),
+        table_iter.into_iter().map(|x| x.into()),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_table_partial<T, I, const SIGN: bool>(
+    index: DynIntVar<T, SIGN>,
+    table_iter: I,
+    fill: DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = DynIntVar<T, SIGN>>,
+{
+    let k = index.bitnum();
+    let tbl = table_iter
+        .into_iter()
+        .take(1 << k)
+        .map(|x| x.into())
+        .collect::<Vec<_>>();
+    let tbl_len = tbl.len();
+    DynIntVar::<T, SIGN>(dynintexpr::dynint_opt_table(
+        index.into(),
+        tbl.into_iter()
+            .chain(std::iter::repeat(fill.into()).take((1 << k) - tbl_len)),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_booltable<T, I, const SIGN: bool>(
+    index: DynIntVar<T, SIGN>,
+    table_iter: I,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    BoolVar::<T>::from(dynintexpr::dynint_opt_booltable(
+        index.into(),
+        table_iter.into_iter().map(|x| x.into()),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_booltable_partial<T, I, BTP, const SIGN: bool>(
+    index: DynIntVar<T, SIGN>,
+    table_iter: I,
+    fill: BTP,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolVar<T>>,
+    BTP: Into<BoolVar<T>>,
+{
+    let k = index.bitnum();
+    let tbl = table_iter
+        .into_iter()
+        .take(1 << k)
+        .map(|x| x.into())
+        .collect::<Vec<_>>();
+    let tbl_len = tbl.len();
+    BoolVar::<T>::from(dynintexpr::dynint_opt_booltable(
+        index.into(),
+        tbl.into_iter()
+            .chain(std::iter::repeat(fill.into().into()).take((1 << k) - tbl_len)),
+    ))
+}
+
 // version with references
 
 /// Returns result of indexing of table with values.
@@ -1438,6 +1553,92 @@ where
     <isize as TryFrom<T>>::Error: Debug,
 {
     dynint_booldemux(index.clone(), value.clone())
+}
+
+// optimized version
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_table_r<T, I, const SIGN: bool>(
+    index: &DynIntVar<T, SIGN>,
+    table_iter: I,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = DynIntVar<T, SIGN>>,
+{
+    dynint_opt_table(index.clone(), table_iter)
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_table_partial_r<T, I, const SIGN: bool>(
+    index: &DynIntVar<T, SIGN>,
+    table_iter: I,
+    fill: &DynIntVar<T, SIGN>,
+) -> DynIntVar<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = DynIntVar<T, SIGN>>,
+{
+    dynint_opt_table_partial(index.clone(), table_iter, fill.clone())
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_booltable_r<T, I, const SIGN: bool>(
+    index: &DynIntVar<T, SIGN>,
+    table_iter: I,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    dynint_opt_booltable::<T, I, SIGN>(index.clone(), table_iter)
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_booltable_partial_r<T, I, const SIGN: bool>(
+    index: &DynIntVar<T, SIGN>,
+    table_iter: I,
+    fill: &BoolVar<T>,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    dynint_opt_booltable_partial::<T, I, BoolVar<T>, SIGN>(index.clone(), table_iter, fill.clone())
 }
 
 // types

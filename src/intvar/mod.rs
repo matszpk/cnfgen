@@ -1358,6 +1358,125 @@ where
     ))
 }
 
+// optimized
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_table<T, N, K, I, const SIGN: bool>(
+    index: IntVar<T, K, SIGN>,
+    table_iter: I,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = IntVar<T, N, SIGN>>,
+{
+    IntVar::<T, N, SIGN>(intexpr::int_opt_table(
+        index.into(),
+        table_iter.into_iter().map(|x| x.into()),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_table_partial<T, N, K, I, const SIGN: bool>(
+    index: IntVar<T, K, SIGN>,
+    table_iter: I,
+    fill: IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = IntVar<T, N, SIGN>>,
+{
+    let tbl = table_iter
+        .into_iter()
+        .take(1 << K::USIZE)
+        .map(|x| x.into())
+        .collect::<Vec<_>>();
+    let tbl_len = tbl.len();
+    IntVar::<T, N, SIGN>(intexpr::int_opt_table(
+        index.into(),
+        tbl.into_iter()
+            .chain(std::iter::repeat(fill.into()).take((1 << K::USIZE) - tbl_len)),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_booltable<T, K, I, const SIGN: bool>(
+    index: IntVar<T, K, SIGN>,
+    table_iter: I,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    BoolVar::<T>::from(intexpr::int_opt_booltable(
+        index.into(),
+        table_iter.into_iter().map(|x| x.into()),
+    ))
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_booltable_partial<T, K, I, BTP, const SIGN: bool>(
+    index: IntVar<T, K, SIGN>,
+    table_iter: I,
+    fill: BTP,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = BoolVar<T>>,
+    BTP: Into<BoolVar<T>>,
+{
+    let tbl = table_iter
+        .into_iter()
+        .take(1 << K::USIZE)
+        .map(|x| x.into())
+        .collect::<Vec<_>>();
+    let tbl_len = tbl.len();
+    BoolVar::<T>::from(intexpr::int_opt_booltable(
+        index.into(),
+        tbl.into_iter()
+            .chain(std::iter::repeat(fill.into().into()).take((1 << K::USIZE) - tbl_len)),
+    ))
+}
+
 /// Demulitplexer - returns list of outputs of demulitplexer.
 ///
 /// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
@@ -1525,6 +1644,98 @@ where
     K: ArrayLength<usize>,
 {
     int_booldemux(index.clone(), value.clone())
+}
+
+// optimized
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_table_r<T, N, K, I, const SIGN: bool>(
+    index: &IntVar<T, K, SIGN>,
+    table_iter: I,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = IntVar<T, N, SIGN>>,
+{
+    int_opt_table(index.clone(), table_iter)
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_table_partial_r<T, N, K, I, const SIGN: bool>(
+    index: &IntVar<T, K, SIGN>,
+    table_iter: I,
+    fill: &IntVar<T, N, SIGN>,
+) -> IntVar<T, N, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    N: ArrayLength<usize>,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = IntVar<T, N, SIGN>>,
+{
+    int_opt_table_partial(index.clone(), table_iter, fill.clone())
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_booltable_r<T, K, I, const SIGN: bool>(
+    index: &IntVar<T, K, SIGN>,
+    table_iter: I,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    int_opt_booltable::<T, K, I, SIGN>(index.clone(), table_iter)
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions. Table can have partial length. fill - is item to fill rest of
+/// required space in table.
+/// This optimized version reduces duplicates and negations.
+pub fn int_opt_booltable_partial_r<T, K, I, const SIGN: bool>(
+    index: &IntVar<T, K, SIGN>,
+    table_iter: I,
+    fill: &BoolVar<T>,
+) -> BoolVar<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    K: ArrayLength<usize>,
+    I: IntoIterator<Item = BoolVar<T>>,
+{
+    int_opt_booltable_partial::<T, K, I, BoolVar<T>, SIGN>(index.clone(), table_iter, fill.clone())
 }
 
 pub type IntVar16<N, const SIGN: bool> = IntVar<i16, N, SIGN>;

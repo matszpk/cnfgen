@@ -803,6 +803,134 @@ where
         .collect::<Vec<_>>()
 }
 
+// optimized version
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It perform operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_table<T, I, const SIGN: bool>(
+    index: DynIntExprNode<T, SIGN>,
+    table_iter: I,
+) -> DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = DynIntExprNode<T, SIGN>>,
+{
+    let tbl = Vec::from_iter(table_iter);
+    DynIntExprNode::from_boolexprs(
+        (0..tbl[0].bitnum())
+            .map(|bit| dynint_opt_booltable(index.clone(), tbl.iter().map(|t| t.bit(bit)))),
+    )
+}
+
+/// Returns result of indexing of table with values. Optimized version.
+///
+/// It performs operation: `table[index]`, where table given as object convertible to
+/// iterator of expressions.
+/// This optimized version reduces duplicates and negations.
+pub fn dynint_opt_booltable<T, I, const SIGN: bool>(
+    index: DynIntExprNode<T, SIGN>,
+    table_iter: I,
+) -> BoolExprNode<T>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+    I: IntoIterator<Item = BoolExprNode<T>>,
+{
+    use crate::boolexpr::{boolexpr_are_negated, boolexpr_are_same};
+    let mut ites: Vec<BoolExprNode<T>> = vec![];
+    let tbl = Vec::from_iter(table_iter);
+    // detect any repetitions in any step before generation
+    let mut iter = tbl.iter();
+    while let Some(v) = iter.next() {
+        if let Some(v2) = iter.next() {
+            let count = ites.len() << 1;
+            let mut already_added = false;
+            for k in 1..index.len() {
+                let kbit = 1 << k;
+                // if odd in some bit level
+                if (count & kbit) != 0 {
+                    // check two pairs
+                    if boolexpr_are_same(&tbl[count], &tbl[count - kbit])
+                        && boolexpr_are_same(&tbl[count + 1], &tbl[count + 1 - kbit])
+                    {
+                        // if are same
+                        ites.push(ites[(count - kbit) >> 1].clone());
+                        already_added = true;
+                        break;
+                    } else if boolexpr_are_negated(&tbl[count], &tbl[count - kbit])
+                        && boolexpr_are_negated(&tbl[count + 1], &tbl[count + 1 - kbit])
+                    {
+                        // if negated
+                        ites.push(!ites[(count - kbit) >> 1].clone());
+                        already_added = true;
+                        break;
+                    }
+                }
+            }
+            if !already_added {
+                ites.push(bool_opt_ite(index.bit(0), v2.clone(), v.clone()));
+            }
+        } else {
+            panic!("Odd number of elements");
+        }
+    }
+
+    for step in 1..(index.len()) {
+        if (ites.len() & 1) != 0 {
+            panic!("Odd number of elements");
+        }
+        for i in 0..(ites.len() >> 1) {
+            let count = i << (step + 1);
+            let mut already_added = false;
+            for k in step + 1..index.len() {
+                let kbit = 1 << k;
+                // if odd in some bit level
+                if (count & kbit) != 0 {
+                    // check two pairs
+                    if (0..(1 << (step + 1)))
+                        .all(|x| boolexpr_are_same(&tbl[count + x], &tbl[count + x - kbit]))
+                    {
+                        // if are same
+                        ites[i] = ites[(count - kbit) >> (step + 1)].clone();
+                        already_added = true;
+                        break;
+                    } else if (0..(1 << (step + 1)))
+                        .all(|x| boolexpr_are_negated(&tbl[count + x], &tbl[count + x - kbit]))
+                    {
+                        // if negated
+                        ites[i] = !ites[(count - kbit) >> (step + 1)].clone();
+                        already_added = true;
+                        break;
+                    }
+                }
+            }
+            if !already_added {
+                ites[i] = bool_opt_ite(
+                    index.bit(step),
+                    ites[(i << 1) + 1].clone(),
+                    ites[i << 1].clone(),
+                );
+            }
+        }
+        ites.resize(
+            ites.len() >> 1,
+            BoolExprNode::single_value(index.creator.clone(), false),
+        );
+    }
+
+    ites.pop().unwrap()
+}
+
 // absolute value
 
 impl<T> DynIntExprNode<T, true>
