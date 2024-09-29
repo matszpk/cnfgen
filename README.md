@@ -1,6 +1,6 @@
 # CNFGEN
 
-The library to generate CNF (Conjunctive Normal Form) formula.
+The library to generate CNF (Conjunctive Normal Form) formulas.
 
 This library provides simple CNF writer, structures to create boolean formula from
 boolean expressions and integer expressions. The module `writer` provides
@@ -16,9 +16,22 @@ and `DynIntExprNode`. BoolExprNode allow to construct boolean expressions.
 `IntExprNode` and `DynIntExprNode` allow to construct integer expressions or multiple
 bit expressions.
 
-Version 0.4.0 (current) offers new interface to operate on expressions.
+The version 0.4.0 offers new interface to operate on expressions.
 This interface in `boolvar`, `intvar` and `dynintvar` modules. New interface offers
 few simplifications that facility writing complex expressions.
+New `boolvar` module provides simpler interface to construct boolean expressions.
+New `intvar` module provides simpler interface to construct integer expressions.
+New `dynintvar` module provides simpler interface to construct dynamic integer expressions.
+The routine that creates new expression must be call inside `call16`, `call32` or `callsys`.
+That routine can returns formula to generate. The `BoolVar` allow to operate on boolean
+expressions, `IntVar` allow to operate on integer expressions and `DynIntVar` allow to
+operate on dynamic integer expressions. These types can be used as references and
+constants be converted into one of that type by using From trait.
+
+The version 0.5.0 adds `min` and `max` helpers, new an optimized tables and If-Then-Else and
+and additional `subvalues` method to dynamic integers.
+
+Samples of usage of these modules can be found in documentation of these modules.
 
 Typical usage of this library is: construction boolean expression and write it by using
 method `write` from an expression object. The `writer` module can be used to write
