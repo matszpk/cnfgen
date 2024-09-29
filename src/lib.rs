@@ -40,7 +40,7 @@
 //! New `boolvar` module provides simpler interface to construct boolean expressions.
 //! New `intvar` module provides simpler interface to construct integer expressions.
 //! New `dynintvar` module provides simpler interface to construct dynamic integer expressions.
-//! The routine that creates new expression must be call inside `call16`, `call32` or `callsys`.
+//! The routine that creates new expression must be called inside `call16`, `call32` or `callsys`.
 //! That routine can returns formula to generate. The `BoolVar` allow to operate on boolean
 //! expressions, `IntVar` allow to operate on integer expressions and `DynIntVar` allow to
 //! operate on dynamic integer expressions. These types can be used as references and
