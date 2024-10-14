@@ -401,6 +401,29 @@ where
     }
 }
 
+impl<T: VarLit, const SIGN: bool> TryFromNSized<BoolExprNode<T>> for DynIntExprNode<T, SIGN>
+where
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    type Error = IntError;
+
+    /// Put boolean as first bit of integer.
+    fn try_from_n(v: BoolExprNode<T>, n: usize) -> Result<Self, Self::Error> {
+        let ec = v.creator.clone();
+        if n > 0 {
+            Ok(Self::from_boolexprs(std::iter::once(v).chain(
+                (0..n - 1).map(|_| BoolExprNode::single_value(ec.clone(), false)),
+            )))
+        } else {
+            Err(IntError::BitOverflow)
+        }
+    }
+}
+
 /// Trait to convert primitive integer into object (`DynIntExprNode`).
 /// It returns `Ok(result)` if integer will be match to size given in `n`.
 pub trait TryIntConstantN<T: VarLit, U>: Sized {

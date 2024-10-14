@@ -504,6 +504,27 @@ macro_rules! impl_int_from {
 
 impl_int_ty1_lt_ty2!(impl_int_from);
 
+impl<T: VarLit, N, const SIGN: bool> From<BoolExprNode<T>> for IntExprNode<T, N, SIGN>
+where
+    N: ArrayLength<usize>,
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    /// Put boolean as first bit of integer.
+    fn from(v: BoolExprNode<T>) -> Self {
+        assert_ne!(N::USIZE, 0);
+        let ec = v.creator.clone();
+        Self::from_boolexprs(
+            std::iter::once(v)
+                .chain((0..N::USIZE - 1).map(|_| BoolExprNode::single_value(ec.clone(), false))),
+        )
+        .unwrap()
+    }
+}
+
 // types
 
 /// IntExprNode for unsinged 8-bit integer.

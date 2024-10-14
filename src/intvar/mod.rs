@@ -468,6 +468,21 @@ impl_xint_from!(i16, EXPR_CREATOR_16);
 impl_xint_from!(i32, EXPR_CREATOR_32);
 impl_xint_from!(isize, EXPR_CREATOR_SYS);
 
+impl<T: VarLit, N, const SIGN: bool> From<BoolVar<T>> for IntVar<T, N, SIGN>
+where
+    N: ArrayLength<usize>,
+    T: VarLit + Neg<Output = T> + Debug,
+    isize: TryFrom<T>,
+    <T as TryInto<usize>>::Error: Debug,
+    <T as TryFrom<usize>>::Error: Debug,
+    <isize as TryFrom<T>>::Error: Debug,
+{
+    /// Put boolean as first bit of integer.
+    fn from(v: BoolVar<T>) -> Self {
+        Self(IntExprNode::<T, N, SIGN>::from(BoolExprNode::<T>::from(v)))
+    }
+}
+
 macro_rules! impl_default {
     ($t:ident, $creator:ident) => {
         impl<N> Default for IntVar<$t, N, false>
