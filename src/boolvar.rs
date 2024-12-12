@@ -90,7 +90,7 @@ pub fn get_expr_creator_sys() -> Rc<RefCell<ExprCreatorSys>> {
     EXPR_CREATOR_SYS.with_borrow(|ec| ec.as_ref().unwrap().clone())
 }
 
-/// Call routine f that operates on expressions with new ExprCreator16 (where T type is i16).
+/// Call routine of that operates on expressions with new ExprCreator16 (where T type is i16).
 /// Before call install new ExprCreator and after call uninstall ExprCreator.
 pub fn call16<F, R>(mut f: F) -> R
 where
@@ -105,7 +105,7 @@ where
     r
 }
 
-/// Call routine f that operates on expressions with new ExprCreator32 (where T type is i32).
+/// Call routine of that operates on expressions with new ExprCreator32 (where T type is i32).
 /// Before call install new ExprCreator and after call uninstall ExprCreator.
 pub fn call32<F, R>(mut f: F) -> R
 where
@@ -120,7 +120,7 @@ where
     r
 }
 
-/// Call routine f that operates on expressions with new ExprCreatorSys (where T type is isize).
+/// Call routine of that operates on expressions with new ExprCreatorSys (where T type is isize).
 /// Before call install new ExprCreator and after call uninstall ExprCreator.
 pub fn callsys<F, R>(mut f: F) -> R
 where
