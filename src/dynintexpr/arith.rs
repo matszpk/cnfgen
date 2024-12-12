@@ -738,7 +738,7 @@ where
     ites.pop().unwrap()
 }
 
-/// Demulitplexer - returns list of outputs of demulitplexer.
+/// Demultiplexer - returns list of outputs of demultiplexer.
 ///
 /// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn dynint_demux<T, const SIGN: bool>(
@@ -771,7 +771,7 @@ where
         .collect::<Vec<_>>()
 }
 
-/// Demulitplexer - returns list of outputs of demulitplexer.
+/// Demultiplexer - returns list of outputs of demultiplexer.
 ///
 /// It performs operation: `[i==0 & v, i==1 & v, i==2 & v,....]`.
 pub fn dynint_booldemux<T, const SIGN: bool>(
