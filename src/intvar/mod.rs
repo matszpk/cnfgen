@@ -33,8 +33,8 @@
 //! Type of IntVar can be written in form: `IntVar<i32, U12, false>` -
 //! IntVar for 12-bit unsigned integer with 32-bit variable literals.
 //!
-//! Predefined types: I{N}Var{T} - N is number of bits, T - length of literal
-//! {16, 32, Sys - isize).
+//! Predefined types: {S}{N}Var{T}. S is signess (I - signed, U - unsigned).
+//! N is number of bits, T is length of literal {16, 32, Sys - isize).
 //!
 //! IMPORTANT: About overloading standard arithmetic operators. Any operations done in modular
 //! arithmetic without checking carry, overflow and underflow. Therefore IntVar type should be
