@@ -617,7 +617,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_table<T, N, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,
@@ -665,7 +666,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_booltable<T, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,
@@ -712,8 +714,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_table<T, N, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,
@@ -738,8 +740,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_booltable<T, K, I, const SIGN: bool>(
     index: IntExprNode<T, K, SIGN>,
     table_iter: I,

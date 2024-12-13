@@ -18,11 +18,23 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
+//! The module to generate CNF clauses from integer expressions better than 'intexpr'.
+//!
 //! The module to generate CNF clauses from integer expressions better than `intexpr` module.
 //! It offers same functionality as `intexpr`, reference support, simpler conversion
 //! from integers, improved concatenation, standard binary arithmetic operators overloading.
 //! To write some formula `boolvar::call16`, `boolvar::call32` or `boolvar::callsys` should be
 //! used to call routine that generates formula by using this module.
+//!
+//! Three generic parameters determines type of IntVar.
+//! The first T parameter is just variable literal type - it can be omitted.
+//! The second parameter is typed integer (from typenum crate) that determine number of bits
+//! of integer. The last parameter is sign - true if signed integer or false if unsigned integer.
+//! Type of IntVar can be written in form: `IntVar<i32, U12, false>` -
+//! IntVar for 12-bit unsigned integer with 32-bit variable literals.
+//!
+//! Predefined types: I{N}Var{T} - N is number of bits, T - length of literal
+//! {16, 32, Sys - isize).
 //!
 //! IMPORTANT: About overloading standard arithmetic operators. Any operations done in modular
 //! arithmetic without checking carry, overflow and underflow. Therefore IntVar type should be
@@ -1263,7 +1275,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_table<T, N, K, I, const SIGN: bool>(
     index: IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1320,7 +1333,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_booltable<T, K, I, const SIGN: bool>(
     index: IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1378,8 +1392,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_table<T, N, K, I, const SIGN: bool>(
     index: IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1437,8 +1451,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_booltable<T, K, I, const SIGN: bool>(
     index: IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1541,7 +1555,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_table_r<T, N, K, I, const SIGN: bool>(
     index: &IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1585,7 +1600,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn int_booltable_r<T, K, I, const SIGN: bool>(
     index: &IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1666,8 +1682,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_table_r<T, N, K, I, const SIGN: bool>(
     index: &IntVar<T, K, SIGN>,
     table_iter: I,
@@ -1712,8 +1728,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn int_opt_booltable_r<T, K, I, const SIGN: bool>(
     index: &IntVar<T, K, SIGN>,
     table_iter: I,

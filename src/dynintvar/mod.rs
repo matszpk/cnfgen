@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
+//! The module to generate CNF clauses from dynamic integer expressions better than 'dynintexpr'.
+//!
 //! The module to generate CNF clauses from integer expressions better than `dynintexpr` module.
 //! It offers same functionality as `intexpr`, reference support, immediates handling,
 //! simpler conversion from integers, improved concatenation,
@@ -25,6 +27,13 @@
 //! To write some formula `boolvar::call16`, `boolvar::call32` or `boolvar::callsys` should be
 //! used to call routine that generates formula by using this module.
 //!
+//! Two generic parameters determines type of DynIntVar.
+//! The first T parameter is just variable literal type - it can be omitted.
+//! The second parameter is sign - true if signed integer or false if unsigned integer.
+//! Type of DynIntExprNode can be written in form: `DynIntVar<i32, false>` -
+//! DynIntVar for unsigned integer with 32-bit variable literals.
+//!
+//! You can use `IDynExprNode` or `UDynExprNode` to omit second parameter.
 //! IMPORTANT: About overloading standard arithmetic operators. Any operations done in modular
 //! arithmetic without checking carry, overflow and underflow. Therefore DynIntVar type should be
 //! treat as modular arithmetic type.
@@ -1191,7 +1200,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_table<T, I, const SIGN: bool>(
     index: DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1245,7 +1255,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_booltable<T, I, const SIGN: bool>(
     index: DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1343,8 +1354,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_table<T, I, const SIGN: bool>(
     index: DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1399,8 +1410,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_booltable<T, I, const SIGN: bool>(
     index: DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1458,7 +1469,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_table_r<T, I, const SIGN: bool>(
     index: &DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1498,7 +1510,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_booltable_r<T, I, const SIGN: bool>(
     index: &DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1574,8 +1587,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_table_r<T, I, const SIGN: bool>(
     index: &DynIntVar<T, SIGN>,
     table_iter: I,
@@ -1616,8 +1629,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_booltable_r<T, I, const SIGN: bool>(
     index: &DynIntVar<T, SIGN>,
     table_iter: I,

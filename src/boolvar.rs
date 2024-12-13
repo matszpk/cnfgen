@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
+//! The module to generate CNF clauses from boolean expressions better than 'boolexpr'.
+//!
 //! This is new module to handle expressions better than boolexpr. It allow to use
 //! references and other types. To write some formula `call16`, `call32` or `callsys` should be
 //! used to call routine that generates formula by using this module.

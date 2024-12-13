@@ -649,7 +649,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_table<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     table_iter: I,
@@ -695,7 +696,8 @@ where
 /// Returns result of indexing of table with values.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
+/// iterator of expressions. Length of table must be at lrast `1 << K` - where K is number of
+/// bits of index.
 pub fn dynint_booltable<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     table_iter: I,
@@ -808,8 +810,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It perform operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_table<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     table_iter: I,
@@ -832,8 +834,8 @@ where
 /// Returns result of indexing of table with values. Optimized version.
 ///
 /// It performs operation: `table[index]`, where table given as object convertible to
-/// iterator of expressions.
-/// This optimized version reduces duplicates and negations.
+/// iterator of expressions. Length of table must be at least `1 << K` - where K is number of
+/// bits of index. This optimized version reduces duplicates and negations.
 pub fn dynint_opt_booltable<T, I, const SIGN: bool>(
     index: DynIntExprNode<T, SIGN>,
     table_iter: I,

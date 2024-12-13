@@ -26,7 +26,7 @@
 //! writing generators which generates formula from source in higher-level language likes
 //! CVC4.
 //!
-//! Two generic parameters determines type of IntExprNode.
+//! Two generic parameters determines type of DynIntExprNode.
 //! The first T parameter is just variable literal type - it can be omitted.
 //! The second parameter is sign - true if signed integer or false if unsigned integer.
 //! Type of DynIntExprNode can be written in form: `DynIntExprNode<i32, false>` -
