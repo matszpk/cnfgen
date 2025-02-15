@@ -1158,7 +1158,7 @@ mod tests {
         test_expr_node_shl_imm_3!(true, true, U8, i8, U4, 8, 72);
 
         {
-            // check if rhs have lower number of bits
+            // check if rhs has lower number of bits
             let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U8, false>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U2, false>::variable(ec.clone());
@@ -1195,7 +1195,7 @@ mod tests {
         test_expr_node_shl_imm_5!(true, true, U32, i32, U6, 32, 1016068072);
 
         {
-            // check if rhs have lower number of bits
+            // check if rhs has lower number of bits
             let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U32, false>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U3, false>::variable(ec.clone());
@@ -1428,7 +1428,7 @@ mod tests {
         test_expr_node_shr_imm_3!(true, true, U8, i8, U4, 8, -67);
 
         {
-            // check if rhs have lower number of bits
+            // check if rhs has lower number of bits
             let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U8, false>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U2, false>::variable(ec.clone());
@@ -1467,7 +1467,7 @@ mod tests {
         test_expr_node_shr_imm_5!(true, true, U32, i32, U6, 32, -905811331);
 
         {
-            // check if rhs have lower number of bits
+            // check if rhs has lower number of bits
             let ec = ExprCreator::new();
             let x1 = IntExprNode::<isize, U32, false>::variable(ec.clone());
             let x2 = IntExprNode::<isize, U3, false>::variable(ec.clone());

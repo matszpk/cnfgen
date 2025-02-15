@@ -202,7 +202,7 @@ impl_int_ipty!(impl_int_bitval_ipty);
 
 /// Special trait to make BitMask from boolean expression.
 ///
-/// A bitmask can have all bits set or zeroed. It defined only for IntIntExprNode.
+/// A bitmask can has all bits set or zeroed. It defined only for IntIntExprNode.
 pub trait BitMask<T> {
     /// Make bit-mask from boolean expression.
     fn bitmask(bit: T) -> Self;
@@ -229,7 +229,7 @@ impl_int_ipty!(impl_int_bitmask_pty);
 
 /// Trait to make full multiplication.
 ///
-/// Full multiplication generates output have twice size of input arguments.
+/// Full multiplication generates output has twice size of input arguments.
 /// It defined for IntIntExprNode and DynIntIntExprNode.
 pub trait FullMul<Rhs = Self> {
     type Output;

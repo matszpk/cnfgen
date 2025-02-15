@@ -58,7 +58,7 @@ pub enum CNFError {
     /// It caused after write all clauses.
     #[error("Too many clauses to write")]
     TooManyClauses,
-    /// It caused if clause have variable literal out of range.
+    /// It caused if clause has variable literal out of range.
     #[error("Variable literal is out of range")]
     VarLitOutOfRange,
     /// It caused if I/O error encountered.
@@ -237,8 +237,8 @@ where
     /// Mainly to internal use. It performs function for each item.
     fn clause_for_each<F: FnMut(&T)>(&self, f: F);
 
-    /// Checks clause whether it have only allowed variable literals and variables
-    /// used in this clause doesn't have number greater than var_num.
+    /// Checks clause whether it has only allowed variable literals and variables
+    /// used in this clause doesn't has number greater than var_num.
     fn check_clause(&self, var_num: usize) -> bool {
         self.clause_all(|x| {
             *x != T::empty()
@@ -684,7 +684,7 @@ where
     }
 }
 
-/// Quantifier type. It can be a existential and universal.
+/// Quantifier type. It can be an existential and universal.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quantifier {
     /// An existential quantifier type - exists.
