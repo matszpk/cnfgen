@@ -58,7 +58,7 @@
 //!
 //! It is possible conversion between various DynIntExprNodes that have various sizes and signs.
 //! Conversions are implemented by using `TryFromNSized` traits which define
-//! a method 'try_from_n` where argument `n` defines bits of destination.
+//! the method 'try_from_n` where argument `n` defines bits of destination.
 
 use std::cell::RefCell;
 use std::fmt::Debug;

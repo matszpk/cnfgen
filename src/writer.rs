@@ -3,7 +3,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module to write CNF from clauses.
 //!
-//! This module contains utilities to write a CNF files. The CNFWriter is main structure
+//! This module contains utilities to write CNF files. The CNFWriter is main structure
 //! used to write CNF.
 //!
 //! The `VarLit` trait defines a variable literal - elements of clause. It can be
