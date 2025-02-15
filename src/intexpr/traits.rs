@@ -202,7 +202,7 @@ impl_int_ipty!(impl_int_bitval_ipty);
 
 /// Special trait to make BitMask from boolean expression.
 ///
-/// A bitmask can has all bits set or zeroed. It defined only for IntIntExprNode.
+/// The bitmask can has all bits set or zeroed. It defined only for IntIntExprNode.
 pub trait BitMask<T> {
     /// Make bit-mask from boolean expression.
     fn bitmask(bit: T) -> Self;
