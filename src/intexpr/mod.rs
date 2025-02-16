@@ -8,7 +8,7 @@
 //! You can use defined type of IntExprNode or just define your integer by supplying
 //! generic parameters.
 //!
-//! Three generic parameters determines type of IntExprNode.
+//! Three generic parameters determine type of IntExprNode.
 //! The first T parameter is just variable literal type - it can be omitted.
 //! The second parameter is typed integer (from typenum crate) that determine number of bits
 //! of integer. The last parameter is sign - true if signed integer or false if unsigned integer.

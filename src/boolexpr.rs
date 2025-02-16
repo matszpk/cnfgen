@@ -25,7 +25,7 @@
 //! }
 //! ```
 //! Same BoolExprNode can be used to build boolean expressions by using operators.
-//! Additional traits provides two extra operators: a material implication and a bolean equality.
+//! Additional traits provide two extra operators: a material implication and a bolean equality.
 
 use std::cell::RefCell;
 use std::fmt::Debug;

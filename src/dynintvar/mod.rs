@@ -83,7 +83,7 @@ pub use arith::*;
 /// The main structure that represents integer expression, subexpression or integer value.
 ///
 /// It provides same operations as IntExprNode but they are easier to use
-/// thanks simpler and easier to use interface that allow references and implements
+/// thanks simpler and easier to use interface that allows references and implements
 /// standard arithmetic operators like addition, subtraction but with modular arithmetic rules.
 /// Simple examples:
 ///

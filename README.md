@@ -6,7 +6,7 @@ This library provides simple CNF writer, structures to create boolean formula fr
 boolean expressions and integer expressions. The module `writer` provides
 basic types, traits to handle clauses and literals, simple the CNF writer to write
 same CNF formulas. The `boolexpr` module provides structure to construct boolean
-expressions. The `intexpr` and `dynintexpr` modules provides structure and traits to
+expressions. The `intexpr` and `dynintexpr` modules provide structure and traits to
 construct integer expressions.
 
 Same construction of expressions can be done in natural way by using operators or

@@ -3,7 +3,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! The module contains traits to integer expression nodes.
 //!
-//! They provides additional operations that
+//! They provide additional operations that
 //! that can be made on integers.
 
 use std::cell::RefCell;
@@ -1116,21 +1116,21 @@ pub trait ExtraOps {
     type Output;
     type BoolOutput;
 
-    /// Returns a number of ones in the binary representation of `self`.
+    /// Returns number of ones in the binary representation of `self`.
     fn count_zeros(self) -> Self::Output;
-    /// Returns a number of zeros in the binary representation of `self`.
+    /// Returns number of zeros in the binary representation of `self`.
     fn count_ones(self) -> Self::Output;
-    /// Returns a number of leading zeros in the binary representation of `self`.
+    /// Returns number of leading zeros in the binary representation of `self`.
     fn leading_zeros(self) -> Self::Output;
-    /// Returns a number of leading ones in the binary representation of `self`.
+    /// Returns number of leading ones in the binary representation of `self`.
     fn leading_ones(self) -> Self::Output;
-    /// Returns a number of trailing zeros in the binary representation of `self`.
+    /// Returns number of trailing zeros in the binary representation of `self`.
     fn trailing_zeros(self) -> Self::Output;
-    /// Returns a number of trailing ones in the binary representation of `self`.
+    /// Returns number of trailing ones in the binary representation of `self`.
     fn trailing_ones(self) -> Self::Output;
     /// Returns true if and only if `self == 2^k` for some `k`.
     fn is_power_of_two(self) -> Self::BoolOutput;
-    /// Reverses a order of bits in a integer.
+    /// Reverses order of bits in a integer.
     fn reverse_bits(self) -> Self::Output;
 }
 
