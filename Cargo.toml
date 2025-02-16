@@ -2,7 +2,7 @@
 name = "cnfgen"
 authors = ["Mateusz Szpakowski"]
 license = "Apache-2.0"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 description = "Generate DIMACS CNF formula from operations"
 repository = "https://github.com/matszpk/cnfgen"
