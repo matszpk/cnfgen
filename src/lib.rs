@@ -32,6 +32,11 @@
 //! The version 0.5.0 adds `min` and `max` helpers, new optimized tables and If-Then-Else and
 //! and additional `subvalues` method to dynamic integers.
 //!
+//! IMPORTANT: Older version (<0.7) had bug in division definition in conditional variable.
+//! (variable that control whether division is legal). Previous versions uses multiplications
+//! to define division that causes including improper condition to conditional variable.
+//! It recommeded to use new version (>=0.7).
+//!
 //! Samples of usage of these modules can be found in documentation of these modules.
 //!
 //! Typical usage of this library is: construction boolean expression and write it by using

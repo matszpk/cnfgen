@@ -1318,36 +1318,52 @@ where
 
     fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
         assert_eq!(self.indexes.len(), rhs.indexes.len());
-        let n = self.indexes.len();
-        let divres = DynIntExprNode::<T, false>::variable(self.creator.clone(), n);
-        let mut matrix =
-            gen_dadda_matrix(self.creator.clone(), &rhs.indexes, &divres.indexes, 2 * n);
-        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
-
-        // modv - division modulo
-        let modv = DynIntExprNode::<T, false>::variable(self.creator.clone(), n);
-        let modv_cond = modv.clone().less_than(rhs);
-
-        // add modulo to mulres
-        let (mulres_lo, carry) = DynIntExprNode::<T, false> {
-            creator: self.creator.clone(),
-            indexes: Vec::from(&mulres[0..n]),
-        }
-        .addc_with_carry(
-            modv.clone(),
-            BoolExprNode::single_value(self.creator.clone(), false),
-        );
-        let mulres_hi = DynIntExprNode::<T, false> {
-            creator: self.creator.clone(),
-            indexes: Vec::from(&mulres[n..]),
-        }
-        .add_same_carry(carry);
-        // condition for mulres - mulres_lo = self,  mulres_hi = 0
         let creator = self.creator.clone();
-        let mulres_cond =
-            mulres_lo.equal(self) & mulres_hi.equal(DynIntExprNode::filled(creator, n, false));
-
-        (divres, modv, modv_cond & mulres_cond)
+        let len = self.indexes.len();
+        let if_zero = rhs
+            .clone()
+            .equal(DynIntExprNode::filled(creator, len, false));
+        let mut a = self.clone();
+        let mut divbits = vec![0; len];
+        let mut bzerobits_conds = vec![];
+        {
+            // generate list of conditions (b[n-1]==0), (b[n-1]==0 and b[n-2]==0),
+            //   (b[n-1]==0 and b[n-2]==0 and ...), ...
+            let mut bzerobits = BoolExprNode::single(self.creator.clone(), true);
+            bzerobits_conds.push(bzerobits.clone());
+            for i in (1..len).rev() {
+                bzerobits &= rhs.bit(i).bequal(false);
+                bzerobits_conds.push(bzerobits.clone());
+            }
+        }
+        for ki in 0..len {
+            let i = len - ki - 1;
+            let bzerobits = bzerobits_conds.pop().unwrap();
+            let bshifted = rhs.clone() << i;
+            let mut output = vec![0; len];
+            let (carry, _) = helper_subc_cout(
+                &mut output,
+                &a,
+                &bshifted,
+                BoolExprNode::single_value(self.creator.clone(), true),
+            );
+            let diff = DynIntExprNode {
+                creator: self.creator.clone(),
+                indexes: output,
+            };
+            // carry from subtraction (true if no borrow).
+            let divbit = bzerobits & carry;
+            a = dynint_ite(divbit.clone(), diff, a);
+            divbits[i] = divbit.index;
+        }
+        (
+            DynIntExprNode {
+                creator: self.creator,
+                indexes: divbits,
+            },
+            a,
+            !if_zero,
+        )
     }
 }
 

@@ -601,39 +601,49 @@ where
     type OutputCond = BoolExprNode<T>;
 
     fn divmod(self, rhs: Self) -> (Self::Output, Self::Output, Self::OutputCond) {
-        let divres = IntExprNode::<T, N, false>::variable(self.creator.clone());
-        let mut matrix = gen_dadda_matrix(
-            self.creator.clone(),
-            &rhs.indexes,
-            &divres.indexes,
-            2 * N::USIZE,
-        );
-        let mulres = gen_dadda_mult(self.creator.clone(), &mut matrix);
-
-        // modv - division modulo
-        let modv = IntExprNode::<T, N, false>::variable(self.creator.clone());
-        let modv_cond = modv.clone().less_than(rhs);
-
-        // add modulo to mulres
-        let (mulres_lo, carry) = IntExprNode::<T, N, false> {
-            creator: self.creator.clone(),
-            indexes: GenericArray::clone_from_slice(&mulres[0..N::USIZE]),
-        }
-        .addc_with_carry(
-            modv.clone(),
-            BoolExprNode::single_value(self.creator.clone(), false),
-        );
-        let mulres_hi = IntExprNode::<T, N, false> {
-            creator: self.creator.clone(),
-            indexes: GenericArray::clone_from_slice(&mulres[N::USIZE..]),
-        }
-        .add_same_carry(carry);
-        // condition for mulres - mulres_lo = self,  mulres_hi = 0
         let creator = self.creator.clone();
-        let mulres_cond =
-            mulres_lo.equal(self) & mulres_hi.equal(IntExprNode::filled(creator, false));
-
-        (divres, modv, modv_cond & mulres_cond)
+        let if_zero = rhs.clone().equal(IntExprNode::filled(creator, false));
+        let mut a = self.clone();
+        let mut divbits = GenericArray::<usize, N>::default();
+        let mut bzerobits_conds = vec![];
+        {
+            // generate list of conditions (b[n-1]==0), (b[n-1]==0 and b[n-2]==0),
+            //   (b[n-1]==0 and b[n-2]==0 and ...), ...
+            let mut bzerobits = BoolExprNode::single(self.creator.clone(), true);
+            bzerobits_conds.push(bzerobits.clone());
+            for i in (1..N::USIZE).rev() {
+                bzerobits &= rhs.bit(i).bequal(false);
+                bzerobits_conds.push(bzerobits.clone());
+            }
+        }
+        for ki in 0..N::USIZE {
+            let i = N::USIZE - ki - 1;
+            let bzerobits = bzerobits_conds.pop().unwrap();
+            let bshifted = rhs.clone() << i;
+            let mut output = GenericArray::<usize, N>::default();
+            let (carry, _) = helper_subc_cout(
+                &mut output,
+                &a,
+                &bshifted,
+                BoolExprNode::single_value(self.creator.clone(), true),
+            );
+            let diff = IntExprNode {
+                creator: self.creator.clone(),
+                indexes: output,
+            };
+            // carry from subtraction (true if no borrow).
+            let divbit = bzerobits & carry;
+            a = int_ite(divbit.clone(), diff, a);
+            divbits[i] = divbit.index;
+        }
+        (
+            IntExprNode {
+                creator: self.creator,
+                indexes: divbits,
+            },
+            a,
+            !if_zero,
+        )
     }
 }
 
@@ -1635,14 +1645,16 @@ mod tests {
         IntExprNode<isize, U10, false>,
         BoolExprNode<isize>,
     ) {
-        let exp_ec = x1.creator.clone();
-        let res = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
-        let mul = x2.clone().fullmul(res.clone());
-        let modv = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
-        let modv_cond = modv.clone().less_than(x2.clone());
-        let mulsum = mul.mod_add(IntExprNode::<isize, U20, false>::from(modv.clone()));
-        let mul_cond = mulsum.subvalue::<U10>(0).equal(x1) & mulsum.subvalue::<U10>(10).equal(0);
-        (res, modv, modv_cond & mul_cond)
+        // let exp_ec = x1.creator.clone();
+        // let res = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        // let mul = x2.clone().fullmul(res.clone());
+        // let modv = IntExprNode::<isize, U10, false>::variable(exp_ec.clone());
+        // let modv_cond = modv.clone().less_than(x2.clone());
+        // let mulsum = mul.mod_add(IntExprNode::<isize, U20, false>::from(modv.clone()));
+        // let mul_cond = mulsum.subvalue::<U10>(0).equal(x1) &
+        //     mulsum.subvalue::<U10>(10).equal(0);
+        // (res, modv, modv_cond & mul_cond)
+        x1.divmod(x2)
     }
 
     macro_rules! test_expr_node_divmod_xx {
